@@ -332,7 +332,7 @@ async function storeIndexData(
 
   console.log(`Upserting ${convertedMessages.length} messages`);
 
-  const upserted = await upsertManyMessages(convertedMessages);
+  const _upserted = await upsertManyMessages(convertedMessages);
   // await Search.indexMessageForSearch(upserted);
 }
 

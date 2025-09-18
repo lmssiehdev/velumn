@@ -1,14 +1,14 @@
-import { Readable } from "stream";
-import { PutObjectCommandInput, S3 } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
-import { ReadableStream } from "stream/web";
+import { Readable } from 'node:stream';
+import type { ReadableStream } from 'node:stream/web';
+import { S3 } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 
 const s3bucket = new S3({
   credentials: {
     accessKeyId: process.env.S3_ACCESS_KEY!,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
-  region: "us-east-1",
+  region: 'us-east-1',
 });
 
 export async function uploadFileFromUrl(file: {
@@ -19,9 +19,11 @@ export async function uploadFileFromUrl(file: {
 }) {
   try {
     const res = await fetch(file.url);
-    if (!res.ok || !res.body) return null;
+    if (!res.ok || !res.body) {
+      return null;
+    }
     const stream = Readable.fromWeb(
-      res.body as unknown as ReadableStream<Uint8Array>,
+      res.body as unknown as ReadableStream<Uint8Array>
     );
     return new Upload({
       client: s3bucket,
@@ -29,12 +31,12 @@ export async function uploadFileFromUrl(file: {
         Bucket: process.env.S3_BUCKET_NAME!,
         Key: `${file.id}/${file.name}`,
         Body: stream,
-        ContentDisposition: "inline",
+        ContentDisposition: 'inline',
         ContentType: file.contentType,
       },
     }).done();
   } catch (error) {
-    console.error("Failed to upload file:", error);
+    console.error('Failed to upload file:', error);
     return null;
   }
 }

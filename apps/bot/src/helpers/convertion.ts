@@ -1,4 +1,10 @@
-import type { DBChannel, DBMessage, DBMessageWithRelations, DBServer, DBUser } from '@repo/db/schema';
+import type {
+  DBChannel,
+  DBMessage,
+  DBMessageWithRelations,
+  DBServer,
+  DBUser,
+} from '@repo/db/schema';
 import type {
   Guild,
   GuildBasedChannel,
@@ -79,9 +85,10 @@ export function toDbReactions(message: Message): DBMessage['reactions'] {
   return dbReactions;
 }
 
-
 // shut it, this code is pretty;
-export async function toDBMessage(message: Message): Promise<DBMessageWithRelations> {
+export async function toDBMessage(
+  message: Message
+): Promise<DBMessageWithRelations> {
   if (!message.guildId) {
     throw new Error('Message is not in a guild');
   }

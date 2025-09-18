@@ -3,7 +3,7 @@ import { Events, Listener } from '@sapphire/framework';
 import type { Client } from 'discord.js';
 import { indexServers } from '../core/indexing';
 
-async function testing(client: Client) {
+async function _testing(client: Client) {
   const guild = client.guilds.cache.get('1228579842212106302');
   if (!guild) {
     return;

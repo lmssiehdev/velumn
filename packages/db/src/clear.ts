@@ -8,7 +8,7 @@ export async function clearAllTables() {
     schema.dbMessage,
     schema.dbChannel,
     schema.dbServer,
-    schema.dbDiscordUser
+    schema.dbDiscordUser,
   ];
 
   for (const table of tables) {

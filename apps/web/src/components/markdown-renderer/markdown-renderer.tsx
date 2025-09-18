@@ -37,6 +37,7 @@ function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent:
 
     case 'heading': {
       const Tag = `h${node.level}`;
+      // @ts-expect-error
       return <Tag key={key}>{renderASTNode(node.content, key + 1, node)}</Tag>;
     }
 
