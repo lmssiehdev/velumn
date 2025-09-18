@@ -1,0 +1,31 @@
+{
+  "name": "@repo/db",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:seed": "tsx src/seed.ts",
+    "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
+    "db:wipe": "rm -rf src/drizzle && tsx src/wipe.ts",
+    "db:clear": "tsx src/clear.ts"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/pg": "^8.15.5",
+    "drizzle-kit": "^0.31.4",
+    "tsx": "^4.20.5",
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.888.0",
+    "@aws-sdk/lib-storage": "^3.888.0",
+    "drizzle-orm": "^0.44.5",
+    "pg": "^8.16.3"
+  }
+}

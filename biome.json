@@ -3,5 +3,15 @@
   "extends": ["ultracite"],
   "files": {
     "includes": ["!**/*.{jsx,tsx}"]
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "useSimplifiedLogicExpression": "off"
+      },
+      "suspicious": {
+        "noConsole": "off"
+      }
+    }
   }
 }
