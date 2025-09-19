@@ -66,7 +66,6 @@ function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent:
         </Code>
       );
 
-
     // TODO: handle custom discord emoji
     case 'emoji':
       return node.name;

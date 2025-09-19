@@ -10,14 +10,14 @@ export const size = {
 }
 
 export const contentType = 'image/png';
-export const runtime = 'nodejs';
 
-console.log({ url: import.meta.url, cwd: process.cwd() })
-// Image generation
 export default async function Image({ params }: { params: { slug: string } }) {
 
-    const url = new URL('../../../../styles/fonts/FunnelSans-VariableFont_wght.ttf', import.meta.url);
-    const FunnelSans = await fetch(url).then((res) => res.arrayBuffer())
+    const baseUrl = process.env.NODE_ENV === 'production' 
+  ? 'https://yourdomain.com' 
+  : 'http://localhost:3000';
+    const fontUrl = `${baseUrl}/fonts/FunnelSans-VariableFont_wght.ttf`;
+    const FunnelSans = await fetch(fontUrl).then((res) => res.arrayBuffer());
     return new ImageResponse(
         (
             <div
@@ -37,14 +37,14 @@ export default async function Image({ params }: { params: { slug: string } }) {
             </div>
         ), {
         ...size,
-        //   fonts: [
-        //     {
-        //       name: 'FunnelSans',
-        //       data: FunnelSans,
-        //       style: 'normal',
-        //       weight: 400,
-        //     },
-        // ]
+          fonts: [
+            {
+              name: 'FunnelSans',
+              data: FunnelSans,
+              style: 'normal',
+              weight: 400,
+            },
+        ]
     }
     )
 }

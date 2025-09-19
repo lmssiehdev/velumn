@@ -20,6 +20,7 @@ export async function getChannelInfo(channelId: string) {
 }
 
 export async function getAllMessagesInThreads(channelId: string) {
+  console.log({ called: true });
   return await db.query.dbChannel.findFirst({
     where: eq(dbChannel.id, channelId),
     with: {
@@ -63,6 +64,10 @@ export async function findChannelById(channelId: string) {
   return await db.query.dbChannel.findFirst({
     where: eq(dbChannel.id, channelId),
   });
+}
+
+export async function deleteChannel(channelId: string) {
+  await db.delete(dbChannel).where(eq(dbChannel.id, channelId));
 }
 
 export async function upsertChannel(data: {

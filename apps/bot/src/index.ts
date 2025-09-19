@@ -1,8 +1,8 @@
 import { SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, Partials } from 'discord.js';
 import { botEnv } from './config';
+import '@sapphire/plugin-logger/register';
 
-// keep the bot running
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });

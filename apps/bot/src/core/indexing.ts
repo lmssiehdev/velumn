@@ -18,7 +18,6 @@ import {
   type Snowflake,
   type TextBasedChannel,
   type TextChannel,
-  type ThreadChannel,
 } from 'discord.js';
 import {
   extractUsersSetFromMessages,
@@ -28,9 +27,12 @@ import {
   toDbUser,
 } from '../helpers/convertion';
 import { isSnowflakeLargerAsInt } from '../helpers/snowflake';
+import { Log } from '../utils/logger';
+
+export type IndexableChannels = NewsChannel | TextChannel | ForumChannel;
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
-  const devGuild = allGuilds.find((x) => x.id === '1228579842212106302');
+  const devGuild = allGuilds.find((x) => x.id === '1385955477912948806');
   const guilds = devGuild ? [devGuild] : allGuilds;
 
   // create a server when the bot gets added to a guild
@@ -46,7 +48,7 @@ export async function indexGuild(guild: Guild) {
     const channelsCahe = [...guild.channels.cache.values()];
 
     if (channelsCahe.length === 0) {
-      Log('no_channels', null, guild);
+      Log('no_channels', guild);
       return;
     }
 
@@ -63,7 +65,6 @@ export async function indexGuild(guild: Guild) {
     Log('failed_to_fetch_guild', error, guild);
   }
 }
-type IndexableChannels = NewsChannel | TextChannel | ForumChannel;
 
 export async function indexRootChannel(channel: IndexableChannels) {
   const botCanViewChannel = channel
@@ -71,17 +72,19 @@ export async function indexRootChannel(channel: IndexableChannels) {
     ?.has(['ViewChannel', 'ReadMessageHistory']);
 
   if (!botCanViewChannel) {
-    Log('bot_cannot_view_channel', null, channel);
+    Log('bot_cannot_view_channel', channel);
     return;
   }
 
-  Log('attempting_to_index_channel', null, channel);
+  Log('attempting_to_index_channel', channel);
 
   if (channel.type === ChannelType.GuildForum) {
     const MAX_NUMBER_OF_THREADS_TO_COLLECT = 5000;
     const threadCutoffId = await findLatestMessageInChannel(channel.id);
     const archivedThreads: AnyThreadChannel[] = [];
-    Log('log_fetching_archived_channels', null, channel);
+
+    Log('log_fetching_archived_channels', channel);
+
     const fetchAllArchivedThreads = async (before?: number | string) => {
       const fetched = await channel.threads.fetchArchived({
         type: 'public',
@@ -91,6 +94,7 @@ export async function indexRootChannel(channel: IndexableChannels) {
       const last = fetched.threads.last();
       const isLastThreadOlderThanCutoff =
         last && threadCutoffId && BigInt(last.id) < BigInt(threadCutoffId);
+
       archivedThreads.push(...fetched.threads.values());
 
       if (
@@ -129,9 +133,9 @@ export async function indexRootChannel(channel: IndexableChannels) {
 
     Log(
       'log_threads_to_archive_info',
-      null,
       archivedThreads.length,
-      activeThreads.threads.size
+      activeThreads.threads.size,
+      channel
     );
 
     // archived threads are sorted by archive timestamp from newest to oldest  so we reverse them
@@ -146,9 +150,9 @@ export async function indexRootChannel(channel: IndexableChannels) {
 
     Log(
       'log_threads_prune_data',
-      archivedThreads.length,
-      activeThreads.threads.size,
-      threadsToIndex.length
+      archivedThreads.length + activeThreads.threads.size,
+      threadsToIndex.length,
+      channel
     );
 
     const mostRecentlyIndexedMessages = await bulkFindLatestMessageInChannel(
@@ -167,7 +171,6 @@ export async function indexRootChannel(channel: IndexableChannels) {
 
     Log(
       'log_truncated_out_of_date_threads',
-      null,
       threadsToIndex.length,
       outOfDateThreads.length
     );
@@ -184,7 +187,6 @@ export async function indexRootChannel(channel: IndexableChannels) {
     for await (const thread of outOfDateThreads) {
       Log(
         'indexing_thread_info',
-        null,
         ++threadsIndexed,
         outOfDateThreads.length,
         thread,
@@ -208,6 +210,7 @@ export async function indexRootChannel(channel: IndexableChannels) {
   }
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: TODO: refactor this later
 export async function indexTextBasedChannel(
   channel: GuildTextBasedChannel,
   opts?: {
@@ -226,7 +229,7 @@ export async function indexTextBasedChannel(
       start = await findLatestMessageInChannel(channel.id);
     }
 
-    Log('log_starting_indexing_from_message', null, channel, start);
+    Log('log_starting_indexing_from_message', channel, start);
 
     let messages: Message[] = [];
     if (
@@ -256,7 +259,6 @@ export async function indexTextBasedChannel(
       for await (const thread of threadsToIndex) {
         Log(
           'indexing_thread_info',
-          null,
           ++threadsIndexed,
           threadsToIndex.length,
           thread,
@@ -266,12 +268,9 @@ export async function indexTextBasedChannel(
       }
     }
     await storeIndexData(messages, channel);
-    Log('log_indexing_complete', null, channel);
+    Log('log_indexing_complete', channel);
   } catch (error) {
-    console.log(
-      `Error indexing channel ${channel.id} | ${channel.name}`,
-      error
-    );
+    console.log(`Error indexing channel ${channel.name} ${channel.id}`, error);
   }
 }
 
@@ -285,23 +284,22 @@ async function storeIndexData(
 
   if (messages.length === 0) {
     console.log(
-      `No messages to index for channel ${channel.id} | ${channel.name}`
+      `No messages to index for channel ${channel.name} ${channel.id}`
     );
   }
 
-  console.log(`Upserting channel: ${channel.id}`);
-  const lastIndexedMessageId =
-    messages.sort((a, b) => (BigInt(b.id) > BigInt(a.id) ? 1 : -1)).at(0)?.id ??
-    '0';
+  console.log(`Upserting channel: ${channel.name} ${channel.id}`);
+  const lastIndexedMessageId = getTheOldestSnowflakeId(messages);
 
   const convertedChannel = await toDbChannel(channel);
   await upsertChannel({
     create: {
       ...convertedChannel,
+      lastIndexedMessageId,
     },
     update: {
       archivedTimestamp: convertedChannel.archivedTimestamp,
-      lastIndexedMessageId,
+      ...(lastIndexedMessageId === '0' ? {} : { lastIndexedMessageId }),
     },
   });
 
@@ -313,11 +311,10 @@ async function storeIndexData(
   // Filter out messages from the system
   const filteredMessages = messages.filter((m) => !m.system);
 
-  // Convert to Answer Overflow data types
   const convertedUsers = extractUsersSetFromMessages(filteredMessages);
   const convertedMessages = await messagesToDBMessagesSet(filteredMessages);
 
-  console.log(`Upserting ${convertedUsers.length} discord accounts `);
+  console.log(`Upserting ${convertedUsers.length} discord accounts`);
 
   await upsertManyDiscordAccounts(convertedUsers);
   const botMessages = filteredMessages.filter((x) => x.author.bot);
@@ -385,93 +382,14 @@ export function sortMessagesById<T extends Message>(messages: T[]) {
   return messages.sort((a, b) => isSnowflakeLargerAsInt(a.id, b.id));
 }
 
-const errToLogStringMap = {
-  failed_to_fetch_guild: (guild: Guild) => {
-    return `Failed to fetch guild ${guild.name} (${guild.id})`;
-  },
-  faied_to_index_Thread: (thread: ThreadChannel) => {
-    return `Failed to index thread ${thread.name} (${thread.id})`;
-  },
-  attempting_to_index_guild: (guild: Guild) => {
-    return `Attempting to index Guild ${guild.name} (${guild.id})`;
-  },
-  attempting_to_index_channel: (channel: IndexableChannels) => {
-    return `Attempting to index channel ${channel.name} (${channel.id})`;
-  },
-  attempting_to_index_thread: (thread: ThreadChannel) => {
-    return `Attempting to index thread ${thread.name} (${thread.id})`;
-  },
-  failed_to_fetch_active_threads: (channel: ThreadChannel) => {
-    return `Error fetching active threads for channel ${channel.id} ${channel.name} in server ${channel.guildId} ${channel.guild.name}`;
-  },
-  log_threads_to_archive_info: (
-    archivedThreadsCount: number,
-    activeThreadsCount: number
-  ) => {
-    return `Found ${archivedThreadsCount} archived threads and ${
-      activeThreadsCount
-    } active threads, a total of ${
-      archivedThreadsCount + activeThreadsCount
-    } threads`;
-  },
-  log_threads_prune_data: (
-    archivedThreadsCount: number,
-    activeThreadsCount: number,
-    threadsToIndexCount: number
-  ) => {
-    return `Pruned threads to index from ${
-      activeThreadsCount + archivedThreadsCount
-    } to ${threadsToIndexCount} threads`;
-  },
-  log_fetching_archived_channels: (channel: ThreadChannel) => {
-    return `Fetching archived threads for channel ${channel.id} ${channel.name} in server ${channel.guildId} ${channel.guild.name}`;
-  },
-  log_truncated_out_of_date_threads: (
-    threadsToIndexCount: number,
-    outOfDateThreadsCount: number
-  ) => {
-    return `Truncated threads to index from ${threadsToIndexCount} to ${
-      outOfDateThreadsCount
-    } out of date threads, skipped ${
-      threadsToIndexCount - outOfDateThreadsCount
-    }`;
-  },
-  indexing_thread_info: (
-    idx: number,
-    outOfDateThreadsCount: number,
-    thread: ThreadChannel,
-    channel: ThreadChannel
-  ) => {
-    return `(${idx}/${outOfDateThreadsCount}) Indexing:
-Thread: ${thread.id} | ${thread.name}
-Channel: ${channel.id} | ${channel.name}
-Server: ${channel.guildId} | ${channel.guild.name}`;
-  },
-  log_starting_indexing_from_message: (
-    channel: ThreadChannel,
-    start: string
-  ) => {
-    return `Indexing channel ${channel.id} | ${channel.name} from message id ${
-      start ?? 'beginning'
-    } until ${channel.lastMessageId ?? 'unknown'}`;
-  },
-  log_indexing_complete: (channel: ThreadChannel) => {
-    return `Finished writing data, indexing complete for channel ${channel.id} | ${channel.name}`;
-  },
-  bot_cannot_view_channel: (channel: ThreadChannel) => {
-    return `Bot cannot view channel ${channel.id} | ${channel.name} in server ${channel.guildId} | ${channel.guild.name}`;
-  },
-} as const;
-
-function Log(
-  errorType: keyof typeof errToLogStringMap | string,
-  error?: unknown,
-  ...payload
+export function getTheOldestSnowflakeId<T extends { id: string }>(
+  messages: T[]
 ) {
-  if (errorType in errToLogStringMap) {
-    console.error(errToLogStringMap[errorType](...payload), error);
-    return;
+  if (messages.length === 0) {
+    return '0';
   }
-
-  console.log(errorType);
+  const sortedMessages = messages.sort((a, b) =>
+    BigInt(b.id) > BigInt(a.id) ? 1 : -1
+  );
+  return sortedMessages[0].id;
 }

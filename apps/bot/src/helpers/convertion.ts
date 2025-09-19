@@ -30,7 +30,7 @@ export async function toDbChannel(channel: GuildChannel | GuildBasedChannel) {
     parentId: channel.isThread() ? channel.parentId : null,
     archivedTimestamp:
       channel.isThread() && channel.archiveTimestamp
-        ? BigInt(channel.archiveTimestamp)
+        ? channel.archiveTimestamp
         : null,
     lastIndexedMessageId: null,
     type: channel.type,

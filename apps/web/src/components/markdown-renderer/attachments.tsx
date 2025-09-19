@@ -106,11 +106,11 @@ function ImageGallery({ images }: { images: DBAttachments[] }) {
     }
 
     return <div className={
-        cn("max-w-[550px] w-full rounded overflow-hidden ", styles[images.length])
+        cn("max-w-[550px] w-full rounded overflow-hidden py-0.5", styles[images.length])
     }>
         {
             images.map(({ id, proxyUrl, name }) => {
-                return <img className="inline-block min-h-full min-w-full object-cover"
+                return <img className="rounded inline-block min-h-full min-w-full object-cover"
                     src={proxyUrl}
                     alt={name}
                     key={id} />

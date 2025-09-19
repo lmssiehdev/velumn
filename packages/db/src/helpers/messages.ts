@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '..';
 import {
   type DBAttachments as DBAttachment,
@@ -8,6 +8,32 @@ import {
   dbMessage,
 } from '../schema';
 import { uploadFileFromUrl } from './upload';
+
+export async function deleteMesasgeById(messageId: string) {
+  return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
+}
+
+export async function deleteManyMessagesById(messageIds: string[]) {
+  if (messageIds.length === 0) {
+    return;
+  }
+  return await db.delete(dbMessage).where(inArray(dbMessage.id, messageIds));
+}
+
+export async function getMessageById(messageId: string) {
+  return await db.query.dbMessage.findFirst({
+    where: eq(dbMessage.id, messageId),
+  });
+}
+
+export async function UpdateMessage(msg: DBMessage) {
+  return await db
+    .update(dbMessage)
+    .set({
+      ...msg,
+    })
+    .where(eq(dbMessage.id, msg.id));
+}
 
 export async function upsertManyMessages(data: DBMessageWithRelations[]) {
   if (data.length === 0) {

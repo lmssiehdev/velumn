@@ -4,20 +4,17 @@ import { DiscordIcon } from "@/components/misc";
 import ThreadFeedback from "@/components/thread-feedback";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getAllMessagesInThreadsCache, getServerInfoByChannelIdCache } from "@/utils/cache";
 import { ChatIcon } from "@phosphor-icons/react/dist/ssr";
 import { getAllMessagesInThreads } from "@repo/db/helpers/channels";
-import { getServerInfoByChannelId } from "@repo/db/helpers/servers";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
 import { ServerInfo } from "../../layout";
-import { unstable_cache } from "next/cache";
-import { notFound, redirect } from "next/navigation";
 
-const cachedGetAllMessagesInThreads = unstable_cache(getAllMessagesInThreads);
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const post = await cachedGetAllMessagesInThreads(id);
+  const post = await getAllMessagesInThreadsCache(id);
 
 if (!post || !post.messages) {
     return {
@@ -30,7 +27,6 @@ if (!post || !post.messages) {
   }
   return {
     title: post.channelName,
-    
   }
 }
 
@@ -45,8 +41,8 @@ export default async function Page({
     return <div>Channel doesn't exist</div>;
   }
 
-  const channel = await getAllMessagesInThreads(id);
-  const server = await getServerInfoByChannelId(id);
+  const channel = await getAllMessagesInThreadsCache(id);
+  const server = await getServerInfoByChannelIdCache(id);
 
   if (!channel) {
     return <div>Channel doesn't exist</div>;
