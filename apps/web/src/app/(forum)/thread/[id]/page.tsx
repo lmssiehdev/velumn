@@ -11,7 +11,6 @@ import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
 import { ServerInfo } from "../../layout";
 
-
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const post = await getAllMessagesInThreadsCache(id);
