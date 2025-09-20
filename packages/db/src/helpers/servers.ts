@@ -9,6 +9,13 @@ import {
   dbServer,
 } from '../schema';
 
+export async function upsertServer(server: DBServer) {
+  await db.insert(dbServer).values(server).onConflictDoUpdate({
+    target: dbServer.id,
+    set: server,
+  });
+}
+
 export async function createBulkServers(servers: DBServer[]) {
   if (servers.length === 0) {
     return [];

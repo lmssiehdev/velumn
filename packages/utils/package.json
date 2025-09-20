@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@rehype-pretty/transformers": "^0.13.2",
-    "dayjs": "^1.11.18"
+    "@t3-oss/env-core": "^0.13.8",
+    "dayjs": "^1.11.18",
+    "zod": "^4.1.5"
   }
 }

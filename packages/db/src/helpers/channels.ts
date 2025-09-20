@@ -20,7 +20,6 @@ export async function getChannelInfo(channelId: string) {
 }
 
 export async function getAllMessagesInThreads(channelId: string) {
-  console.log({ called: true });
   return await db.query.dbChannel.findFirst({
     where: eq(dbChannel.id, channelId),
     with: {

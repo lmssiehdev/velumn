@@ -28,6 +28,6 @@ export class Indexing extends Listener {
     // await testing(client);
     // return;
     // TODO: run this every day;
-    await indexServers(client);
+    // await indexServers(client);
   }
 }

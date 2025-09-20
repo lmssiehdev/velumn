@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { funnelSans, satoshi as satoshiFont } from "../styles/fonts/fonts";
+import { funnelSans, satoshi as satoshiFont } from "../styles/fonts";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${satoshiFont.variable} ${funnelSans.variable} font-sans antialiased`}
+        className={`${funnelSans.variable} font-sans antialiased`}
       >
         {children}
       </body>
