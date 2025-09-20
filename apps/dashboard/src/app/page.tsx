@@ -1,20 +1,19 @@
-"use client";
-import { authClient } from "@/lib/auth-client";
+'use client';
+import { authClient } from '@/lib/auth-client';
 
 export default function Home() {
   async function handleSingIn() {
-      await authClient.signIn.social({
-      provider: "discord",
-      errorCallbackURL: "/error",
+    await authClient.signIn.social({
+      provider: 'discord',
+      errorCallbackURL: '/error',
       /**
        * A URL to redirect if the user is newly registered
        */
-      newUserCallbackURL: "/onboarding",
-  });
-
+      newUserCallbackURL: '/onboarding',
+    });
   }
   return (
-    <div className="font-sans g min-h-screen p-8 pb-20 gap-16 sm:p-20">
+    <div className="g min-h-screen gap-16 p-8 pb-20 font-sans sm:p-20">
       Hello Sir;
       <div>
         <button onClick={handleSingIn}>Sign In</button>

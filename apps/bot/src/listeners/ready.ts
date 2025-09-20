@@ -1,7 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import type { Client } from 'discord.js';
-import { indexServers } from '../core/indexing';
 
 async function _testing(client: Client) {
   const guild = client.guilds.cache.get('1228579842212106302');
@@ -24,7 +23,7 @@ async function _testing(client: Client) {
   name: 'indexing-timer',
 })
 export class Indexing extends Listener {
-  async run(client: Client) {
+  async run(_client: Client) {
     // await testing(client);
     // return;
     // TODO: run this every day;
