@@ -22,7 +22,9 @@ export default async function Page({
     // TODO: is channel needed here?
     const { channel, server } = data;
 
-    const { threads, hasMore, page } = await getAllThreads("channel", channelId, searchParamsPage);
+    const { threads, hasMore, page } = await getAllThreads("channel", {
+        id: channelId, page: searchParamsPage
+    });
 
     return <div className="p-4 mx-auto">
         <h2 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6">

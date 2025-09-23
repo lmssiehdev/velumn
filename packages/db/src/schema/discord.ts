@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   customType,
+  index,
   integer,
   json,
   pgEnum,
@@ -84,7 +85,11 @@ export const dbChannel = pgTable('db_channel', {
   archivedTimestamp: bigint('archivedTimestamp', { mode: 'number' }),
   lastIndexedMessageId: snowflake('last_indexed_message_id'),
   type: integer('type').notNull(),
-});
+  pinned: boolean('pinned').default(false).notNull(),
+}, (table) => [
+  index("channed_idx").on(table.id),
+  index("pinned_idx").on(table.pinned),
+]);
 
 export const channelRelations = relations(dbChannel, ({ one, many }) => ({
   messages: many(dbMessage),

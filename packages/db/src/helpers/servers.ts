@@ -76,8 +76,13 @@ export async function getServerInfoByChannelId(channelId: string) {
   return server;
 }
 
-export async function getAllThreads(getBy: 'server' | 'channel', id: string, page = 1) {
-  const LIMIT_PER_PAGE = 10;
+export async function getAllThreads(getBy: 'server' | 'channel', config: {
+  id: string,
+  pinned?: boolean
+  page?: number,
+}) {
+  const { id, pinned = false, page = 1 } = config;
+  const LIMIT_PER_PAGE = pinned ? 1 : 10;
   const parentChannel = alias(dbChannel, 'parentChannel');
   const result = await db
     .select({
@@ -93,12 +98,14 @@ export async function getAllThreads(getBy: 'server' | 'channel', id: string, pag
     .where(
       getBy === 'server'
         ? and(eq(dbChannel.serverId, id), isNotNull(dbChannel.parentId))
-        : eq(dbChannel.parentId, id)
+        : and(
+          eq(dbChannel.parentId, id),
+          eq(dbChannel.pinned, pinned).if(pinned)
+        )
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
     .limit(LIMIT_PER_PAGE + 1)
     .offset(((page - 1) * LIMIT_PER_PAGE));
-
 
   return {
     hasMore: result.length > LIMIT_PER_PAGE,

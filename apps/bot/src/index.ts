@@ -9,8 +9,8 @@ process.on('uncaughtException', (error) => {
 
 let client: SapphireClient<boolean> | null = null;
 
-if (client !== null) {
-  client.
+if (client) {
+  console.log('Realoding bot;');
 } else {
   client = new SapphireClient({
     shards: 'auto',

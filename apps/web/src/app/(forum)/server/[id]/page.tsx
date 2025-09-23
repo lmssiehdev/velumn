@@ -1,4 +1,4 @@
-import { CaretLeftIcon, CaretRightIcon, ChatIcon } from "@phosphor-icons/react/ssr";
+import { CaretLeftIcon, CaretRightIcon, ChatIcon, PushPinIcon } from "@phosphor-icons/react/ssr";
 import { getAllThreads, getServerInfo } from "@repo/db/helpers/servers";
 import Link from "next/link";
 import { FrontPageSidebar } from "../../layout";
@@ -22,23 +22,28 @@ export default async function Page({
         return <div>Server doesn't exist</div>
     };
 
-    const { threads, hasMore, page } = await getAllThreads("server", id, searchParamsPage);
+    const { threads, hasMore, page } = await getAllThreads("server", {
+        id, page: searchParamsPage
+    });
+    // TODO: cache and index the pinned column
+    const { threads: pinnedThread } = await getAllThreads("server", {
+        id, pinned: true
+    });
     return <div className="p-4 mx-auto">
         <h2 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6">
             Join a Discussion
         </h2>
         <div className="flex gap-6">
-            <ThreadList threads={threads} page={page} hasMore={hasMore} serverId={id} />
+            <ThreadList threads={threads.concat(pinnedThread)} page={page} hasMore={hasMore} serverId={id} />
             <FrontPageSidebar server={server} />
         </div>
     </div>
 }
 
-export function ThreadList({ threads, page, hasMore, serverId }: {
+export async function ThreadList({ threads, page, hasMore, serverId }: {
     serverId: string,
 } & Awaited<ReturnType<typeof getAllThreads>>
 ) {
-
     if (threads.length === 0) {
         return <div className="flex-1 flex flex-col items-center justify-center">
             <div className="text-neutral-500 flex flex-col gap-2">
@@ -60,22 +65,26 @@ export function ThreadList({ threads, page, hasMore, serverId }: {
                 {
                     threads.map(({ channel, user, messagesCount, parentChannel }) => {
                         return <div key={channel.id} className=" border-b py-4 border-neutral-300 rounded flex gap-4 items-center justify-between">
-
-                            <div>
-                                <Link href={`/thread/${channel.id}`} className="hover:underline underline-offset-2">
-                                    {channel.channelName}
-                                </Link>
-                                <div className="text-sm text-neutral-500">
-                                    by {user.displayName ?? "Unknown"} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
-                                        #{parentChannel?.channelName}
-                                    </Link> • {snowflakeToReadableDate(channel.id)}
+                            <div >
+                                <div >
+                                    <Link href={`/thread/${channel.id}`} className="hover:underline underline-offset-2">
+                                        {channel.channelName}
+                                    </Link>
+                                    <div className="text-sm text-neutral-500">
+                                        by {user.displayName ?? "Unknown"} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
+                                            #{parentChannel?.channelName}
+                                        </Link> • {snowflakeToReadableDate(channel.id)}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex gap-2 items-center">
-                                <ChatIcon className="size-5" />
-                                <span className="text-sm">
-                                    {messagesCount}
-                                </span>
+                            <div className="flex items-center gap-4">
+                                {channel.pinned && <PushPinIcon className="size-5" />}
+                                <div className="flex gap-2 items-center">
+                                    <ChatIcon className="size-5" />
+                                    <span className="text-sm">
+                                        {messagesCount}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     })

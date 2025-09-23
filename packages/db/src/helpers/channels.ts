@@ -1,6 +1,7 @@
-import { count, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
 import { type DBChannel, dbChannel, dbMessage, dbServer } from '../schema';
+import { ChannelType } from 'discord-api-types/v10';
 
 export async function getChannelInfo(channelId: string) {
   const data = await db
@@ -96,6 +97,13 @@ export async function upsertChannel(data: {
       ...data.update,
     })
     .where(eq(dbChannel.id, data.create.id));
+}
+
+export async function updateChannel(data: Partial<DBChannel>) {
+  if (!data.id) {
+    throw new Error('Channel ID is required for update');
+  }
+  await db.update(dbChannel).set(data).where(eq(dbChannel.id, data.id))
 }
 
 export async function getThreadComments(channelId: string) {
