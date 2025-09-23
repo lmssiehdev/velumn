@@ -16,5 +16,10 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "discord-markdown-parser@1.2.0": "patches/discord-markdown-parser@1.2.0.patch"
+    }
   }
 }

@@ -23,7 +23,7 @@ export class UpdateChannel extends Listener {
       if (!channel) {
         return;
       }
-      upsertChannel({
+      await upsertChannel({
         create: channel,
         update: {
           id: oldChannel.id,
@@ -75,7 +75,7 @@ export class UpdateThread extends Listener {
       if (!channel) {
         return;
       }
-      upsertChannel({
+      await upsertChannel({
         create: channel,
         update: {
           id: newThread.id,

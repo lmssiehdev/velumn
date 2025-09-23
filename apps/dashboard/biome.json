@@ -1,6 +1,5 @@
 {
   "root": false,
-  "extends": "//",
   "vcs": {
     "enabled": true,
     "clientKind": "git",

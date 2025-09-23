@@ -8,7 +8,7 @@ export const getCurrentUser = async () => {
   });
 
   if (!session) {
-    redirect('/login');
+    redirect('/auth/sign-in');
   }
 
   return {

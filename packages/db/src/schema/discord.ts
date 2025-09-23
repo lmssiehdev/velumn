@@ -5,10 +5,13 @@ import {
   customType,
   integer,
   json,
+  pgEnum,
   pgTable,
   text,
+  time,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { user } from './auth';
 
 const snowflake = customType<{
   data: string;
@@ -43,16 +46,27 @@ export type DBUser = typeof dbDiscordUser.$inferSelect;
 //
 // Server
 //
+export const planEnum = pgEnum('plan', ['FREE', 'OPEN_SOURCE', 'PAID']);
+
+export type ServerPlan = (typeof planEnum.enumValues)[number];
 
 export const dbServer = pgTable('db_server', {
   id: snowflake('id').primaryKey(),
   name: varchar('name').notNull(),
   description: varchar('description'),
   memberCount: integer('member_count').notNull(),
+  kickedAt: time('kicked_at'),
+  plan: planEnum('plan').notNull().default('FREE'),
+  polarCustomerId: text('polar_customer_id'),
+  polarSubscriptionId: text('polar_subscription_id'),
 });
 
-export const serverRelations = relations(dbServer, ({ many }) => ({
+export const serverRelations = relations(dbServer, ({ one, many }) => ({
   channels: many(dbChannel),
+  user: one(user, {
+    fields: [dbServer.id],
+    references: [user.id],
+  }),
 }));
 
 export type DBServer = typeof dbServer.$inferSelect;

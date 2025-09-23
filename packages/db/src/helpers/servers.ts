@@ -1,13 +1,31 @@
-import { and, count, eq, exists, isNotNull, isNull } from 'drizzle-orm';
+import { and, count, eq, exists, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '..';
 import {
   type DBServer,
+  ServerPlan,
   dbChannel,
   dbDiscordUser,
   dbMessage,
   dbServer,
 } from '../schema';
+
+export async function getChannelsInServer(serverId: string) {
+  return await db.query.dbServer.findFirst({
+    where: eq(dbServer.id, serverId),
+    with: {
+      channels: true,
+    }
+  });
+}
+
+export async function setBulkServersPlanByUserId(serverId: string, plan: ServerPlan) {
+  return await db.update(dbServer)
+    .set({
+      plan,
+    })
+    .where(eq(dbServer.id, serverId))
+}
 
 export async function upsertServer(server: DBServer) {
   await db.insert(dbServer).values(server).onConflictDoUpdate({
@@ -58,9 +76,10 @@ export async function getServerInfoByChannelId(channelId: string) {
   return server;
 }
 
-export async function getAllThreads(getBy: 'server' | 'channel', id: string) {
+export async function getAllThreads(getBy: 'server' | 'channel', id: string, page = 1) {
+  const LIMIT_PER_PAGE = 10;
   const parentChannel = alias(dbChannel, 'parentChannel');
-  return await db
+  const result = await db
     .select({
       channel: dbChannel,
       user: dbDiscordUser,
@@ -76,7 +95,16 @@ export async function getAllThreads(getBy: 'server' | 'channel', id: string) {
         ? and(eq(dbChannel.serverId, id), isNotNull(dbChannel.parentId))
         : eq(dbChannel.parentId, id)
     )
-    .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id);
+    .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
+    .limit(LIMIT_PER_PAGE + 1)
+    .offset(((page - 1) * LIMIT_PER_PAGE));
+
+
+  return {
+    hasMore: result.length > LIMIT_PER_PAGE,
+    threads: result.splice(0, LIMIT_PER_PAGE),
+    page: page,
+  }
 }
 
 export async function getTopicsInServer(serverId: string) {

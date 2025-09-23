@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const post = await getAllMessagesInThreadsCache(id);
 
-if (!post || !post.messages) {
+  if (!post || !post.messages) {
     return {
       title: 'Not Found',
       openGraph: {
@@ -52,7 +52,7 @@ export default async function Page({
 
   // TODO: handle empty messages;
   const authorId = channel.messages[0]?.user?.id;
-
+  console.log({ originalPost })
   return (
     <div>
       <div className="">
@@ -63,17 +63,17 @@ export default async function Page({
           {originalPost != undefined && <MessagePost key={originalPost?.id} message={originalPost!} authorId={authorId!} />
           }
           <div className="px-3 my-3 flex gap-2 items-center">
-              <ChatIcon className="size-5" />
-              <span className="text-sm">
-                  {orderedMessages.length} Replies
-              </span>
+            <ChatIcon className="size-5" />
+            <span className="text-sm">
+              {orderedMessages.length} Replies
+            </span>
           </div>
           <Separator className="my-4" />
           {orderedMessages.map((message) => {
             return (
               <div className="py-3" key={message.id}>
                 <MessagePost message={message} authorId={authorId!} />
-                </div>
+              </div>
             )
           })}
           {orderedMessages.length === 0 && originalPost?.user?.id === authorId && <NoReplies />}

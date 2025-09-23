@@ -1,7 +1,7 @@
 import { getDiscordAccountIdForUser } from '@repo/db/helpers/dashboard';
 import { PermissionFlagsBits } from 'discord-api-types/v8';
 import { unstable_cache } from 'next/cache';
-import { OnboardingWrapper } from '@/components/onboarding';
+import { OnboardingProvider } from '@/components/onboarding';
 import { getCurrentUser } from '@/server/user';
 
 const getGuildsCache = unstable_cache(getGuilds, ['userId'], {
@@ -38,9 +38,12 @@ async function getGuilds(userId: string) {
   return guilds.filter((guild) => {
     const permissions = BigInt(guild.permissions);
     return (
+      // biome-ignore lint/suspicious/noBitwiseOperators: <explanation>
       (permissions & PermissionFlagsBits.ManageGuild) ===
       PermissionFlagsBits.ManageGuild
     );
+  }).sort((a, b) => {
+    return getPermissionRank(a) - getPermissionRank(b);
   });
 }
 
@@ -54,7 +57,22 @@ export default async function Page() {
 
   return (
     <div>
-      <OnboardingWrapper guilds={guilds} />
+      <OnboardingProvider guilds={guilds} />
     </div>
   );
+}
+
+function getPermissionRank(guild: Guild) {
+  if (guild.owner) {
+    return 0;
+  }
+
+  if (
+    (BigInt(guild.permissions) & PermissionFlagsBits.Administrator) ===
+    PermissionFlagsBits.Administrator
+  ) {
+    return 1;
+  }
+
+  return 2;
 }

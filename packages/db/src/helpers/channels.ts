@@ -1,4 +1,4 @@
-import { count, eq, inArray } from 'drizzle-orm';
+import { count, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
 import { type DBChannel, dbChannel, dbMessage, dbServer } from '../schema';
 
@@ -67,6 +67,15 @@ export async function findChannelById(channelId: string) {
 
 export async function deleteChannel(channelId: string) {
   await db.delete(dbChannel).where(eq(dbChannel.id, channelId));
+}
+
+export async function upsertBulkChannels(channels: DBChannel[]) {
+  await db.insert(dbChannel).values(channels).onConflictDoUpdate({
+    target: dbChannel.id,
+    set: {
+      channelName: sql.raw(`excluded.${dbChannel.channelName.name}`),
+    },
+  });
 }
 
 export async function upsertChannel(data: {

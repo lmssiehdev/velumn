@@ -51,7 +51,6 @@ export async function indexGuild(guild: Guild) {
       Log('no_channels', guild);
       return;
     }
-
     for await (const channel of channelsCahe) {
       if (
         channel.type === ChannelType.GuildText ||
@@ -87,8 +86,7 @@ export async function indexRootChannel(channel: IndexableChannels) {
 
     const fetchAllArchivedThreads = async (before?: number | string) => {
       const fetched = await channel.threads.fetchArchived({
-        type: 'public',
-        before,
+        type: 'public', before,
       });
 
       const last = fetched.threads.last();
@@ -388,8 +386,12 @@ export function getTheOldestSnowflakeId<T extends { id: string }>(
   if (messages.length === 0) {
     return '0';
   }
-  const sortedMessages = messages.sort((a, b) =>
-    BigInt(b.id) > BigInt(a.id) ? 1 : -1
-  );
+  const sortedMessages = messages.sort((a, b) => {
+    const bigA = BigInt(a.id);
+    const bigB = BigInt(b.id);
+    if (bigA < bigB) return -1;
+    if (bigA > bigB) return 1;
+    return 0;
+  });
   return sortedMessages[0].id;
 }

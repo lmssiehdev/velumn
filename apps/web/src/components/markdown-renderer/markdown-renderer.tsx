@@ -31,7 +31,7 @@ function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent:
   switch (node.type) {
     case 'text':
       return <span key={index}>{node.content}</span>;
-    
+
     case 'br':
       return <br key={key} />;
 
@@ -47,45 +47,50 @@ function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent:
           {renderASTNode(node.content, key + 1, node)}
         </a>
       );
-    
+
     case 'strikethrough':
       return <s key={key}>{renderASTNode(node.content, key + 1, node)}</s>;
-    
+
     case 'strong':
       return <strong key={key}>{renderASTNode(node.content, key + 1, node)}</strong>;
-    
+
     case 'em':
       return <em key={key}>{renderASTNode(node.content, key + 1, node)}</em>;
-      
+
     case "underline":
       return <u key={key}>{renderASTNode(node.content, key + 1, node)}</u>;
-    
+
     case 'inlineCode':
       return (
         <Code code={node.content} key={key} isInline>
         </Code>
       );
 
+    case 'link':
+      return <a key={key} href={node.target} target="_blank" rel="noreferrer">
+        {renderASTNode(node.content, key + 1, node)}
+      </a>
+
     // TODO: handle custom discord emoji
     case 'emoji':
       return node.name;
-      
+
     // discord specific
     case 'user':
       return <Mention key={key}>{node.id}</Mention>;
-    
+
     case 'channel':
       return <Mention key={key}>{node.id}</Mention>;
 
     case 'role':
       return <Mention key={key}>{node.id}</Mention>;
-    
+
     case 'everyone':
       return <Mention key={key}>everyone</Mention>;
 
     case 'here':
       return <Mention key={key}>here</Mention>;
-    
+
     case 'timestamp':
       return <Timestamp key={key}>{node.timestamp}</Timestamp>;
 
@@ -94,12 +99,12 @@ function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent:
 
     case 'spoiler':
       return <Spoiler key={key}>{renderASTNode(node.content, key + 1, node)}</Spoiler>
-    
+
     case 'blockQuote':
       return <blockquote key={key}>{renderASTNode(node.content, key + 1, node)}</blockquote>
 
     case 'twemoji':
-      const size = parent?.every((n: { type: string, content?: string}) => n.type === "twemoji" || (n.type === 'text' && n?.content === " ")) ? 'size-12' : 'size-[1.375rem]';
+      const size = parent?.every((n: { type: string, content?: string }) => n.type === "twemoji" || (n.type === 'text' && n?.content === " ")) ? 'size-12' : 'size-[1.375rem]';
       return <Twemoji name={node.name} key={key} className={size} />;
 
     default:
@@ -108,12 +113,12 @@ function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent:
 }
 
 export const DiscordMarkdown = ({ children }: { children: string | null }) => {
-  if ( !children ) return null;
+  if (!children) return null;
   const parsed = parse(children, 'normal');
   return <div className='prose'>
     {renderASTNode(parsed, 0, null)}
-    </div>;
-};
+  </div>;
+}
 
 
 /**
@@ -141,8 +146,8 @@ function emojiToTwemoji(emoji: string, version = '14.0.2') {
     }
     return r.join('-');
   }
-  
+
   const filename = toCodePoint(emoji)
-  
+
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@${version}/assets/svg/${filename}.svg`;
 }

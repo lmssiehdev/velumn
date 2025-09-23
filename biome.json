@@ -10,7 +10,11 @@
         "useSimplifiedLogicExpression": "off"
       },
       "suspicious": {
-        "noConsole": "off"
+        "noConsole": "off",
+        "noBitwiseOperators": "off"
+      },
+      "nursery": {
+        "useImageSize": "off"
       }
     }
   }
