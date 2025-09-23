@@ -1,4 +1,4 @@
-import { Providers } from '@/app/providers';
+import { Providers } from "@/app/providers";
 
 export default function OnboardingLayout({
   children,

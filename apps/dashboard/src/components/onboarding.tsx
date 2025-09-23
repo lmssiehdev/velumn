@@ -1,16 +1,27 @@
 "use client";
-import { webEnv } from '@repo/utils/env/web';
-import { PermissionFlagsBits } from 'discord-api-types/v8';
-import type { Guild } from '@/app/onboarding/page';
-import { Button } from './ui/button';
-import { CaretDownIcon, ChatsCircleIcon, CheckIcon, CircleNotchIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useTRPC } from '@/lib/trpc';
-import { Input } from './ui/input';
-import { ChannelType } from 'discord-api-types/v10';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { Checkbox } from './ui/checkbox';
+import {
+  CaretDownIcon,
+  ChatsCircleIcon,
+  CheckIcon,
+  CircleNotchIcon,
+  HashIcon,
+} from "@phosphor-icons/react/dist/ssr";
+import { webEnv } from "@repo/utils/env/web";
+import { useQuery } from "@tanstack/react-query";
+import { PermissionFlagsBits } from "discord-api-types/v8";
+import { ChannelType } from "discord-api-types/v10";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { Guild } from "@/app/onboarding/page";
+import { useTRPC } from "@/lib/trpc";
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Input } from "./ui/input";
 
 type Step = "INVITING_SERVER" | "WAITING_FOR_BOT_TO_JOIN" | "SELECT_CHANNELS";
 
@@ -19,7 +30,7 @@ type Channel = {
   name: string;
   type: ChannelType;
   enabled: boolean;
-}
+};
 type OnboardingContextType = {
   step: Step;
   selectedGuildId: string;
@@ -31,21 +42,23 @@ type OnboardingContextType = {
   toggleChannel: (channelId: string, enabled: boolean) => void;
 };
 
-const OnboardingContext = createContext<OnboardingContextType>({} as OnboardingContextType);
+const OnboardingContext = createContext<OnboardingContextType>(
+  {} as OnboardingContextType,
+);
 
 export function useOnboardingContext() {
   const context = useContext(OnboardingContext);
 
   if (!context) {
-    throw new Error("useOnboardingContext must be used within a OnboardingProvider");
+    throw new Error(
+      "useOnboardingContext must be used within a OnboardingProvider",
+    );
   }
 
   return context;
 }
 
-export function OnboardingProvider({ guilds }: {
-  guilds: Guild[];
-}) {
+export function OnboardingProvider({ guilds }: { guilds: Guild[] }) {
   const [step, setStep] = useState<Step>("INVITING_SERVER");
   const [selectedGuildId, setSelectedGuildId] = useState("");
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -61,9 +74,9 @@ export function OnboardingProvider({ guilds }: {
   };
 
   const toggleChannel = (channelId: string, enabled: boolean) => {
-    setChannels(prev => prev.map(c =>
-      c.id === channelId ? { ...c, enabled } : c
-    ));
+    setChannels((prev) =>
+      prev.map((c) => (c.id === channelId ? { ...c, enabled } : c)),
+    );
   };
 
   // uh memo me
@@ -75,7 +88,6 @@ export function OnboardingProvider({ guilds }: {
     selectGuild,
     setChannels: setChannelsAndAdvance,
     toggleChannel,
-
   };
 
   return (
@@ -104,26 +116,30 @@ function PickAServer() {
   if (guilds.length === 0) {
     // TODO: a better message here
     return <div>No servers found</div>;
-  };
+  }
 
-  return <>
-    <div className="my-10 flex flex-col items-center justify-center">
+  return (
+    <>
       <div className="my-10 flex flex-col items-center justify-center">
-        <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-          Welcome to discord!{' '}
-          <img
-            alt="wave"
-            className="ml-2 inline-block size-6"
-            src={emojiToTwemoji('👋')}
-          />
+        <div className="my-10 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
+            Welcome to discord!{" "}
+            <img
+              alt="wave"
+              className="ml-2 inline-block size-6"
+              src={emojiToTwemoji("👋")}
+            />
+          </div>
+          <div className="text-neutral-600">Pick a server to get started</div>
         </div>
-        <div className="text-neutral-600">Pick a server to get started</div>
       </div>
-    </div>
-    <div className="mx-auto max-w-md space-y-2">
-      {guilds.map((guild) => <GuildListItem key={guild.id} guild={guild} />)}
-    </div>
-  </>
+      <div className="mx-auto max-w-md space-y-2">
+        {guilds.map((guild) => (
+          <GuildListItem key={guild.id} guild={guild} />
+        ))}
+      </div>
+    </>
+  );
 }
 
 function WaitingForBotToJoin() {
@@ -134,12 +150,15 @@ function WaitingForBotToJoin() {
 
   const trpc = useTRPC();
   const userQuery = useQuery(
-    trpc.server.getChannelsInServer.queryOptions({
-      serverId: guildId
-    }, {
-      refetchIntervalInBackground: true,
-      refetchInterval: 10_000,
-    }),
+    trpc.server.getChannelsInServer.queryOptions(
+      {
+        serverId: guildId,
+      },
+      {
+        refetchIntervalInBackground: true,
+        refetchInterval: 10_000,
+      },
+    ),
   );
 
   useEffect(() => {
@@ -165,39 +184,58 @@ function WaitingForBotToJoin() {
           Taking longer than expected
         </div>
         <div className="text-gray-600 mb-4">
-          The bot might not have the right permissions, or Discord might be slow.
+          The bot might not have the right permissions, or Discord might be
+          slow.
         </div>
         <div className="space-y-2">
-          <Button onClick={() => window.open(generateBotInviteLink(guildId), '_blank')}>
+          <Button
+            onClick={() =>
+              window.open(generateBotInviteLink(guildId), "_blank")
+            }
+          >
             Re-invite Bot
           </Button>
-        // TODO: add a join discord for support button here
+          // TODO: add a join discord for support button here
         </div>
-      </div>);
+      </div>
+    );
   }
 
-  return <>
-    <div className="my-10 flex flex-col items-center justify-center">
-      <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-        Your move!{' '}
-        <img
-          alt="wave"
-          className="ml-2 inline-block size-6"
-          src={emojiToTwemoji('🎯')}
-        />
+  return (
+    <>
+      <div className="my-10 flex flex-col items-center justify-center">
+        <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
+          Your move!{" "}
+          <img
+            alt="wave"
+            className="ml-2 inline-block size-6"
+            src={emojiToTwemoji("🎯")}
+          />
+        </div>
+        <div className="text-neutral-600">
+          Add our bot and let's get rolling!
+        </div>
       </div>
-      <div className="text-neutral-600">Add our bot and let's get rolling!</div>
-    </div>
-    <div className="mx-auto max-w-md w-full space-y-8 ">
-      <GuildListItem key={guild.id} guild={guild} />
-      <div className='space-y-2 text-center'>
-        <div className='text-neutral-600 '>Waiting for the bot to join your server... you'll get auto redirect once it does</div>
-        <Button variant={"outline"} size={"sm"} onClick={() => window.open(generateBotInviteLink(guildId), '_blank')}>
-          Re-invite Bot
-        </Button>
+      <div className="mx-auto max-w-md w-full space-y-8 ">
+        <GuildListItem key={guild.id} guild={guild} />
+        <div className="space-y-2 text-center">
+          <div className="text-neutral-600 ">
+            Waiting for the bot to join your server... you'll get auto redirect
+            once it does
+          </div>
+          <Button
+            variant={"outline"}
+            size={"sm"}
+            onClick={() =>
+              window.open(generateBotInviteLink(guildId), "_blank")
+            }
+          >
+            Re-invite Bot
+          </Button>
+        </div>
       </div>
-    </div>
-  </>
+    </>
+  );
 }
 
 function GuildListItem({ guild }: { guild: Guild }) {
@@ -207,20 +245,20 @@ function GuildListItem({ guild }: { guild: Guild }) {
   function onSelectGuild(selectedGuildId: string) {
     if (isWaitingForBotToJoin) return;
     // open the invite link in a new tab
-    window.open(generateBotInviteLink(selectedGuildId), '_blank');
+    window.open(generateBotInviteLink(selectedGuildId), "_blank");
     selectGuild(selectedGuildId);
   }
   const initials = guild.name
-    .split(' ')
+    .split(" ")
     .map((x) => x[0])
-    .join('');
+    .join("");
   return (
-    <div
-      className="flex items-center justify-between rounded p-4 transition-all hover:bg-accent gap-2"
-    >
+    <div className="flex items-center justify-between rounded p-4 transition-all hover:bg-accent gap-2">
       <div className="flex items-center gap-4">
-        <div className="flex size-12 items-center justify-center overflow-hidden rounded-full bg-gray-100 aspect-square min-w-12
-">
+        <div
+          className="flex size-12 items-center justify-center overflow-hidden rounded-full bg-gray-100 aspect-square min-w-12
+"
+        >
           {guild.icon ? (
             <img alt="guild icon" src={getServerIcon(guild)} />
           ) : (
@@ -231,51 +269,58 @@ function GuildListItem({ guild }: { guild: Guild }) {
         </div>
         <div>
           <div>{guild.name}</div>
-          <span className="text-neutral-600 text-sm">
-            {getRoleText(guild)}
-          </span>
+          <span className="text-neutral-600 text-sm">{getRoleText(guild)}</span>
         </div>
       </div>
-      {
-        isSelectingChannels ?
-          <Button variant={"default"}>
-            <CheckIcon className="size-4" />
-            Joined
-          </Button> : <Button
-            onClick={() => onSelectGuild(guild.id)}
-            className="cursor-pointer rounded"
-            variant={'outline'}
-            disabled={isWaitingForBotToJoin}
-          >
-            {isWaitingForBotToJoin ?
-              <CircleNotchIcon className="size-4 animate-spin" />
-              : "Setup"}
-          </Button>
-      }
-
+      {isSelectingChannels ? (
+        <Button variant={"default"}>
+          <CheckIcon className="size-4" />
+          Joined
+        </Button>
+      ) : (
+        <Button
+          onClick={() => onSelectGuild(guild.id)}
+          className="cursor-pointer rounded"
+          variant={"outline"}
+          disabled={isWaitingForBotToJoin}
+        >
+          {isWaitingForBotToJoin ? (
+            <CircleNotchIcon className="size-4 animate-spin" />
+          ) : (
+            "Setup"
+          )}
+        </Button>
+      )}
     </div>
   );
 }
 
 function SelectChannels() {
-  const { guilds, channels, selectedGuildId, toggleChannel } = useOnboardingContext();
+  const { guilds, channels, selectedGuildId, toggleChannel } =
+    useOnboardingContext();
 
   const [searchFilter, setSearchFilter] = useState("");
-  const [channelFilterOptions, setChannelFilterOptions] = useState([{ type: ChannelType.GuildForum, name: "Forum", enabled: true }, { type: ChannelType.GuildText, name: "Text Channel", enabled: true }]);
+  const [channelFilterOptions, setChannelFilterOptions] = useState([
+    { type: ChannelType.GuildForum, name: "Forum", enabled: true },
+    { type: ChannelType.GuildText, name: "Text Channel", enabled: true },
+  ]);
 
   const { channelsToDisplay, selectedChannels } = useMemo(() => {
-    const channelsToDisplay = channels.filter(c => {
-      const isTypeEnabled = channelFilterOptions.find(f => f.type === c.type)?.enabled;
-      if (!isTypeEnabled) return false;
-      if (!searchFilter) return true;
-      return c.name.toLowerCase().includes(searchFilter.toLowerCase());
-    })
-      .sort((a, b) => b.type - a.type)
+    const channelsToDisplay = channels
+      .filter((c) => {
+        const isTypeEnabled = channelFilterOptions.find(
+          (f) => f.type === c.type,
+        )?.enabled;
+        if (!isTypeEnabled) return false;
+        if (!searchFilter) return true;
+        return c.name.toLowerCase().includes(searchFilter.toLowerCase());
+      })
+      .sort((a, b) => b.type - a.type);
     return {
       channelsToDisplay,
-      selectedChannels: channels.filter(c => c.enabled).map(c => c.id),
+      selectedChannels: channels.filter((c) => c.enabled).map((c) => c.id),
     };
-  }, [searchFilter, channelFilterOptions, channels])
+  }, [searchFilter, channelFilterOptions, channels]);
 
   const guild = guilds.find((g) => g.id === selectedGuildId) ?? {
     id: "490090",
@@ -287,83 +332,98 @@ function SelectChannels() {
 
   if (!guild) return null;
 
-  return <>
-    <div className="my-10 flex flex-col items-center justify-center">
-      <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-        Select channels to index!{' '}
-        <img
-          alt="wave"
-          className="ml-2 inline-block size-6"
-          src={emojiToTwemoji('✨')}
-        />
+  return (
+    <>
+      <div className="my-10 flex flex-col items-center justify-center">
+        <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
+          Select channels to index!{" "}
+          <img
+            alt="wave"
+            className="ml-2 inline-block size-6"
+            src={emojiToTwemoji("✨")}
+          />
+        </div>
+        <div className="text-neutral-600">We'll do the rest for you</div>
       </div>
-      <div className="text-neutral-600">We'll do the rest for you</div>
-    </div>
 
-    <div className="mx-auto max-w-md w-full space-y-8">
-      <GuildListItem key={guild.id} guild={guild} />
-      <div className='flex gap-2 items-center justify-between'>
-        <Input placeholder="Filter channels..." className="max-w-sm" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Channels <CaretDownIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {channelFilterOptions.map((column) => {
-              return (
-                <DropdownMenuCheckboxItem
-                  key={column.name}
-                  className="capitalize"
-                  checked={column.enabled}
-                  onCheckedChange={(value) => {
-                    // TODO: unselect the selected channel of the type
-                    setChannelFilterOptions(prevState => {
-                      const newState = [...prevState];
-                      newState[prevState.findIndex(c => c.type === column.type)].enabled = value;
-                      return newState;
-                    })
-                  }}>
-                  {column.name}
-                </DropdownMenuCheckboxItem>
-              )
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className=''>
-        {
-          channelsToDisplay.map((channel) => {
-            return <div key={channel.id} className='p-2 flex gap-4 items-center border-l border-r border-t last:border-b'>
-              <Checkbox checked={channel.enabled} onCheckedChange={
-                value => toggleChannel(channel.id, value as boolean)
-              } />
-              <div className='flex gap-2 items-center'>
-                {
-                  channel.type === ChannelType.GuildForum ? (
+      <div className="mx-auto max-w-md w-full space-y-8">
+        <GuildListItem key={guild.id} guild={guild} />
+        <div className="flex gap-2 items-center justify-between">
+          <Input
+            placeholder="Filter channels..."
+            className="max-w-sm"
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="ml-auto">
+                Channels <CaretDownIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {channelFilterOptions.map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.name}
+                    className="capitalize"
+                    checked={column.enabled}
+                    onCheckedChange={(value) => {
+                      // TODO: unselect the selected channel of the type
+                      setChannelFilterOptions((prevState) => {
+                        const newState = [...prevState];
+                        newState[
+                          prevState.findIndex((c) => c.type === column.type)
+                        ].enabled = value;
+                        return newState;
+                      });
+                    }}
+                  >
+                    {column.name}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="">
+          {channelsToDisplay.map((channel) => {
+            return (
+              <div
+                key={channel.id}
+                className="p-2 flex gap-4 items-center border-l border-r border-t last:border-b"
+              >
+                <Checkbox
+                  checked={channel.enabled}
+                  onCheckedChange={(value) =>
+                    toggleChannel(channel.id, value as boolean)
+                  }
+                />
+                <div className="flex gap-2 items-center">
+                  {channel.type === ChannelType.GuildForum ? (
                     <ChatsCircleIcon className="size-4" />
                   ) : (
                     <HashIcon className="size-4" weight="bold" />
-                  )
-                }
-                {channel.name}
+                  )}
+                  {channel.name}
+                </div>
               </div>
-            </div>
-          })
-        }
+            );
+          })}
+        </div>
+        <div className="my-1">
+          <div>{selectedChannels.length} channels ready to index</div>
+          <div className="text-xs text-neutral-500">
+            (you can change this later)
+          </div>
+        </div>
       </div>
-      <div className='my-1'>
-        <div>{selectedChannels.length} channels ready to index</div>
-        <div className='text-xs text-neutral-500'>(you can change this later)</div>
-      </div>
-    </div>
-  </>
+    </>
+  );
 }
 
-
 function getServerIcon(guild: { icon: string; id: string }) {
-  const format = guild.icon.startsWith('a_') ? 'gif' : 'png';
+  const format = guild.icon.startsWith("a_") ? "gif" : "png";
 
   return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${format}?size={64}`;
 }
@@ -393,7 +453,7 @@ function generateBotInviteLink(guildId: string) {
  *
  * @see https://github.com/twitter/twemoji/blob/d94f4cf793e6d5ca592aa00f58a88f6a4229ad43/scripts/build.js#L571C7-L589C8
  */
-function emojiToTwemoji(emoji: string, version = '14.0.2') {
+function emojiToTwemoji(emoji: string, version = "14.0.2") {
   function toCodePoint(unicodeSurrogates: string) {
     let r = [],
       c = 0,
@@ -403,7 +463,7 @@ function emojiToTwemoji(emoji: string, version = '14.0.2') {
       c = unicodeSurrogates.charCodeAt(i++);
       if (p) {
         r.push(
-          (0x1_00_00 + ((p - 0xd8_00) << 10) + (c - 0xdc_00)).toString(16)
+          (0x1_00_00 + ((p - 0xd8_00) << 10) + (c - 0xdc_00)).toString(16),
         );
         p = 0;
       } else if (0xd8_00 <= c && c <= 0xdb_ff) {
@@ -412,7 +472,7 @@ function emojiToTwemoji(emoji: string, version = '14.0.2') {
         r.push(c.toString(16));
       }
     }
-    return r.join('-');
+    return r.join("-");
   }
 
   const filename = toCodePoint(emoji);
@@ -422,14 +482,14 @@ function emojiToTwemoji(emoji: string, version = '14.0.2') {
 
 function getRoleText(guild: Guild) {
   if (guild.owner) {
-    return 'Owner';
+    return "Owner";
   }
   if (
     (BigInt(guild.permissions) & PermissionFlagsBits.Administrator) ===
     PermissionFlagsBits.Administrator
   ) {
-    return 'Admin';
+    return "Admin";
   }
 
-  return 'Manager';
+  return "Manager";
 }

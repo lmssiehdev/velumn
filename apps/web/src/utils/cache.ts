@@ -10,8 +10,9 @@ type ValidTags =
   | `clear-server-${string}`;
 
 // sanity check for now
-// biome-ignore lint/style/noMagicNumbers: TODO: refactor to a util function later  
-const THREE_DAYS_IN_SECONDS = process.env.NODE_ENV === 'development' ? 2 : 60 * 60 * 24 * 30
+// biome-ignore lint/style/noMagicNumbers: TODO: refactor to a util function later
+const THREE_DAYS_IN_SECONDS =
+  process.env.NODE_ENV === 'development' ? 2 : 60 * 60 * 24 * 30;
 
 export const getAllMessagesInThreadsCache = cache((id: string) => {
   const cacheFn = unstable_cache(

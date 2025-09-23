@@ -1,7 +1,7 @@
+import { ChannelType } from 'discord-api-types/v10';
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
 import { type DBChannel, dbChannel, dbMessage, dbServer } from '../schema';
-import { ChannelType } from 'discord-api-types/v10';
 
 export async function getChannelInfo(channelId: string) {
   const data = await db
@@ -71,12 +71,15 @@ export async function deleteChannel(channelId: string) {
 }
 
 export async function upsertBulkChannels(channels: DBChannel[]) {
-  await db.insert(dbChannel).values(channels).onConflictDoUpdate({
-    target: dbChannel.id,
-    set: {
-      channelName: sql.raw(`excluded.${dbChannel.channelName.name}`),
-    },
-  });
+  await db
+    .insert(dbChannel)
+    .values(channels)
+    .onConflictDoUpdate({
+      target: dbChannel.id,
+      set: {
+        channelName: sql.raw(`excluded.${dbChannel.channelName.name}`),
+      },
+    });
 }
 
 export async function upsertChannel(data: {
@@ -103,7 +106,7 @@ export async function updateChannel(data: Partial<DBChannel>) {
   if (!data.id) {
     throw new Error('Channel ID is required for update');
   }
-  await db.update(dbChannel).set(data).where(eq(dbChannel.id, data.id))
+  await db.update(dbChannel).set(data).where(eq(dbChannel.id, data.id));
 }
 
 export async function getThreadComments(channelId: string) {

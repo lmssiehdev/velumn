@@ -1,13 +1,21 @@
-import { and, count, eq, exists, inArray, isNotNull, isNull } from 'drizzle-orm';
+import {
+  and,
+  count,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+  isNull,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '..';
 import {
   type DBServer,
-  ServerPlan,
   dbChannel,
   dbDiscordUser,
   dbMessage,
   dbServer,
+  type ServerPlan,
 } from '../schema';
 
 export async function getChannelsInServer(serverId: string) {
@@ -15,16 +23,20 @@ export async function getChannelsInServer(serverId: string) {
     where: eq(dbServer.id, serverId),
     with: {
       channels: true,
-    }
+    },
   });
 }
 
-export async function setBulkServersPlanByUserId(serverId: string, plan: ServerPlan) {
-  return await db.update(dbServer)
+export async function setBulkServersPlanByUserId(
+  serverId: string,
+  plan: ServerPlan
+) {
+  return await db
+    .update(dbServer)
     .set({
       plan,
     })
-    .where(eq(dbServer.id, serverId))
+    .where(eq(dbServer.id, serverId));
 }
 
 export async function upsertServer(server: DBServer) {
@@ -76,11 +88,14 @@ export async function getServerInfoByChannelId(channelId: string) {
   return server;
 }
 
-export async function getAllThreads(getBy: 'server' | 'channel', config: {
-  id: string,
-  pinned?: boolean
-  page?: number,
-}) {
+export async function getAllThreads(
+  getBy: 'server' | 'channel',
+  config: {
+    id: string;
+    pinned?: boolean;
+    page?: number;
+  }
+) {
   const { id, pinned = false, page = 1 } = config;
   const LIMIT_PER_PAGE = pinned ? 1 : 10;
   const parentChannel = alias(dbChannel, 'parentChannel');
@@ -99,19 +114,19 @@ export async function getAllThreads(getBy: 'server' | 'channel', config: {
       getBy === 'server'
         ? and(eq(dbChannel.serverId, id), isNotNull(dbChannel.parentId))
         : and(
-          eq(dbChannel.parentId, id),
-          eq(dbChannel.pinned, pinned).if(pinned)
-        )
+            eq(dbChannel.parentId, id),
+            eq(dbChannel.pinned, pinned).if(pinned)
+          )
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
     .limit(LIMIT_PER_PAGE + 1)
-    .offset(((page - 1) * LIMIT_PER_PAGE));
+    .offset((page - 1) * LIMIT_PER_PAGE);
 
   return {
     hasMore: result.length > LIMIT_PER_PAGE,
     threads: result.splice(0, LIMIT_PER_PAGE),
-    page: page,
-  }
+    page,
+  };
 }
 
 export async function getTopicsInServer(serverId: string) {

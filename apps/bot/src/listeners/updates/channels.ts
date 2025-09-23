@@ -16,7 +16,6 @@ import {
 } from 'discord.js';
 import { toDbChannel } from '../../helpers/convertion';
 
-
 @ApplyOptions<Listener.Options>({
   event: Events.ChannelDelete,
   name: 'delete-channel',
@@ -33,7 +32,7 @@ export class DeleteChannel extends Listener {
 
 //
 // Threads
-// 
+//
 @ApplyOptions<Listener.Options>({
   event: Events.ChannelUpdate,
   name: 'update-channel',
@@ -57,7 +56,6 @@ export class UpdateChannel extends Listener {
     }
   }
 }
-
 
 @ApplyOptions<Listener.Options>({
   event: Events.ThreadDelete,
@@ -88,7 +86,6 @@ export class UpdateThread extends Listener {
         create: channelToUpdate,
         update: { id, channelName, pinned },
       });
-
     } catch (error) {
       this.container.logger.error('Failed to delete channel', error);
     }

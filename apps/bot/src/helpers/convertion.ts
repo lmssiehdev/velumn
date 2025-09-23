@@ -7,15 +7,17 @@ import type {
 } from '@repo/db/schema';
 import {
   ChannelFlags,
-  ThreadChannel,
   type Guild,
   type GuildBasedChannel,
   type GuildChannel,
   type Message,
+  type ThreadChannel,
   type User,
 } from 'discord.js';
 
-export async function toDbChannel(channel: GuildChannel | GuildBasedChannel | ThreadChannel) {
+export async function toDbChannel(
+  channel: GuildChannel | GuildBasedChannel | ThreadChannel
+) {
   if (!channel.guild) {
     throw new Error('Channel is not in a guild');
   }
@@ -37,7 +39,7 @@ export async function toDbChannel(channel: GuildChannel | GuildBasedChannel | Th
     lastIndexedMessageId: null,
     type: channel.type,
     archived: channel.isThread() && channel.archived,
-    pinned: channel.isThread() && channel.flags.has(ChannelFlags.Pinned)
+    pinned: channel.isThread() && channel.flags.has(ChannelFlags.Pinned),
   };
 
   return convertedChannel;

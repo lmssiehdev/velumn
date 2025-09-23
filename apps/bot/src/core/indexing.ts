@@ -86,7 +86,8 @@ export async function indexRootChannel(channel: IndexableChannels) {
 
     const fetchAllArchivedThreads = async (before?: number | string) => {
       const fetched = await channel.threads.fetchArchived({
-        type: 'public', before,
+        type: 'public',
+        before,
       });
 
       const last = fetched.threads.last();

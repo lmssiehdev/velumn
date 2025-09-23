@@ -1,9 +1,9 @@
+import { upsertBulkChannels } from '@repo/db/helpers/channels';
 import { upsertServer } from '@repo/db/helpers/servers';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import { ChannelType, Events, type Guild } from 'discord.js';
 import { toDbChannel, toDbServer } from '../helpers/convertion';
-import { upsertBulkChannels } from '@repo/db/helpers/channels';
 
 @ApplyOptions<Listener.Options>({
   event: Events.GuildCreate,
@@ -18,9 +18,17 @@ export class JoinedGuild extends Listener {
 
     // we save channels to display them in the onboarding flow
     const channels = await guild.channels.fetch();
-    const channelsToIndex = channels.filter(x => x != null && (x.type === ChannelType.GuildText || x.type === ChannelType.GuildAnnouncement || x.type === ChannelType.GuildForum));
+    const channelsToIndex = channels.filter(
+      (x) =>
+        x != null &&
+        (x.type === ChannelType.GuildText ||
+          x.type === ChannelType.GuildAnnouncement ||
+          x.type === ChannelType.GuildForum)
+    );
 
-    const channelsToInsert = await Promise.all(channelsToIndex.map((x) => toDbChannel(x)));
+    const channelsToInsert = await Promise.all(
+      channelsToIndex.map((x) => toDbChannel(x))
+    );
     await upsertBulkChannels(channelsToInsert);
   }
 }

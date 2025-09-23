@@ -76,20 +76,24 @@ export type DBServer = typeof dbServer.$inferSelect;
 // Channel
 //
 
-export const dbChannel = pgTable('db_channel', {
-  id: snowflake('id').primaryKey(),
-  serverId: snowflake('server_id'),
-  parentId: snowflake('parent_id'),
-  authorId: snowflake('author_id'),
-  channelName: varchar('channel_name'),
-  archivedTimestamp: bigint('archivedTimestamp', { mode: 'number' }),
-  lastIndexedMessageId: snowflake('last_indexed_message_id'),
-  type: integer('type').notNull(),
-  pinned: boolean('pinned').default(false).notNull(),
-}, (table) => [
-  index("channed_idx").on(table.id),
-  index("pinned_idx").on(table.pinned),
-]);
+export const dbChannel = pgTable(
+  'db_channel',
+  {
+    id: snowflake('id').primaryKey(),
+    serverId: snowflake('server_id'),
+    parentId: snowflake('parent_id'),
+    authorId: snowflake('author_id'),
+    channelName: varchar('channel_name'),
+    archivedTimestamp: bigint('archivedTimestamp', { mode: 'number' }),
+    lastIndexedMessageId: snowflake('last_indexed_message_id'),
+    type: integer('type').notNull(),
+    pinned: boolean('pinned').default(false).notNull(),
+  },
+  (table) => [
+    index('channed_idx').on(table.id),
+    index('pinned_idx').on(table.pinned),
+  ]
+);
 
 export const channelRelations = relations(dbChannel, ({ one, many }) => ({
   messages: many(dbMessage),
