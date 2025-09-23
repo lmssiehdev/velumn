@@ -14,7 +14,7 @@ export default async function Page({
 }) {
     const { id } = await params;
 
-    const page = Number(searchParams.page ?? 1);
+    const searchParamsPage = Number(searchParams.page ?? 1);
 
     const server = await getServerInfo(id);
 
@@ -22,8 +22,7 @@ export default async function Page({
         return <div>Server doesn't exist</div>
     };
 
-    const { threads, hasMore } = await getAllThreads("server", id, page);
-    console.log({ threads })
+    const { threads, hasMore, page } = await getAllThreads("server", id, searchParamsPage);
     return <div className="p-4 mx-auto">
         <h2 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6">
             Join a Discussion

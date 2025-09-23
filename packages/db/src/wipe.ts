@@ -20,7 +20,7 @@ async function dropDatabase() {
     await pool.query(
       'CREATE DATABASE "discord-indexer" OWNER "discord-indexer"'
     );
-    console.log('Database wiped successfully');
+    console.info('Database wiped successfully');
   } catch (error) {
     console.error('Error dropping database:', error);
   } finally {

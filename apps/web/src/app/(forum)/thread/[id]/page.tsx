@@ -52,7 +52,6 @@ export default async function Page({
 
   // TODO: handle empty messages;
   const authorId = channel.messages[0]?.user?.id;
-  console.log({ originalPost })
   return (
     <div>
       <div className="">

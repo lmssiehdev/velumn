@@ -56,7 +56,6 @@ export const auth = betterAuth({
                 break;
               }
             }
-            console.log({ payload })
           }
         }),
       ]
