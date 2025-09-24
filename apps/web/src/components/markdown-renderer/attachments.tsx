@@ -10,12 +10,12 @@ import {
     ArrowUpRightIcon,
     File
 } from "@phosphor-icons/react/dist/ssr";
-import type { DBAttachments } from "@repo/db/schema";
+import type { DBAttachments } from "@repo/db/schema/index";
 // @ts-expect-error no types - used once;
 import bytes from "bytes";
 
 export function Attachments({ attachments }: { attachments: DBAttachments[] }) {
-    if ( !attachments.length ) return null;
+    if (!attachments.length) return null;
     const isImage = (a: DBAttachments) => a.contentType?.startsWith('image/') && !a.proxyUrl.endsWith(".svg");
     const isCode = (a: DBAttachments) => !a.contentType?.startsWith('image/') || a.proxyUrl.endsWith(".svg")
 
@@ -26,10 +26,10 @@ export function Attachments({ attachments }: { attachments: DBAttachments[] }) {
                 (attachment) => <FileShowcase key={attachment.id} attachment={attachment} />
             )
         }
-        </div>
+    </div>
 }
 
- function FileShowcase({ attachment }: { attachment: DBAttachments }) {
+function FileShowcase({ attachment }: { attachment: DBAttachments }) {
     const { name, size } = attachment;
 
     return (

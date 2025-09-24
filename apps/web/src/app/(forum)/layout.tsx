@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatsCircleIcon, HashIcon, XIcon } from "@phosphor-icons/react/dist/ssr";
 import { getTopicsInServer } from "@repo/db/helpers/servers";
-import { DBServer } from "@repo/db/schema";
+import { DBServer } from "@repo/db/schema/index";
 import { ChannelType } from "discord-api-types/v10";
 import Link from "next/link";
 
@@ -19,14 +19,14 @@ export async function FrontPageSidebar({
 }) {
   return (
     <div className="max-w-xs w-full space-y-6 ">
-        <ServerInfo server={server} />
-        <Boards serverId={server.id} activeChannelId={activeChannelId} />
+      <ServerInfo server={server} />
+      <Boards serverId={server.id} activeChannelId={activeChannelId} />
     </div>
   );
 }
 
 export function ServerInfo({ server }: { server?: DBServer }) {
-  if ( !server ) return undefined;
+  if (!server) return undefined;
   return (
     <div className="border border-neutral-300 p-4">
       <div className="text-lg">{server.name}</div>
