@@ -49,7 +49,7 @@ CREATE TABLE "verification" (
 --> statement-breakpoint
 CREATE TABLE "attachments" (
 	"id" text PRIMARY KEY NOT NULL,
-	"message_id" text NOT NULL,
+	"message_id" bigint NOT NULL,
 	"file_name" text NOT NULL,
 	"url" text NOT NULL,
 	"proxyUrl" text NOT NULL,
@@ -61,19 +61,19 @@ CREATE TABLE "attachments" (
 );
 --> statement-breakpoint
 CREATE TABLE "db_channel" (
-	"id" text PRIMARY KEY NOT NULL,
-	"server_id" text,
-	"parent_id" text,
-	"author_id" text,
+	"id" bigint PRIMARY KEY NOT NULL,
+	"server_id" bigint,
+	"parent_id" bigint,
+	"author_id" bigint,
 	"channel_name" varchar,
 	"archivedTimestamp" bigint,
-	"last_indexed_message_id" text,
+	"last_indexed_message_id" bigint,
 	"type" integer NOT NULL,
 	"pinned" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "db_user" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" bigint PRIMARY KEY NOT NULL,
 	"display_name" varchar NOT NULL,
 	"avatar" varchar,
 	"is_bot" boolean DEFAULT false NOT NULL,
@@ -82,32 +82,41 @@ CREATE TABLE "db_user" (
 );
 --> statement-breakpoint
 CREATE TABLE "db_message" (
-	"id" text PRIMARY KEY NOT NULL,
-	"server_id" text,
-	"channel_id" text,
-	"author_id" text,
-	"child_thread_id" text,
-	"parent_channel_id" text,
+	"id" bigint PRIMARY KEY NOT NULL,
+	"server_id" bigint,
+	"channel_id" bigint,
+	"author_id" bigint,
+	"child_thread_id" bigint,
+	"parent_channel_id" bigint,
 	"clean_content" varchar,
 	"content" varchar,
 	"pinned" boolean,
 	"type" integer,
-	"webhook_id" text,
-	"reference_id" text,
-	"application_id" text,
+	"webhook_id" bigint,
+	"reference_id" bigint,
+	"application_id" bigint,
 	"reactions" json
 );
 --> statement-breakpoint
 CREATE TABLE "db_server" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" bigint PRIMARY KEY NOT NULL,
 	"name" varchar NOT NULL,
 	"description" varchar,
 	"member_count" integer NOT NULL,
 	"kicked_at" time,
 	"plan" "plan" DEFAULT 'FREE' NOT NULL,
 	"polar_customer_id" text,
-	"polar_subscription_id" text
+	"polar_subscription_id" text,
+	"invitedBy" bigint
+);
+--> statement-breakpoint
+CREATE TABLE "pending_discord_invite" (
+	"server_id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "channed_idx" ON "db_channel" USING btree ("id");--> statement-breakpoint
+CREATE INDEX "pinned_idx" ON "db_channel" USING btree ("pinned");

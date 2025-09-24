@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { getCurrentUser } from "@/server/user";
+import { getCurrentUserOrRedirect } from "@/server/user";
 import { funnelSans } from "../styles/fonts";
+import { AuthProvider } from "./providers";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -13,8 +14,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // const data = await getCurrentUser();
-
   return (
     <html lang="en">
       <body className={`${funnelSans.variable} font-sans antialiased`}>

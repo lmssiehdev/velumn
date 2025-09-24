@@ -390,8 +390,12 @@ export function getTheOldestSnowflakeId<T extends { id: string }>(
   const sortedMessages = messages.sort((a, b) => {
     const bigA = BigInt(a.id);
     const bigB = BigInt(b.id);
-    if (bigA < bigB) return -1;
-    if (bigA > bigB) return 1;
+    if (bigA < bigB) {
+      return -1;
+    }
+    if (bigA > bigB) {
+      return 1;
+    }
     return 0;
   });
   return sortedMessages[0].id;

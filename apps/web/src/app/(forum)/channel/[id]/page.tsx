@@ -12,8 +12,7 @@ export default async function Page({
 }) {
     const { id: channelId } = await params;
     const data = await getChannelInfo(channelId);
-    const searchParamsPage = Number(searchParams.page ?? 1);
-
+    const searchParamsPage = Number(await searchParams.page ?? 1);
 
     if (!data) {
         return <div>Channel doesn't exist</div>
@@ -26,12 +25,16 @@ export default async function Page({
         id: channelId, page: searchParamsPage
     });
 
+    const { threads: pinnedThread } = await getAllThreads("channel", {
+        id: channelId, pinned: true
+    });
+
     return <div className="p-4 mx-auto">
         <h2 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6">
             Join a Discussion
         </h2>
         <div className="flex gap-6">
-            <ThreadList serverId={channelId} threads={threads} page={page} hasMore={hasMore} />
+            <ThreadList serverId={channelId} threads={threads.concat(pinnedThread)} page={page} hasMore={hasMore} />
             <FrontPageSidebar server={server} activeChannelId={channel.id} />
         </div>
     </div>

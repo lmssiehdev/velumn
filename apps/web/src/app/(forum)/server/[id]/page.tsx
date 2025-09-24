@@ -25,24 +25,22 @@ export default async function Page({
     const { threads, hasMore, page } = await getAllThreads("server", {
         id, page: searchParamsPage
     });
-    // TODO: cache and index the pinned column
-    const { threads: pinnedThread } = await getAllThreads("server", {
-        id, pinned: true
-    });
+
     return <div className="p-4 mx-auto">
         <h2 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6">
             Join a Discussion
         </h2>
         <div className="flex gap-6">
-            <ThreadList threads={threads.concat(pinnedThread)} page={page} hasMore={hasMore} serverId={id} />
+            <ThreadList threads={threads} page={page} hasMore={hasMore} serverId={id} />
             <FrontPageSidebar server={server} />
         </div>
     </div>
 }
 
+type ThreadsData = Awaited<ReturnType<typeof getAllThreads>>;
 export async function ThreadList({ threads, page, hasMore, serverId }: {
     serverId: string,
-} & Awaited<ReturnType<typeof getAllThreads>>
+} & ThreadsData
 ) {
     if (threads.length === 0) {
         return <div className="flex-1 flex flex-col items-center justify-center">
@@ -59,34 +57,32 @@ export async function ThreadList({ threads, page, hasMore, serverId }: {
         </div>
     }
 
+    const {
+      pinnedThread,
+      otherThreads
+    } = threads.reduce((acc, t) => {
+      if (t.channel.pinned) {
+        acc.pinnedThread = t;
+        return acc;
+      }
+      acc.otherThreads.push(t);
+      return acc;
+    }, {
+      pinnedThread: null as unknown as ThreadsData["threads"][number] ,
+      otherThreads: [] as ThreadsData["threads"]
+    });
+
     return (
         <div className="flex-1">
             <div>
+              {
+                pinnedThread && (
+                  <ThreadItem key={pinnedThread.channel.id} data={pinnedThread} />
+                )
+              }
                 {
-                    threads.map(({ channel, user, messagesCount, parentChannel }) => {
-                        return <div key={channel.id} className=" border-b py-4 border-neutral-300 rounded flex gap-4 items-center justify-between">
-                            <div >
-                                <div >
-                                    <Link href={`/thread/${channel.id}`} className="hover:underline underline-offset-2">
-                                        {channel.channelName}
-                                    </Link>
-                                    <div className="text-sm text-neutral-500">
-                                        by {user.displayName ?? "Unknown"} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
-                                            #{parentChannel?.channelName}
-                                        </Link> • {snowflakeToReadableDate(channel.id)}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                {channel.pinned && <PushPinIcon className="size-5" />}
-                                <div className="flex gap-2 items-center">
-                                    <ChatIcon className="size-5" />
-                                    <span className="text-sm">
-                                        {messagesCount}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                    otherThreads.map((thread) => {
+                      return <ThreadItem key={thread.channel.id} data={thread} />
                     })
                 }
             </div>
@@ -110,4 +106,32 @@ export async function ThreadList({ threads, page, hasMore, serverId }: {
             </div>
         </div>
     )
+}
+
+
+export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
+  const { channel, user, messagesCount, parentChannel } = data;
+  return <div  className=" border-b py-4 border-neutral-300 rounded flex gap-4 items-center justify-between">
+      <div >
+          <div >
+              <Link href={`/thread/${channel.id}`} className="hover:underline underline-offset-2">
+                  {channel.channelName}
+              </Link>
+              <div className="text-sm text-neutral-500">
+                  by {user.displayName ?? "Unknown"} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
+                      #{parentChannel?.channelName}
+                  </Link> • {snowflakeToReadableDate(channel.id)}
+              </div>
+          </div>
+      </div>
+      <div className="flex items-center gap-4">
+          {channel.pinned && <PushPinIcon className="size-5" />}
+          <div className="flex gap-2 items-center">
+              <ChatIcon className="size-5" />
+              <span className="text-sm">
+                  {messagesCount}
+              </span>
+          </div>
+      </div>
+  </div>
 }

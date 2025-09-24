@@ -14,6 +14,7 @@ export default function SignIn() {
        * A URL to redirect if the user is newly registered
        */
       newUserCallbackURL: "/onboarding",
+      callbackURL: "/",
     });
   }
 

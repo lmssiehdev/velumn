@@ -6,12 +6,12 @@ import {
   CircleNotchIcon,
   HashIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { webEnv } from "@repo/utils/env/web";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { PermissionFlagsBits } from "discord-api-types/v8";
 import { ChannelType } from "discord-api-types/v10";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Guild } from "@/app/onboarding/page";
+import { useAuth } from "@/app/providers";
 import { useTRPC } from "@/lib/trpc";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
@@ -40,6 +40,7 @@ type OnboardingContextType = {
   selectGuild: (guildId: string) => void;
   setChannels: (channels: Channel[]) => void;
   toggleChannel: (channelId: string, enabled: boolean) => void;
+  handleInviteCreation: (guildId: string) => void;
 };
 
 const OnboardingContext = createContext<OnboardingContextType>(
@@ -62,6 +63,21 @@ export function OnboardingProvider({ guilds }: { guilds: Guild[] }) {
   const [step, setStep] = useState<Step>("INVITING_SERVER");
   const [selectedGuildId, setSelectedGuildId] = useState("");
   const [channels, setChannels] = useState<Channel[]>([]);
+
+  const { user } = useAuth();
+  const trpc = useTRPC();
+  const inviteUrlQuery = useMutation(
+    trpc.server.createServerInvite.mutationOptions(),
+  );
+
+  async function handleInviteCreation(guildId: string) {
+    const { inviteUrl } = await inviteUrlQuery.mutateAsync({
+      serverId: guildId,
+      userId: user.id,
+    });
+    window.open(inviteUrl, "_blank");
+    // TODO: handle errors here
+  }
 
   const selectGuild = (guildId: string) => {
     setSelectedGuildId(guildId);
@@ -88,6 +104,7 @@ export function OnboardingProvider({ guilds }: { guilds: Guild[] }) {
     selectGuild,
     setChannels: setChannelsAndAdvance,
     toggleChannel,
+    handleInviteCreation,
   };
 
   return (
@@ -143,7 +160,8 @@ function PickAServer() {
 }
 
 function WaitingForBotToJoin() {
-  const { selectedGuildId, guilds, setChannels } = useOnboardingContext();
+  const { selectedGuildId, handleInviteCreation, guilds, setChannels } =
+    useOnboardingContext();
   const [timeoutReached, setTimeoutReached] = useState(false);
   const guildId = selectedGuildId;
   const guild = guilds.find((g) => g.id === guildId);
@@ -188,11 +206,7 @@ function WaitingForBotToJoin() {
           slow.
         </div>
         <div className="space-y-2">
-          <Button
-            onClick={() =>
-              window.open(generateBotInviteLink(guildId), "_blank")
-            }
-          >
+          <Button onClick={() => handleInviteCreation(guildId)}>
             Re-invite Bot
           </Button>
           // TODO: add a join discord for support button here
@@ -204,18 +218,21 @@ function WaitingForBotToJoin() {
   return (
     <>
       <div className="my-10 flex flex-col items-center justify-center">
-        <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-          Your move!{" "}
-          <img
-            alt="wave"
-            className="ml-2 inline-block size-6"
-            src={emojiToTwemoji("🎯")}
-          />
-        </div>
-        <div className="text-neutral-600">
-          Add our bot and let's get rolling!
+        <div className="my-10 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
+            Your move!{" "}
+            <img
+              alt="wave"
+              className="ml-2 inline-block size-6"
+              src={emojiToTwemoji("🎯")}
+            />
+          </div>
+          <div className="text-neutral-600">
+            Add our bot and let's get rolling!
+          </div>
         </div>
       </div>
+
       <div className="mx-auto max-w-md w-full space-y-8 ">
         <GuildListItem key={guild.id} guild={guild} />
         <div className="space-y-2 text-center">
@@ -226,9 +243,7 @@ function WaitingForBotToJoin() {
           <Button
             variant={"outline"}
             size={"sm"}
-            onClick={() =>
-              window.open(generateBotInviteLink(guildId), "_blank")
-            }
+            onClick={() => handleInviteCreation(guildId)}
           >
             Re-invite Bot
           </Button>
@@ -239,13 +254,15 @@ function WaitingForBotToJoin() {
 }
 
 function GuildListItem({ guild }: { guild: Guild }) {
-  const { step, selectGuild } = useOnboardingContext();
+  const { step, selectGuild, handleInviteCreation } = useOnboardingContext();
   const isWaitingForBotToJoin = step === "WAITING_FOR_BOT_TO_JOIN";
   const isSelectingChannels = step === "SELECT_CHANNELS";
+
   function onSelectGuild(selectedGuildId: string) {
     if (isWaitingForBotToJoin) return;
     // open the invite link in a new tab
-    window.open(generateBotInviteLink(selectedGuildId), "_blank");
+
+    handleInviteCreation(selectedGuildId);
     selectGuild(selectedGuildId);
   }
   const initials = guild.name
@@ -335,15 +352,17 @@ function SelectChannels() {
   return (
     <>
       <div className="my-10 flex flex-col items-center justify-center">
-        <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-          Select channels to index!{" "}
-          <img
-            alt="wave"
-            className="ml-2 inline-block size-6"
-            src={emojiToTwemoji("✨")}
-          />
+        <div className="my-10 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
+            Select channels to index!{" "}
+            <img
+              alt="wave"
+              className="ml-2 inline-block size-6"
+              src={emojiToTwemoji("✨")}
+            />
+          </div>
+          <div className="text-neutral-600">We'll do the rest for you</div>
         </div>
-        <div className="text-neutral-600">We'll do the rest for you</div>
       </div>
 
       <div className="mx-auto max-w-md w-full space-y-8">
@@ -426,24 +445,6 @@ function getServerIcon(guild: { icon: string; id: string }) {
   const format = guild.icon.startsWith("a_") ? "gif" : "png";
 
   return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${format}?size={64}`;
-}
-
-// const permissions = [
-//     PermissionFlagsBits.CreateInstantInvite,
-//     PermissionFlagsBits.AddReactions,
-//     PermissionFlagsBits.ViewChannel,
-//     PermissionFlagsBits.SendMessages,
-//     PermissionFlagsBits.EmbedLinks,
-//     PermissionFlagsBits.ReadMessageHistory,
-//     PermissionFlagsBits.UseApplicationCommands,
-//     PermissionFlagsBits.ManageThreads,
-//     PermissionFlagsBits.CreatePublicThreads,
-//     PermissionFlagsBits.SendMessagesInThreads
-// ];
-// // to avoid importing PermissionsBitField
-// const permission = permissions.reduce((acc, perm) => acc | perm, BigInt(0)).toString();
-function generateBotInviteLink(guildId: string) {
-  return `https://discord.com/oauth2/authorize?client_id=${webEnv.NEXT_PUBLIC_DISCORD_CLIENT_ID}&permissions=328565083201&scope=bot+applications.commands&guild_id=${guildId}&disable_guild_select=true`;
 }
 
 // TODO: share this

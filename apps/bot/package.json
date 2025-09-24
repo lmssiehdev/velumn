@@ -20,9 +20,11 @@
     "@repo/db": "workspace:*",
     "@sapphire/decorators": "^6.2.0",
     "@sapphire/framework": "^5.3.6",
+    "@sapphire/plugin-api": "^8.3.1",
     "@sapphire/plugin-logger": "^4.1.0",
     "@t3-oss/env-core": "^0.13.8",
-    "discord.js": "14.x",
+    "discord-api-types": "^0.38.24",
+    "discord.js": "~14.22.1",
     "zod": "^4.1.5"
   }
 }

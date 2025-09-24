@@ -2,7 +2,14 @@
   "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
   "extends": ["ultracite"],
   "files": {
-    "includes": ["!**/*.{jsx,tsx}"]
+    "ignoreUnknown": true,
+    "includes": [
+      "!**/*.{jsx,tsx}",
+      "!**/dist",
+      "!**/.next",
+      "!**/node_modules",
+      "!**/.git"
+    ]
   },
   "linter": {
     "rules": {

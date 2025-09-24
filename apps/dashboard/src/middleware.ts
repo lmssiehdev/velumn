@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("auth/sign-in", request.url));
   }
 
   const session = await auth.api.getSession({
@@ -21,5 +21,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!api|_next/static|_next/image|auth/*|.*\\.png$).*)"],
+  matcher: ["/((?!api|auth|trpc|_next/static|_next/image|.*\\.png$).*)"],
 };

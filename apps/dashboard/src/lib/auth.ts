@@ -1,11 +1,7 @@
 import { checkout, polar, webhooks } from "@polar-sh/better-auth";
 import { Polar } from "@polar-sh/sdk";
-import {
-  getBulkServersByUserId,
-  setBulkServersPlanByUserId,
-} from "@repo/db/helpers/servers";
+import { setBulkServersPlanByUserId } from "@repo/db/helpers/servers";
 import { db } from "@repo/db/index";
-import { dbServer, ServerPlan } from "@repo/db/schema/discord";
 import { webEnv } from "@repo/utils/env/web";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";

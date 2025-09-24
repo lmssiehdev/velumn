@@ -2,7 +2,7 @@ import { getDiscordAccountIdForUser } from "@repo/db/helpers/dashboard";
 import { PermissionFlagsBits } from "discord-api-types/v8";
 import { unstable_cache } from "next/cache";
 import { OnboardingProvider } from "@/components/onboarding";
-import { getCurrentUser } from "@/server/user";
+import { getCurrentUserOrRedirect } from "@/server/user";
 
 const getGuildsCache = unstable_cache(getGuilds, ["userId"], {
   revalidate: 60,
@@ -31,6 +31,7 @@ async function getGuilds(userId: string) {
   });
 
   if (!response.ok) {
+    console.log(response);
     return { error: "Failed to fetch guilds" };
   }
 
@@ -50,7 +51,7 @@ async function getGuilds(userId: string) {
 }
 
 export default async function Page() {
-  const { user } = await getCurrentUser();
+  const { user } = await getCurrentUserOrRedirect();
   const guilds = await getGuildsCache(user.id);
 
   if ("error" in guilds) {

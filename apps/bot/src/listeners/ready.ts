@@ -7,11 +7,13 @@ import { indexServers } from '../core/indexing';
 import { toDbChannel, toDbServer } from '../helpers/convertion';
 
 const guildId = '1385955477912948806';
-const threadId = '1416262254482948218';
-const messageId = '1419196211298308307';
-async function testing(client: Client) {
+const _threadId = '1416262254482948218';
+const _messageId = '1419196211298308307';
+async function _testing(client: Client) {
   const guild = client.guilds.cache.get(guildId);
-  if (!guild) return;
+  if (!guild) {
+    return;
+  }
 
   const converted = toDbServer(guild);
   await upsertServer(converted);

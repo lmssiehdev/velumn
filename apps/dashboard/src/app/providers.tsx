@@ -1,7 +1,8 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import { useState } from "react";
+import type { User } from "better-auth";
+import { createContext, useContext, useMemo, useState } from "react";
 import { TRPCProvider } from "@/lib/trpc";
 import type { AppRouter } from "@/server/trpc/root";
 
@@ -51,4 +52,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </TRPCProvider>
     </QueryClientProvider>
   );
+}
+
+const AuthContext = createContext<{ user: User }>({} as { user: User });
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within a AuthProvider");
+  }
+  return context;
+}
+
+export function AuthProvider({
+  user,
+  children,
+}: {
+  user: User;
+  children: React.ReactNode;
+}) {
+  const value = useMemo(() => ({ user }), [user?.id]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,14 +1,12 @@
 import {
   deleteChannel,
   findChannelById,
-  updateChannel,
   upsertChannel,
 } from '@repo/db/helpers/channels';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import {
   type Channel,
-  ChannelType,
   Events,
   type GuildChannel,
   NewsChannel,

@@ -1,12 +1,4 @@
-import {
-  and,
-  count,
-  eq,
-  exists,
-  inArray,
-  isNotNull,
-  isNull,
-} from 'drizzle-orm';
+import { and, count, desc, eq, exists, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '..';
 import {
@@ -15,15 +7,44 @@ import {
   dbDiscordUser,
   dbMessage,
   dbServer,
+  pendingDiscordInvite,
   type ServerPlan,
 } from '../schema';
 
-export async function getChannelsInServer(serverId: string) {
-  return await db.query.dbServer.findFirst({
-    where: eq(dbServer.id, serverId),
-    with: {
-      channels: true,
+export async function createBotInvite({
+  userId,
+  serverId,
+}: {
+  userId: string;
+  serverId: string;
+}) {
+  await db
+    .insert(pendingDiscordInvite)
+    .values({
+      userId,
+      serverId,
+    })
+    .onConflictDoUpdate({
+      target: pendingDiscordInvite.serverId,
+      set: {
+        userId,
+      },
+    });
+}
+
+export async function getUserWhoInvited(guildId: string) {
+  return await db.query.pendingDiscordInvite.findFirst({
+    where: eq(pendingDiscordInvite.serverId, guildId),
+    columns: {
+      userId: true,
     },
+  });
+}
+
+export async function getChannelsInServer(serverId: string) {
+  return await db.query.dbChannel.findMany({
+    where: eq(dbChannel.serverId, serverId),
+    limit: 10,
   });
 }
 
@@ -112,15 +133,17 @@ export async function getAllThreads(
     .leftJoin(parentChannel, eq(dbChannel.parentId, parentChannel.id))
     .where(
       getBy === 'server'
-        ? and(eq(dbChannel.serverId, id), isNotNull(dbChannel.parentId))
-        : and(
-            eq(dbChannel.parentId, id),
-            eq(dbChannel.pinned, pinned).if(pinned)
+        ? and(
+            eq(dbChannel.serverId, id),
+            isNotNull(dbChannel.parentId),
+            eq(dbChannel.pinned, pinned)
           )
+        : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
     .limit(LIMIT_PER_PAGE + 1)
-    .offset((page - 1) * LIMIT_PER_PAGE);
+    .offset((page - 1) * LIMIT_PER_PAGE)
+    .orderBy(desc(dbChannel.id));
 
   return {
     hasMore: result.length > LIMIT_PER_PAGE,

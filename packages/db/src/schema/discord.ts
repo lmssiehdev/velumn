@@ -10,6 +10,7 @@ import {
   pgTable,
   text,
   time,
+  timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
 import { user } from './auth';
@@ -18,7 +19,7 @@ const snowflake = customType<{
   data: string;
 }>({
   dataType() {
-    return 'text';
+    return 'bigint';
   },
   // @ts-expect-error
   fromDriver(value: string) {
@@ -60,6 +61,7 @@ export const dbServer = pgTable('db_server', {
   plan: planEnum('plan').notNull().default('FREE'),
   polarCustomerId: text('polar_customer_id'),
   polarSubscriptionId: text('polar_subscription_id'),
+  invitedBy: snowflake('invitedBy'),
 });
 
 export const serverRelations = relations(dbServer, ({ one, many }) => ({
@@ -176,3 +178,14 @@ export type DBAttachments = typeof dbAttachments.$inferSelect;
 export type DBMessageWithRelations = DBMessage & {
   attachments?: DBAttachments[];
 };
+
+// Pending invites
+// used to link the user with the bot, surely there is a better way
+// but this works for now
+export const pendingDiscordInvite = pgTable('pending_discord_invite', {
+  serverId: text('server_id').notNull().primaryKey(),
+  userId: text('user_id').notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});

@@ -43,14 +43,20 @@ importers:
       '@sapphire/framework':
         specifier: ^5.3.6
         version: 5.3.6
+      '@sapphire/plugin-api':
+        specifier: ^8.3.1
+        version: 8.3.1
       '@sapphire/plugin-logger':
         specifier: ^4.1.0
         version: 4.1.0
       '@t3-oss/env-core':
         specifier: ^0.13.8
         version: 0.13.8(typescript@5.9.2)(zod@4.1.5)
+      discord-api-types:
+        specifier: ^0.38.24
+        version: 0.38.24
       discord.js:
-        specifier: 14.x
+        specifier: ~14.22.1
         version: 14.22.1
       zod:
         specifier: ^4.1.5
@@ -1928,6 +1934,10 @@ packages:
     resolution: {integrity: sha512-VDNsW6S8uMTVXUGSu9fwOYZ3zaMIQbgVvrglnPpjKSmW4GA6M3iewPZgtH/PDtqOXQe6khj1gY1ouhZnyYitNg==}
     engines: {node: '>=v18', npm: '>=7'}
 
+  '@sapphire/iana-mime-types@1.7.0':
+    resolution: {integrity: sha512-cCBSBAvFQHyYldBJWKs8Kdcw6rkhZMWfhh7CvqE9lHYCof5Hkz38o1JtrX+mbdqDjDBKw97Z752F95EGWec0qA==}
+    engines: {node: '>=v20'}
+
   '@sapphire/lexure@1.1.10':
     resolution: {integrity: sha512-odE4FD0SkCxkwEOhzAOqEnCJ/oJlPUuyFEw2KJacIuGiwY86WRTPIHLg1rt6XmfSYLxGXiqRf74req43+wRV9g==}
     engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
@@ -1935,6 +1945,10 @@ packages:
   '@sapphire/pieces@4.4.1':
     resolution: {integrity: sha512-2v49P++RzHGb23bdjSa9u7flkdvhrq94IUO9PneY538TILN5QiMxfaXVK+pDR2YR7jpQYBy9APwtFDes2Svykg==}
     engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
+
+  '@sapphire/plugin-api@8.3.1':
+    resolution: {integrity: sha512-hDOT/o6UZYhHePFQ9yVNtXqwuW81sxObxEp47w0plqTgRPaAP0mqygG5+DRIaY36WRrSD8YGeLJWxA40rifLmQ==}
+    engines: {node: '>=v18', npm: '>=7'}
 
   '@sapphire/plugin-logger@4.1.0':
     resolution: {integrity: sha512-+vLTITQw3DI8+kfDPNJ0yhIK/LrfM/Gro/UFcxgYWLLm+lwNmSpLZxdWe9v7ESXprody7rTp8JXPNBK7UWyE8w==}
@@ -2795,6 +2809,9 @@ packages:
   consola@3.4.2:
     resolution: {integrity: sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA==}
     engines: {node: ^14.18.0 || >=16.10.0}
+
+  cookie-es@1.2.2:
+    resolution: {integrity: sha512-+W7VmiVINB+ywl1HGXJXmrqkOhpKrIiVZV6tQuV54ZyQC7MMuBt81Vc336GMLoHBq5hV/F9eXgt5Mnx0Rha5Fg==}
 
   copy-anything@3.0.5:
     resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
@@ -4434,6 +4451,13 @@ packages:
     resolution: {integrity: sha512-t2T/WLB2WRgZ9EpE4jgPJ9w+i66UZfDc8wHh0xrwiRNN+UwH98GIJkTeZqX9rg0i0ptwzqW+uYeIF0T4F8LR7A==}
     engines: {node: '>=14.0.0'}
 
+  tldts-core@7.0.16:
+    resolution: {integrity: sha512-XHhPmHxphLi+LGbH0G/O7dmUH9V65OY20R7vH8gETHsp5AZCjBk9l8sqmRKLaGOxnETU7XNSDUPtewAy/K6jbA==}
+
+  tldts@7.0.16:
+    resolution: {integrity: sha512-5bdPHSwbKTeHmXrgecID4Ljff8rQjv7g8zKQPkCozRo2HWWni+p310FSn5ImI+9kWw9kK4lzOB5q/a6iv0IJsw==}
+    hasBin: true
+
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
@@ -4567,6 +4591,10 @@ packages:
   undici@6.21.3:
     resolution: {integrity: sha512-gBLkYIlEnSp8pFbT64yFgGE6UIB9tAkhukC23PmMDCe5Nd+cRqKxSjw5y54MK2AZMgZfJWMaNE4nYUHgi1XEOw==}
     engines: {node: '>=18.17'}
+
+  undici@7.16.0:
+    resolution: {integrity: sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==}
+    engines: {node: '>=20.18.1'}
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
@@ -6495,6 +6523,8 @@ snapshots:
       '@sapphire/stopwatch': 1.5.4
       '@sapphire/utilities': 3.18.2
 
+  '@sapphire/iana-mime-types@1.7.0': {}
+
   '@sapphire/lexure@1.1.10':
     dependencies:
       '@sapphire/result': 2.7.2
@@ -6504,6 +6534,15 @@ snapshots:
       '@discordjs/collection': 2.1.1
       '@sapphire/utilities': 3.18.2
       tslib: 2.8.1
+
+  '@sapphire/plugin-api@8.3.1':
+    dependencies:
+      '@sapphire/iana-mime-types': 1.7.0
+      '@types/ws': 8.18.1
+      '@vladfrangu/async_event_emitter': 2.4.6
+      cookie-es: 1.2.2
+      tldts: 7.0.16
+      undici: 7.16.0
 
   '@sapphire/plugin-logger@4.1.0':
     dependencies:
@@ -7508,6 +7547,8 @@ snapshots:
   confbox@0.2.2: {}
 
   consola@3.4.2: {}
+
+  cookie-es@1.2.2: {}
 
   copy-anything@3.0.5:
     dependencies:
@@ -9590,6 +9631,12 @@ snapshots:
 
   tinyspy@4.0.3: {}
 
+  tldts-core@7.0.16: {}
+
+  tldts@7.0.16:
+    dependencies:
+      tldts-core: 7.0.16
+
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
@@ -9754,6 +9801,8 @@ snapshots:
   undici-types@6.21.0: {}
 
   undici@6.21.3: {}
+
+  undici@7.16.0: {}
 
   unified@11.0.5:
     dependencies:

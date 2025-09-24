@@ -1,7 +1,13 @@
-import { ChannelType } from 'discord-api-types/v10';
-import { and, count, eq, inArray, sql } from 'drizzle-orm';
+import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { type DBChannel, dbChannel, dbMessage, dbServer } from '../schema';
+import {
+  type DBChannel,
+  dbAttachments,
+  dbChannel,
+  dbDiscordUser,
+  dbMessage,
+  dbServer,
+} from '../schema';
 
 export async function getChannelInfo(channelId: string) {
   const data = await db
@@ -21,6 +27,20 @@ export async function getChannelInfo(channelId: string) {
 }
 
 export async function getAllMessagesInThreads(channelId: string) {
+  // return await db.select({
+  //   channel: dbChannel,
+  //   messages: {
+  //     user: dbDiscordUser,
+  //     attachment: dbAttachments,
+  //   }
+  // })
+  //   .from(dbChannel)
+  //   .leftJoin(dbDiscordUser, eq(dbDiscordUser.id, dbMessage.authorId))
+  //   .leftJoin(dbMessage, eq(dbMessage.channelId, channelId))
+  //   .leftJoin(dbAttachments, eq(dbAttachments.messageId, dbMessage.id))
+  //   .where(eq(dbChannel.id, channelId))
+  //   .orderBy(desc(dbChannel.id));
+
   return await db.query.dbChannel.findFirst({
     where: eq(dbChannel.id, channelId),
     with: {
@@ -29,7 +49,7 @@ export async function getAllMessagesInThreads(channelId: string) {
           user: true,
           attachments: true,
         },
-        orderBy: [dbChannel.id],
+        orderBy: [asc(dbChannel.id)],
       },
     },
   });
