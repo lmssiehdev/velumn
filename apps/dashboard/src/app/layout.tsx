@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { getCurrentUserOrRedirect } from "@/server/user";
 import { funnelSans } from "../styles/fonts";
-import { AuthProvider } from "./providers";
 
 export const metadata: Metadata = {
   title: "Create Next App",

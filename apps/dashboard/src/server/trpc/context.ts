@@ -11,7 +11,7 @@ export async function createContext() {
       session,
       user: session?.user || null,
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       session: null,
       user: null,

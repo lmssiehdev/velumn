@@ -1,13 +1,6 @@
-import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
-import {
-  type DBChannel,
-  dbAttachments,
-  dbChannel,
-  dbDiscordUser,
-  dbMessage,
-  dbServer,
-} from '../schema';
+import { type DBChannel, dbChannel, dbMessage, dbServer } from '../schema';
 
 export async function getChannelInfo(channelId: string) {
   const data = await db

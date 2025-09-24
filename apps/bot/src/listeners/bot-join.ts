@@ -1,7 +1,5 @@
 import { upsertBulkChannels } from '@repo/db/helpers/channels';
 import { getUserWhoInvited, upsertServer } from '@repo/db/helpers/servers';
-import { db } from '@repo/db/index';
-import { pendingDiscordInvite } from '@repo/db/schema/discord';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import { ChannelType, Events, type Guild } from 'discord.js';
