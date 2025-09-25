@@ -1,32 +1,11 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import pg from 'pg';
-// biome-ignore lint/performance/noNamespaceImport: <explanation>
-import * as schema from './schema';
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import * as schema from "./schema";
 
-export const dbConfig = {
-  enabled: true,
-  host: '127.0.0.1',
-  user: 'discord-indexer',
-  database: 'discord-indexer',
-  password: 'root',
-  port: 5432,
-};
+// TODO: move to env lol
+export const DATABASE_URL = "postgresql://neondb_owner:npg_QKinmFA0UN1D@ep-tiny-shape-ad0yf61u-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+const sql = neon(DATABASE_URL);
 
-const poolConnection = new pg.Pool({
-  ...dbConfig,
-  // biome-ignore lint/style/noMagicNumbers: <explanation>
-  idleTimeoutMillis: 60 * 1000,
-});
-
-poolConnection.on('connect', () => {
-  console.info('Connected to database');
-});
-
-poolConnection.on('error', (err) => {
-  console.error('pg pool error:', err);
-});
-
-export const db = drizzle({
-  client: poolConnection,
-  schema,
+export const db = drizzle(sql, {
+    schema,
 });

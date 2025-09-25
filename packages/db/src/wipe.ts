@@ -1,15 +1,12 @@
 import pg from 'pg';
-import { dbConfig } from './index.js';
+import { url } from './index.js';
 
 async function dropDatabase() {
   if (process.env.NODE_ENV === 'production') {
     return;
   }
   const pool = new pg.Pool({
-    ...dbConfig,
-    user: 'postgres',
-    password: 'postgres',
-    database: 'postgres',
+    connectionString: url,
   });
 
   try {

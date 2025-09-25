@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
-import { Twemoji } from './markdown-renderer/markdown-renderer';
+import { Twemoji } from './markdown/renderer';
 
 export default function ThreadFeedback() {
     const [submitted, setSubmitted] = useState<"yes" | "no" | undefined>();
@@ -21,10 +21,10 @@ export default function ThreadFeedback() {
             <Button onClick={() => {
                 setSubmitted("no");
             }}
-            disabled={submitted === 'yes'}
-            variant={'ghost'}  size={"sm"} className={cn('flex gap-2 hover:scale-110', {
-                'bg-accent text-accent-foreground scale-110': submitted === "no"
-            })}>
+                disabled={submitted === 'yes'}
+                variant={'ghost'} size={"sm"} className={cn('flex gap-2 hover:scale-110', {
+                    'bg-accent text-accent-foreground scale-110': submitted === "no"
+                })}>
                 <Twemoji name="👍" className="size-5" />
                 No
             </Button>

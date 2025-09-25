@@ -1,5 +1,5 @@
-import { Attachments } from "@/components/markdown-renderer/attachments";
-import { DiscordMarkdown, Twemoji } from "@/components/markdown-renderer/markdown-renderer";
+import { Attachments } from "@/components/markdown/attachments";
+import { DiscordMarkdown, Twemoji } from "@/components/markdown/renderer";
 import { DiscordIcon } from "@/components/misc";
 import ThreadFeedback from "@/components/thread-feedback";
 import { Button } from "@/components/ui/button";

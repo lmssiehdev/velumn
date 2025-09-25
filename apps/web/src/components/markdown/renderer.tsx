@@ -2,10 +2,11 @@
 import React from 'react';
 import { parse } from 'discord-markdown-parser';
 import { type SingleASTNode } from '@khanacademy/simple-markdown';
-import { Code } from '../code-highlighting';
+import { Code } from './code';
 import { Spoiler } from './spoiler';
 import dayjs from 'dayjs';
 import { cn } from '@/lib/utils';
+import { emojiToTwemoji } from '@repo/utils/helpers/twemoji';
 
 function Mention({ type = "user", children }: { type?: "user" | "channel", children: string }) {
   const prefix = type === "user" ? "@" : "#";
@@ -118,36 +119,4 @@ export const DiscordMarkdown = ({ children }: { children: string | null }) => {
   return <div className='prose'>
     {renderASTNode(parsed, 0, null)}
   </div>;
-}
-
-
-/**
- * Converts Unicode emoji to Twemoji SVG URL
- * 
- * @see https://github.com/twitter/twemoji/blob/d94f4cf793e6d5ca592aa00f58a88f6a4229ad43/scripts/build.js#L571C7-L589C8
- */
-function emojiToTwemoji(emoji: string, version = '14.0.2') {
-  function toCodePoint(unicodeSurrogates: string) {
-    var
-      r = [],
-      c = 0,
-      p = 0,
-      i = 0;
-    while (i < unicodeSurrogates.length) {
-      c = unicodeSurrogates.charCodeAt(i++);
-      if (p) {
-        r.push((0x10000 + ((p - 0xD800) << 10) + (c - 0xDC00)).toString(16));
-        p = 0;
-      } else if (0xD800 <= c && c <= 0xDBFF) {
-        p = c;
-      } else {
-        r.push(c.toString(16));
-      }
-    }
-    return r.join('-');
-  }
-
-  const filename = toCodePoint(emoji)
-
-  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@${version}/assets/svg/${filename}.svg`;
 }
