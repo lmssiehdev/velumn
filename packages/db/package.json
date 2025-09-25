@@ -11,7 +11,8 @@
     "db:seed": "tsx src/seed.ts",
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
     "db:wipe": "rm -rf src/drizzle && tsx  --env-file=.env  src/wipe.ts",
-    "db:clear": "tsx src/clear.ts"
+    "db:clear": "tsx src/clear.ts",
+    "type-check": "tsc --noEmit"
   },
   "exports": {
     "./*": "./src/*.ts"
