@@ -1,13 +1,13 @@
-import { createBotInvite, getChannelsInServer } from "@repo/db/helpers/servers";
-import { webEnv } from "@repo/utils/env/web";
-import { ChannelType } from "discord-api-types/v10";
-import { z } from "zod";
-import { procedure, router } from "@/server/trpc";
+import { createBotInvite, getChannelsInServer } from '@repo/db/helpers/servers';
+import { webEnv } from '@repo/utils/env/web';
+import { ChannelType } from 'discord-api-types/v10';
+import { z } from 'zod';
+import { procedure, router } from '@/server/trpc';
 
 // TODO: protect
 export const serverRouter = router({
   public: procedure.query(() => {
-    return { message: "Hello world" };
+    return { message: 'Hello world' };
   }),
   getChannelsInServer: procedure
     .input(z.object({ serverId: z.string() }))
@@ -19,7 +19,7 @@ export const serverRouter = router({
       return {
         channels: channels.map((c) => ({
           id: c.id,
-          name: c.channelName ?? "Unknown",
+          name: c.channelName ?? 'Unknown',
           type: c.type as ChannelType,
           enabled: c.type === ChannelType.GuildForum,
         })),

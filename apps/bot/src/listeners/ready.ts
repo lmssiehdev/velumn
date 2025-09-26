@@ -1,3 +1,4 @@
+import { parseArgs } from 'node:util';
 import { upsertBulkChannels } from '@repo/db/helpers/channels';
 import { upsertServer } from '@repo/db/helpers/servers';
 import { ApplyOptions } from '@sapphire/decorators';
@@ -6,19 +7,17 @@ import { ChannelType, type Client } from 'discord.js';
 import { indexServers } from '../core/indexing';
 import { toDbChannel, toDbServer } from '../helpers/convertion';
 
-import { parseArgs } from 'node:util';
-
 const { values } = parseArgs({
   args: process.argv.slice(2),
   options: {
     index: { type: 'boolean' },
-  }
+  },
 });
 
 const guilds = {
-  namerio: "1228579842212106302",
-  testserver: "1385955477912948806"
-}
+  namerio: '1228579842212106302',
+  testserver: '1385955477912948806',
+};
 
 const guildId = '1385955477912948806';
 const _threadId = '1416262254482948218';

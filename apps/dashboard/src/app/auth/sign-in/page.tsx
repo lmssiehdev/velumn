@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
-import { DiscordLogoIcon } from "@phosphor-icons/react/dist/ssr";
-import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
+import { DiscordLogoIcon } from '@phosphor-icons/react/dist/ssr';
+import { Button } from '@/components/ui/button';
+import { authClient } from '@/lib/auth-client';
 
 // TODO: add a pretty description and tidy things up :)
 export default function SignIn() {
   async function handleSingIn() {
     await authClient.signIn.social({
-      provider: "discord",
-      errorCallbackURL: "/error",
+      provider: 'discord',
+      errorCallbackURL: '/error',
       /**
        * A URL to redirect if the user is newly registered
        */
-      newUserCallbackURL: "/onboarding",
-      callbackURL: "/",
+      newUserCallbackURL: '/onboarding',
+      callbackURL: '/',
     });
   }
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center shadow">
-      <div className="max-w-md w-full border p-10">
-        <div className="text-2xl mb-4">Login to [Discord]</div>
+    <div className="flex h-screen flex-col items-center justify-center shadow">
+      <div className="w-full max-w-md border p-10">
+        <div className="mb-4 text-2xl">Login to [Discord]</div>
         <Button
+          className="w-full rounded-none bg-[hsl(234.935_calc(1*85.556%)_64.706%/1)] hover:bg-[hsl(234.935_calc(1*85.556%)_64.706%/1)] hover:opacity-80"
           onClick={() => handleSingIn()}
-          className="rounded-none w-full bg-[hsl(234.935_calc(1*85.556%)_64.706%/1)] hover:bg-[hsl(234.935_calc(1*85.556%)_64.706%/1)] hover:opacity-80"
         >
           <DiscordLogoIcon className="size-6" />
           Continue with Discord

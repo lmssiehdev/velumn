@@ -1,5 +1,5 @@
-import { AuthProvider, Providers } from "@/app/providers";
-import { getCurrentUserOrRedirect } from "@/server/user";
+import { AuthProvider, Providers } from '@/app/providers';
+import { getCurrentUserOrRedirect } from '@/server/user';
 
 export default async function OnboardingLayout({
   children,

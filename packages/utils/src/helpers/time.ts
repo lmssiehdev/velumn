@@ -1,7 +1,6 @@
 import { dayjs } from './dayjs';
 import { getDateFromSnowflake as snowflakeToDate } from './snowflake';
 
-
 export function snowflakeToReadableDate(snowflake: string) {
   const date = snowflakeToDate(snowflake);
   const now = dayjs();
