@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FrontPageSidebar } from "../../layout";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import { Button } from "@/components/ui/button";
+import slugify from "slugify";
+import { slugifyThreadUrl } from "@/lib/slugify";
 
 export default async function Page({
     params,
@@ -12,7 +14,9 @@ export default async function Page({
     params: Promise<{ id: string }>,
     searchParams: { page: string }
 }) {
-    const { id } = await params;
+    const d = await params;
+    console.log({ d });
+    const { id } = d;
 
     const searchParamsPage = Number(searchParams.page ?? 1);
 
@@ -58,31 +62,31 @@ export async function ThreadList({ threads, page, hasMore, serverId }: {
     }
 
     const {
-      pinnedThread,
-      otherThreads
+        pinnedThread,
+        otherThreads
     } = threads.reduce((acc, t) => {
-      if (t.channel.pinned) {
-        acc.pinnedThread = t;
+        if (t.channel.pinned) {
+            acc.pinnedThread = t;
+            return acc;
+        }
+        acc.otherThreads.push(t);
         return acc;
-      }
-      acc.otherThreads.push(t);
-      return acc;
     }, {
-      pinnedThread: null as unknown as ThreadsData["threads"][number] ,
-      otherThreads: [] as ThreadsData["threads"]
+        pinnedThread: null as unknown as ThreadsData["threads"][number],
+        otherThreads: [] as ThreadsData["threads"]
     });
 
     return (
         <div className="flex-1">
             <div>
-              {
-                pinnedThread && (
-                  <ThreadItem key={pinnedThread.channel.id} data={pinnedThread} />
-                )
-              }
+                {
+                    pinnedThread && (
+                        <ThreadItem key={pinnedThread.channel.id} data={pinnedThread} />
+                    )
+                }
                 {
                     otherThreads.map((thread) => {
-                      return <ThreadItem key={thread.channel.id} data={thread} />
+                        return <ThreadItem key={thread.channel.id} data={thread} />
                     })
                 }
             </div>
@@ -110,28 +114,28 @@ export async function ThreadList({ threads, page, hasMore, serverId }: {
 
 
 export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
-  const { channel, user, messagesCount, parentChannel } = data;
-  return <div  className=" border-b py-4 border-neutral-300 rounded flex gap-4 items-center justify-between">
-      <div >
-          <div >
-              <Link href={`/thread/${channel.id}`} className="hover:underline underline-offset-2">
-                  {channel.channelName}
-              </Link>
-              <div className="text-sm text-neutral-500">
-                  by {user.displayName ?? "Unknown"} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
-                      #{parentChannel?.channelName}
-                  </Link> • {snowflakeToReadableDate(channel.id)}
-              </div>
-          </div>
-      </div>
-      <div className="flex items-center gap-4">
-          {channel.pinned && <PushPinIcon className="size-5" />}
-          <div className="flex gap-2 items-center">
-              <ChatIcon className="size-5" />
-              <span className="text-sm">
-                  {messagesCount}
-              </span>
-          </div>
-      </div>
-  </div>
+    const { channel, user, messagesCount, parentChannel } = data;
+    return <div className=" border-b py-4 border-neutral-300 rounded flex gap-4 items-center justify-between">
+        <div >
+            <div >
+                <Link href={slugifyThreadUrl({ id: channel.id, name: channel.channelName! })} className="hover:underline underline-offset-2">
+                    {channel.channelName}
+                </Link>
+                <div className="text-sm text-neutral-500">
+                    by {user.displayName ?? "Unknown"} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
+                        #{parentChannel?.channelName}
+                    </Link> • {snowflakeToReadableDate(channel.id)}
+                </div>
+            </div>
+        </div>
+        <div className="flex items-center gap-4">
+            {channel.pinned && <PushPinIcon className="size-5" />}
+            <div className="flex gap-2 items-center">
+                <ChatIcon className="size-5" />
+                <span className="text-sm">
+                    {messagesCount}
+                </span>
+            </div>
+        </div>
+    </div>
 }

@@ -14,10 +14,10 @@ import type { DBAttachments } from "@repo/db/schema/index";
 // @ts-expect-error no types - used once;
 import bytes from "bytes";
 
+export const isImage = (a: DBAttachments) => a.contentType?.startsWith('image/') && !a.proxyUrl.endsWith(".svg");
+const isCode = (a: DBAttachments) => !a.contentType?.startsWith('image/') || a.proxyUrl.endsWith(".svg");
 export function Attachments({ attachments }: { attachments: DBAttachments[] }) {
     if (!attachments.length) return null;
-    const isImage = (a: DBAttachments) => a.contentType?.startsWith('image/') && !a.proxyUrl.endsWith(".svg");
-    const isCode = (a: DBAttachments) => !a.contentType?.startsWith('image/') || a.proxyUrl.endsWith(".svg")
 
     return <div className="flex flex-col gap-2">
         <ImageGallery images={attachments.filter(isImage)} />

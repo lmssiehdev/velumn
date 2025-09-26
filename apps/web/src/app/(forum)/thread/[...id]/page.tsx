@@ -1,4 +1,4 @@
-import { Attachments } from "@/components/markdown/attachments";
+import { Attachments, isImage } from "@/components/markdown/attachments";
 import { DiscordMarkdown, Twemoji } from "@/components/markdown/renderer";
 import { DiscordIcon } from "@/components/misc";
 import ThreadFeedback from "@/components/thread-feedback";
@@ -13,13 +13,16 @@ import { ServerInfo } from "../../layout";
 import { JsonLd } from 'react-schemaorg';
 import { DiscussionForumPosting, WithContext } from 'schema-dts';
 import { getDateFromSnowflake, isSnowflakeLargerAsInt } from "@repo/utils/helpers/snowflake";
-import { sanitizeJsonLd } from "./_sanatize-schema";
+import { sanitizeJsonLd } from "@/utils/sanitize";
+import { redirect } from "next/navigation";
+import { getSlugFromTitle, slugifyThreadUrl } from "@/lib/slugify";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const post = await getAllMessagesInThreadsCache(id);
+export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
+  const { id: [threadId] } = await params;
 
-  if (!post || !post.messages) {
+  const thread = await getAllMessagesInThreadsCache(threadId);
+
+  if (!thread || !thread.messages || thread.messages.length === 0) {
     return {
       title: 'Not Found',
       openGraph: {
@@ -28,39 +31,61 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       },
     };
   }
+
+  const url = slugifyThreadUrl({ id: threadId, name: thread.channelName! });
+  if (!thread || !thread.messages) {
+    return {
+      title: 'Thread Not Found',
+      openGraph: {
+        title: 'Not Found',
+        description: 'Thread not found',
+        url
+      },
+    };
+  }
   return {
-    title: post.channelName,
+    title: thread.channelName,
+    // TODO: check for answer first then fallback to original post
+    description: thread.messages[0]?.content.slice(0, 300),
+    alternates: {
+      canonical: url,
+    },
   }
 }
 
 export default async function Page({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: [string, string?] }>;
 }) {
-  const { id: threadId } = await params;
+  const { id: [threadId, slug] } = await params;
+
 
   if (!threadId) {
-    return <div>Channel doesn't exist</div>;
+    return <div>Thread doesn't exist</div>;
   }
 
   const thread = await getAllMessagesInThreadsCache(threadId);
-  const server = await getServerInfoByChannelIdCache(threadId);
 
   if (!thread) {
-    return <div>Channel doesn't exist</div>;
+    return <div>Thread doesn't exist</div>;
   }
 
-  // TODO: do this in the query;
+  if (!slug || slug !== getSlugFromTitle(thread.channelName!)) {
+    redirect(slugifyThreadUrl({ id: threadId, name: thread.channelName! }));
+  }
+
   const [originalPost, ...orderedMessages] = thread.messages;
 
   if (!originalPost) {
-    return <div>Channel doesn't exist</div>;
+    return <div>Thread doesn't exist</div>;
   }
+
+  const server = await getServerInfoByChannelIdCache(threadId);
 
   const op = originalPost.user!;
   const title = thread.channelName ?? originalPost.content!.slice(0, 100);
-  const images = originalPost.attachments.filter(a => a.contentType?.includes("image") && a.contentType?.includes("svg"));
+  const firstImage = originalPost.attachments.filter(isImage).at(0);
 
   // TODO: handle empty messages;
   const authorId = thread.messages[0]?.user?.id;
@@ -84,7 +109,7 @@ export default async function Page({
             identifier: op.id
           },
           // todo fall to an og?
-          image: images.at(0)?.proxyUrl || undefined,
+          image: firstImage?.proxyUrl || undefined,
           headline: title,
           articleBody: originalPost.content,
           identifier: thread.id,
@@ -93,7 +118,7 @@ export default async function Page({
             "@type": "Comment",
             text: m.content,
             identifier: m.id,
-            // TODO: parentItem
+            // TODO: add parentItem
             datePublished: getDateFromSnowflake(m.id).toISOString(),
             position: idx + 1,
             author: {
@@ -105,7 +130,7 @@ export default async function Page({
           }))
         })}
       />
-      <div className="">
+      <div>
         <h1 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6 px-3">{thread.channelName}</h1>
       </div>
       <div className="flex gap-6">
@@ -184,7 +209,7 @@ function MessagePost({ message, authorId }: {
         </div>
         <div>
           <DiscordMarkdown>{message.content}</DiscordMarkdown>
-          {/* Borken ID, don't use relations */}
+          {/* TODO: Borken ID, don't use relations */}
           <Attachments attachments={message.attachments!} />
         </div>
       </div>
