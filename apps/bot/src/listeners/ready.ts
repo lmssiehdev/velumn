@@ -6,11 +6,25 @@ import { ChannelType, type Client } from 'discord.js';
 import { indexServers } from '../core/indexing';
 import { toDbChannel, toDbServer } from '../helpers/convertion';
 
+import { parseArgs } from 'node:util';
+
+const { values } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    index: { type: 'boolean' },
+  }
+});
+
+const guilds = {
+  namerio: "1228579842212106302",
+  testserver: "1385955477912948806"
+}
+
 const guildId = '1385955477912948806';
 const _threadId = '1416262254482948218';
 const _messageId = '1419196211298308307';
-async function _testing(client: Client) {
-  const guild = client.guilds.cache.get(guildId);
+async function testing(client: Client) {
+  const guild = client.guilds.cache.get(guilds.namerio);
   if (!guild) {
     return;
   }
@@ -41,9 +55,11 @@ async function _testing(client: Client) {
 })
 export class Indexing extends Listener {
   async run(client: Client) {
-    // await testing(client);
-    // return;
-    // TODO: run this every day;
-    await indexServers(client);
+    if (values.index) {
+      // TODO: run this every day;
+      await indexServers(client);
+    } else {
+      await testing(client);
+    }
   }
 }

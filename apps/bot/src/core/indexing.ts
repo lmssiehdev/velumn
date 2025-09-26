@@ -32,7 +32,7 @@ import { Log } from '../utils/logger';
 export type IndexableChannels = NewsChannel | TextChannel | ForumChannel;
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
-  const devGuild = allGuilds.find((x) => x.id === '1385955477912948806');
+  const devGuild = allGuilds.find((x) => x.id === "1385955477912948806");
   const guilds = devGuild ? [devGuild] : allGuilds;
 
   // create a server when the bot gets added to a guild

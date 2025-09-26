@@ -10,6 +10,10 @@ import { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
 import { ServerInfo } from "../../layout";
+import { JsonLd } from 'react-schemaorg';
+import { DiscussionForumPosting, WithContext } from 'schema-dts';
+import { getDateFromSnowflake, isSnowflakeLargerAsInt } from "@repo/utils/helpers/snowflake";
+import { sanitizeJsonLd } from "./_sanatize-schema";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,28 +38,75 @@ export default async function Page({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: threadId } = await params;
 
-  if (!id) {
+  if (!threadId) {
     return <div>Channel doesn't exist</div>;
   }
 
-  const channel = await getAllMessagesInThreadsCache(id);
-  const server = await getServerInfoByChannelIdCache(id);
+  const thread = await getAllMessagesInThreadsCache(threadId);
+  const server = await getServerInfoByChannelIdCache(threadId);
 
-  if (!channel) {
+  if (!thread) {
     return <div>Channel doesn't exist</div>;
   }
 
   // TODO: do this in the query;
-  const [originalPost, ...orderedMessages] = channel.messages;
+  const [originalPost, ...orderedMessages] = thread.messages;
+
+  if (!originalPost) {
+    return <div>Channel doesn't exist</div>;
+  }
+
+  const op = originalPost.user!;
+  const title = thread.channelName ?? originalPost.content!.slice(0, 100);
+  const images = originalPost.attachments.filter(a => a.contentType?.includes("image") && a.contentType?.includes("svg"));
 
   // TODO: handle empty messages;
-  const authorId = channel.messages[0]?.user?.id;
+  const authorId = thread.messages[0]?.user?.id;
+  const dateModified = thread.messages.map(m => m.id).reduce((snowflake, snowflake2) => {
+    return BigInt(snowflake) > BigInt(snowflake2) ? snowflake : snowflake2;
+  })
   return (
     <div>
+      <JsonLd<DiscussionForumPosting>
+        item={sanitizeJsonLd<WithContext<DiscussionForumPosting>>({
+          "@context": "https://schema.org",
+          "@type": "DiscussionForumPosting",
+          // !! TODO: non relative url
+          "url": `/thread/${threadId}`,
+          datePublished: getDateFromSnowflake(thread.id).toISOString(),
+          dateModified: getDateFromSnowflake(dateModified).toISOString(),
+          author: {
+            "@type": "Person",
+            name: op.displayName,
+            url: undefined,
+            identifier: op.id
+          },
+          // todo fall to an og?
+          image: images.at(0)?.proxyUrl || undefined,
+          headline: title,
+          articleBody: originalPost.content,
+          identifier: thread.id,
+          commentCount: orderedMessages.length,
+          comment: orderedMessages.map((m, idx) => ({
+            "@type": "Comment",
+            text: m.content,
+            identifier: m.id,
+            // TODO: parentItem
+            datePublished: getDateFromSnowflake(m.id).toISOString(),
+            position: idx + 1,
+            author: {
+              "@type": "Person",
+              name: m.user?.displayName,
+              url: undefined,
+              identifier: m.user?.id
+            }
+          }))
+        })}
+      />
       <div className="">
-        <h1 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6 px-3">{channel.channelName}</h1>
+        <h1 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6 px-3">{thread.channelName}</h1>
       </div>
       <div className="flex gap-6">
         <div className="flex-1">
@@ -75,7 +126,7 @@ export default async function Page({
               </div>
             )
           })}
-          {orderedMessages.length === 0 && originalPost?.user?.id === authorId && <NoReplies />}
+          {orderedMessages.length === 0 && op.id === authorId && <NoReplies />}
         </div>
         <div className="max-w-xs w-full space-y-6">
           <ServerInfo server={server} />
@@ -125,7 +176,7 @@ function MessagePost({ message, authorId }: {
                   href={`#${message.referenceId}`}
                   className="hover:underline underline-offset-2"
                 >
-                            // reply
+                  // reply
                 </Link>
               </Button>
             )}

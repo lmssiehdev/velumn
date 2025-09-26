@@ -122,15 +122,16 @@ export type DBMessageReaction = {
 
 export const dbMessage = pgTable('db_message', {
   id: snowflake('id').primaryKey(),
-  serverId: snowflake('server_id'),
-  channelId: snowflake('channel_id'),
-  authorId: snowflake('author_id'),
+  serverId: snowflake('server_id').notNull(),
+  channelId: snowflake('channel_id').notNull(),
+  authorId: snowflake('author_id').notNull(),
   childThreadId: snowflake('child_thread_id'),
   parentChannelId: snowflake('parent_channel_id'),
   cleanContent: varchar('clean_content'),
-  content: varchar('content'),
-  pinned: boolean('pinned'),
-  type: integer('type'),
+  content: varchar('content').notNull(),
+  // TODO: get this form the flags
+  pinned: boolean('pinned').notNull().default(false),
+  type: integer('type').notNull(),
   webhookId: snowflake('webhook_id'),
   referenceId: snowflake('reference_id'),
   applicationId: snowflake('application_id'),
