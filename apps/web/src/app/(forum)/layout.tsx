@@ -48,8 +48,8 @@ async function Boards({
   serverId: string;
   activeChannelId?: string;
 }) {
-  const topics = await getTopicsInServer(serverId);
-  if (topics.length <= 1) return;
+  // display forum channels first
+  const topics = (await getTopicsInServer(serverId)).sort((a, b) => a.type > b.type ? -1 : 1);
 
   return (
     <div className="border border-neutral-300 p-4">
