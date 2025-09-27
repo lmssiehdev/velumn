@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, pgTable, text, timestamp, index } from 'drizzle-orm/pg-core';
 import { dbServer } from './discord';
 
 export const user = pgTable('user', {
@@ -13,7 +13,9 @@ export const user = pgTable('user', {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+}, (t) => [
+  index("email").on(t.email),
+]);
 
 export const userRelations = relations(user, ({ one, many }) => ({
   server: many(dbServer),
@@ -32,7 +34,10 @@ export const session = pgTable('session', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-});
+}, (t) => [
+  index('user_id').on(t.userId),
+  index('token').on(t.token),
+]);
 
 export const account = pgTable('account', {
   id: text('id').primaryKey(),
@@ -52,7 +57,9 @@ export const account = pgTable('account', {
   updatedAt: timestamp('updated_at')
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+}, (t) => [
+  index('user_id').on(t.userId)
+]);
 
 export const verification = pgTable('verification', {
   id: text('id').primaryKey(),
@@ -64,4 +71,6 @@ export const verification = pgTable('verification', {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+}, (t) => [
+  index('identifier').on(t.identifier),
+]);

@@ -92,8 +92,9 @@ export const dbChannel = pgTable(
     pinned: boolean('pinned').default(false).notNull(),
   },
   (table) => [
-    index('channed_idx').on(table.id),
     index('pinned_idx').on(table.pinned),
+    index('parent_id_idx').on(table.parentId),
+    index('server_id_idx').on(table.serverId),
   ]
 );
 
@@ -136,7 +137,10 @@ export const dbMessage = pgTable('db_message', {
   referenceId: snowflake('reference_id'),
   applicationId: snowflake('application_id'),
   reactions: json('reactions').$type<DBMessageReaction[]>(),
-});
+}, (t) => [
+  index('channel_id_idx').on(t.channelId),
+  index('parent_channel_id_idx').on(t.parentChannelId),
+]);
 
 export const messageRelations = relations(dbMessage, ({ one, many }) => ({
   user: one(dbDiscordUser, {
@@ -165,7 +169,9 @@ export const dbAttachments = pgTable('attachments', {
   size: integer('size'),
   height: integer('height'),
   width: integer('width'),
-});
+}, (t) => [
+  index('message_id_idx').on(t.messageId),
+]);
 
 export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
   messages: one(dbMessage, {
