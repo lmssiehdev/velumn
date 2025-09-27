@@ -15,9 +15,7 @@ export default async function Page({
     params: Promise<{ id: string }>,
     searchParams: { page: string }
 }) {
-    const d = await params;
-    console.log({ d });
-    const { id } = d;
+    const { id } = await params;
 
     const searchParamsPage = Number(searchParams.page ?? 1);
 
