@@ -1,6 +1,6 @@
-import { asc, count, eq, inArray, sql } from 'drizzle-orm';
+import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { type DBChannel, dbChannel, dbMessage, dbServer } from '../schema';
+import { attachmentRelations, DBAttachments, dbAttachments, type DBChannel, dbChannel, dbDiscordUser, dbMessage, dbServer, user } from '../schema';
 
 export async function getChannelInfo(channelId: string) {
   const data = await db
@@ -20,19 +20,43 @@ export async function getChannelInfo(channelId: string) {
 }
 
 export async function getAllMessagesInThreads(channelId: string) {
-  // return await db.select({
-  //   channel: dbChannel,
-  //   messages: {
-  //     user: dbDiscordUser,
-  //     attachment: dbAttachments,
-  //   }
-  // })
-  //   .from(dbChannel)
-  //   .leftJoin(dbDiscordUser, eq(dbDiscordUser.id, dbMessage.authorId))
-  //   .leftJoin(dbMessage, eq(dbMessage.channelId, channelId))
-  //   .leftJoin(dbAttachments, eq(dbAttachments.messageId, dbMessage.id))
-  //   .where(eq(dbChannel.id, channelId))
-  //   .orderBy(desc(dbChannel.id));
+  const channel = await db.select()
+    .from(dbChannel)
+    .where(eq(dbChannel.id, channelId))
+    .limit(1);
+
+  if (!channel[0]) return null;
+
+  const messages = await db.select()
+    .from(dbMessage)
+    .where(eq(dbMessage.channelId, channelId))
+    .orderBy(asc(dbMessage.id));
+
+  const userIds = [...new Set(messages.map(m => m.authorId).filter(Boolean))];
+  const users = userIds.length > 0
+    ? await db.select().from(dbDiscordUser).where(inArray(dbDiscordUser.id, userIds))
+    : [];
+
+  const messageIds = messages.map(m => m.id);
+  const attachments = messageIds.length > 0
+    ? await db.select().from(dbAttachments).where(inArray(dbAttachments.messageId, messageIds))
+    : [];
+
+  const usersMap = new Map(users.map(u => [u.id, u]));
+  const attachmentsByMessage = attachments.reduce((acc, att) => {
+    if (!acc[att.messageId]) acc[att.messageId] = [];
+    acc[att.messageId]!.push(att);
+    return acc;
+  }, {} as Record<string, DBAttachments[]>);
+
+  return {
+    ...channel[0],
+    messages: messages.map(message => ({
+      ...message,
+      user: usersMap.get(message.authorId) || null,
+      attachments: attachmentsByMessage[message.id] || []
+    }))
+  };
 
   return await db.query.dbChannel.findFirst({
     where: eq(dbChannel.id, channelId),

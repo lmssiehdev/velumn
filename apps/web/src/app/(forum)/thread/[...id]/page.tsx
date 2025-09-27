@@ -128,7 +128,7 @@ export default async function Page({
               "@type": "Person",
               name: anonymizeName(m.user!),
               url: undefined,
-              identifier: m.user.anonymizeName ? anonymizeName(m.user!) : m.user?.id
+              identifier: m.user?.anonymizeName ? anonymizeName(m.user!) : m.user?.id
             }
           }))
         })}
@@ -260,7 +260,6 @@ export function anonymizeName(user: DBUser) {
   if (!user.anonymizeName) {
     return user.displayName;
   }
-  console.log({ user })
   return uniqueUsernameGenerator({
     dictionaries: [adjectives, nouns],
     seed: user.id,
