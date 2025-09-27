@@ -10,17 +10,17 @@ import {
     ArrowUpRightIcon,
     File
 } from "@phosphor-icons/react/dist/ssr";
+import { isEmbeddableAttachment } from "@repo/utils/helpers/misc"
 import type { DBAttachments } from "@repo/db/schema/index";
 // @ts-expect-error no types - used once;
 import bytes from "bytes";
 
-export const isImage = (a: DBAttachments) => a.contentType?.startsWith('image/') && !a.proxyUrl.endsWith(".svg");
 const isCode = (a: DBAttachments) => !a.contentType?.startsWith('image/') || a.proxyUrl.endsWith(".svg");
 export function Attachments({ attachments }: { attachments: DBAttachments[] }) {
     if (!attachments.length) return null;
 
     return <div className="flex flex-col gap-2">
-        <ImageGallery images={attachments.filter(isImage)} />
+        <ImageGallery images={attachments.filter(isEmbeddableAttachment)} />
         {
             attachments.filter(isCode).map(
                 (attachment) => <FileShowcase key={attachment.id} attachment={attachment} />

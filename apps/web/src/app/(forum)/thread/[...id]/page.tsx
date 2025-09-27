@@ -1,4 +1,4 @@
-import { Attachments, isImage } from "@/components/markdown/attachments";
+import { Attachments } from "@/components/markdown/attachments";
 import { DiscordMarkdown, Twemoji } from "@/components/markdown/renderer";
 import { DiscordIcon } from "@/components/misc";
 import ThreadFeedback from "@/components/thread-feedback";
@@ -16,6 +16,7 @@ import { getDateFromSnowflake, isSnowflakeLargerAsInt } from "@repo/utils/helper
 import { sanitizeJsonLd } from "@/utils/sanitize";
 import { redirect } from "next/navigation";
 import { getSlugFromTitle, slugifyThreadUrl } from "@/lib/slugify";
+import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const { id: [threadId] } = await params;
@@ -85,7 +86,7 @@ export default async function Page({
 
   const op = originalPost.user!;
   const title = thread.channelName ?? originalPost.content!.slice(0, 100);
-  const firstImage = originalPost.attachments.filter(isImage).at(0);
+  const firstImage = originalPost.attachments.filter(isEmbeddableAttachment).at(0);
 
   // TODO: handle empty messages;
   const authorId = thread.messages[0]?.user?.id;
