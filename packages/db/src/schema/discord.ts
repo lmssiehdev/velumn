@@ -62,6 +62,8 @@ export const dbServer = pgTable('db_server', {
   polarCustomerId: text('polar_customer_id'),
   polarSubscriptionId: text('polar_subscription_id'),
   invitedBy: snowflake('invitedBy'),
+
+  anonymizeUsers: boolean('anonymize_users').default(false).notNull(),
 });
 
 export const serverRelations = relations(dbServer, ({ one, many }) => ({
@@ -82,7 +84,8 @@ export const dbChannel = pgTable(
   'db_channel',
   {
     id: snowflake('id').primaryKey(),
-    serverId: snowflake('server_id'),
+    serverId: snowflake('server_id').notNull()
+      .references(() => dbServer.id, { onDelete: 'cascade' }),
     parentId: snowflake('parent_id'),
     authorId: snowflake('author_id'),
     channelName: varchar('channel_name'),
@@ -90,11 +93,13 @@ export const dbChannel = pgTable(
     lastIndexedMessageId: snowflake('last_indexed_message_id'),
     type: integer('type').notNull(),
     pinned: boolean('pinned').default(false).notNull(),
+
+    indexingEnabled: boolean('indexing_enabled').default(true).notNull(),
   },
   (table) => [
-    index('pinned_idx').on(table.pinned),
-    index('parent_id_idx').on(table.parentId),
-    index('server_id_idx').on(table.serverId),
+    index('channel_pinned_idx').on(table.pinned),
+    index('channel_parent_id_idx').on(table.parentId),
+    index('channel_server_id_idx').on(table.serverId),
   ]
 );
 
@@ -123,8 +128,10 @@ export type DBMessageReaction = {
 
 export const dbMessage = pgTable('db_message', {
   id: snowflake('id').primaryKey(),
-  serverId: snowflake('server_id').notNull(),
-  channelId: snowflake('channel_id').notNull(),
+  serverId: snowflake('server_id').notNull()
+    .references(() => dbServer.id, { onDelete: 'cascade' }),
+  channelId: snowflake('channel_id').notNull()
+    .references(() => dbChannel.id, { onDelete: 'cascade' }),
   authorId: snowflake('author_id').notNull(),
   childThreadId: snowflake('child_thread_id'),
   parentChannelId: snowflake('parent_channel_id'),
@@ -138,8 +145,8 @@ export const dbMessage = pgTable('db_message', {
   applicationId: snowflake('application_id'),
   reactions: json('reactions').$type<DBMessageReaction[]>(),
 }, (t) => [
-  index('channel_id_idx').on(t.channelId),
-  index('parent_channel_id_idx').on(t.parentChannelId),
+  index('message_channel_id_idx').on(t.channelId),
+  index('message_parent_channel_id_idx').on(t.parentChannelId),
 ]);
 
 export const messageRelations = relations(dbMessage, ({ one, many }) => ({
@@ -170,7 +177,7 @@ export const dbAttachments = pgTable('attachments', {
   height: integer('height'),
   width: integer('width'),
 }, (t) => [
-  index('message_id_idx').on(t.messageId),
+  index('attachment_message_id_idx').on(t.messageId),
 ]);
 
 export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
