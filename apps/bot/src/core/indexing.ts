@@ -57,6 +57,7 @@ export async function indexGuild(guild: Guild) {
         channel.type === ChannelType.GuildAnnouncement ||
         channel.type === ChannelType.GuildForum
       ) {
+        if (channel.nsfw) continue;
         await indexRootChannel(channel);
       }
     }
@@ -184,6 +185,7 @@ export async function indexRootChannel(channel: IndexableChannels) {
 
     let threadsIndexed = 0;
     for await (const thread of outOfDateThreads) {
+      if (thread.nsfw) continue;
       Log(
         'indexing_thread_info',
         ++threadsIndexed,
