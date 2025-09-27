@@ -133,7 +133,7 @@ export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
             <div className="flex gap-2 items-center">
                 <ChatIcon className="size-5" />
                 <span className="text-sm">
-                    {messagesCount}
+                    {messagesCount - 1}
                 </span>
             </div>
         </div>
