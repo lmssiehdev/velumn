@@ -6,6 +6,7 @@ import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import { Button } from "@/components/ui/button";
 import slugify from "slugify";
 import { slugifyThreadUrl } from "@/lib/slugify";
+import { anonymizeName } from "../../thread/[...id]/page";
 
 export default async function Page({
     params,
@@ -115,6 +116,8 @@ export async function ThreadList({ threads, page, hasMore, serverId }: {
 
 export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
     const { channel, user, messagesCount, parentChannel } = data;
+    const authorName = anonymizeName(user!)
+
     return <div className=" border-b py-4 border-neutral-300 rounded flex gap-4 items-center justify-between">
         <div >
             <div >
@@ -122,7 +125,7 @@ export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
                     {channel.channelName}
                 </Link>
                 <div className="text-sm text-neutral-500">
-                    by {user.displayName ?? "Unknown"} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
+                    by {authorName} • in <Link href={`/channel/${parentChannel?.id}`} className="hover:underline underline-offset-2">
                         #{parentChannel?.channelName}
                     </Link> • {snowflakeToReadableDate(channel.id)}
                 </div>

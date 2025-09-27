@@ -2,6 +2,18 @@ import { eq, inArray } from 'drizzle-orm';
 import { db } from '..';
 import { type DBUser, dbDiscordUser } from '../schema';
 
+export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {
+  await db.insert(dbDiscordUser).values({
+    ...user,
+    anonymizeName,
+  }).onConflictDoUpdate({
+    target: dbDiscordUser.id,
+    set: {
+      anonymizeName,
+    },
+  });
+}
+
 export async function upsertUser(userId: string) {
   await db
     .insert(dbDiscordUser)
@@ -17,6 +29,11 @@ export async function upsertUser(userId: string) {
   return userId;
 }
 
+export async function findUserByAccountId(accountId: string) {
+  return await db.query.dbDiscordUser.findFirst({
+    where: eq(dbDiscordUser.id, accountId),
+  });
+}
 export function findManyDiscordAccountsById(ids: string[]) {
   if (ids.length === 0) {
     return Promise.resolve([]);

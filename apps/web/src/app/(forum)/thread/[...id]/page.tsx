@@ -5,7 +5,7 @@ import ThreadFeedback from "@/components/thread-feedback";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getAllMessagesInThreadsCache, getServerInfoByChannelIdCache } from "@/utils/cache";
-import { ChatIcon } from "@phosphor-icons/react/dist/ssr";
+import { ChatIcon, DetectiveIcon } from "@phosphor-icons/react/dist/ssr";
 import { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
@@ -17,7 +17,9 @@ import { sanitizeJsonLd } from "@/utils/sanitize";
 import { redirect } from "next/navigation";
 import { getSlugFromTitle, slugifyThreadUrl } from "@/lib/slugify";
 import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
-
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { adjectives, nouns, uniqueUsernameGenerator } from "unique-username-generator"
+import { DBUser } from "@repo/db/schema/discord";
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const { id: [threadId] } = await params;
 
@@ -167,6 +169,7 @@ function MessagePost({ message, authorId }: {
   message: NonNullable<Awaited<ReturnType<typeof getAllMessagesInThreads>>>["messages"][number],
   authorId: string,
 }) {
+  const authorName = anonymizeName(message.user!)
   return (
     <div key={message.id} className="flex gap-4 px-3 max-w-screen-md">
       <div className="flex pt-1">
@@ -177,13 +180,27 @@ function MessagePost({ message, authorId }: {
           <div className="flex items-center mb-1">
             <div className="flex gap-1 items-center font-medium">
               <span className="text-sm font-medium">
-                {message.user?.displayName}
+                {authorName}
               </span>
               {message.user?.id === authorId && (
                 <span className="text-xs border-1 px-1 border-purple-700 text-purple-700">
                   OP
                 </span>
               )}
+              {
+                message.user?.anonymizeName && (
+                  <span className="text-xs px-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DetectiveIcon className="size-5" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>User prefers to remain anonymous</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                )
+              }
               {message.user?.isBot && (
                 <span className="text-xs rounded border-1 px-1 ">
                   BOT
@@ -237,4 +254,16 @@ export function NoReplies() {
       </Button>
     </div>
   )
+}
+
+export function anonymizeName(user: DBUser) {
+  if (!user.anonymizeName) {
+    return user.displayName;
+  }
+  console.log({ user })
+  return uniqueUsernameGenerator({
+    dictionaries: [adjectives, nouns],
+    seed: user.id,
+    style: "lowerCase",
+  });
 }

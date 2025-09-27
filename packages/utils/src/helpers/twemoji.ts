@@ -27,5 +27,5 @@ export function emojiToTwemoji(emoji: string, version = '14.0.2') {
 
   const filename = toCodePoint(emoji);
 
-  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@${version}/assets/svg/${filename}.svg`;
+  return `https://raw.githubusercontent.com/jdecked/twemoji/refs/heads/main/assets/svg/${filename}.svg`
 }

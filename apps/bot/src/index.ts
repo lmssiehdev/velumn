@@ -1,4 +1,4 @@
-import { SapphireClient } from '@sapphire/framework';
+import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, Partials } from 'discord.js';
 import { botEnv } from './config';
 import '@sapphire/plugin-logger/register';
@@ -14,6 +14,9 @@ if (client) {
 } else {
   client = new SapphireClient({
     shards: 'auto',
+    logger: {
+      level: LogLevel.Debug
+    },
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,

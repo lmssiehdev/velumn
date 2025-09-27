@@ -19,6 +19,7 @@
     "@aws-sdk/lib-storage": "^3.888.0",
     "@repo/db": "workspace:*",
     "@sapphire/decorators": "^6.2.0",
+    "@sapphire/discord.js-utilities": "^7.3.3",
     "@sapphire/framework": "^5.3.6",
     "@sapphire/plugin-api": "^8.3.1",
     "@sapphire/plugin-logger": "^4.1.0",

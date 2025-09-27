@@ -40,6 +40,9 @@ importers:
       '@sapphire/decorators':
         specifier: ^6.2.0
         version: 6.2.0
+      '@sapphire/discord.js-utilities':
+        specifier: ^7.3.3
+        version: 7.3.3
       '@sapphire/framework':
         specifier: ^5.3.6
         version: 5.3.6
@@ -285,6 +288,9 @@ importers:
       unified:
         specifier: ^11.0.5
         version: 11.0.5
+      unique-username-generator:
+        specifier: ^1.5.1
+        version: 1.5.1
       zod:
         specifier: ^4.1.5
         version: 4.1.5
@@ -4674,6 +4680,10 @@ packages:
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
+
+  unique-username-generator@1.5.1:
+    resolution: {integrity: sha512-Q0pSKPyij4L7Tm6Bo3XsWeFG9qbyWTtwb3jTN+XgGhCFdlvQn6Fj0DCfYElw0kp/Xp7Jv1Q+CL+aA8S07RMChA==}
+    hasBin: true
 
   unist-util-is@6.0.0:
     resolution: {integrity: sha512-2qCTHimwdxLfz+YzdGfkqNlH0tLi9xjTnHddPmJwtIG9MGsdbutfTc4P+haPD7l7Cjxf/WZj+we5qfVPvvxfYw==}
@@ -9949,6 +9959,8 @@ snapshots:
       is-plain-obj: 4.1.0
       trough: 2.2.0
       vfile: 6.0.3
+
+  unique-username-generator@1.5.1: {}
 
   unist-util-is@6.0.0:
     dependencies:
