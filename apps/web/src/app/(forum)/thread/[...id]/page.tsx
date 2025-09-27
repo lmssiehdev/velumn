@@ -107,9 +107,9 @@ export default async function Page({
           dateModified: getDateFromSnowflake(dateModified).toISOString(),
           author: {
             "@type": "Person",
-            name: op.displayName,
+            name: anonymizeName(op),
             url: undefined,
-            identifier: op.id
+            identifier: op.anonymizeName ? anonymizeName(op!) : op?.id
           },
           // todo fall to an og?
           image: firstImage?.proxyUrl || undefined,
@@ -126,9 +126,9 @@ export default async function Page({
             position: idx + 1,
             author: {
               "@type": "Person",
-              name: m.user?.displayName,
+              name: anonymizeName(m.user!),
               url: undefined,
-              identifier: m.user?.id
+              identifier: m.user.anonymizeName ? anonymizeName(m.user!) : m.user?.id
             }
           }))
         })}
