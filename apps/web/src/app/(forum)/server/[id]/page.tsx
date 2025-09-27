@@ -119,8 +119,8 @@ export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
     const authorName = anonymizeName(user!)
 
     return <div className=" border-b py-4 border-neutral-300 rounded flex gap-4 items-center justify-between">
-        <div >
-            <div >
+        <div>
+            <div>
                 <Link href={slugifyThreadUrl({ id: channel.id, name: channel.channelName! })} className="hover:underline underline-offset-2">
                     {channel.channelName}
                 </Link>

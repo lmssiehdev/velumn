@@ -84,7 +84,8 @@ export const dbChannel = pgTable(
   'db_channel',
   {
     id: snowflake('id').primaryKey(),
-    serverId: snowflake('server_id').notNull()
+    serverId: snowflake('server_id')
+      .notNull()
       .references(() => dbServer.id, { onDelete: 'cascade' }),
     parentId: snowflake('parent_id'),
     authorId: snowflake('author_id'),
@@ -126,28 +127,34 @@ export type DBMessageReaction = {
   isServerEmoji: boolean;
 };
 
-export const dbMessage = pgTable('db_message', {
-  id: snowflake('id').primaryKey(),
-  serverId: snowflake('server_id').notNull()
-    .references(() => dbServer.id, { onDelete: 'cascade' }),
-  channelId: snowflake('channel_id').notNull()
-    .references(() => dbChannel.id, { onDelete: 'cascade' }),
-  authorId: snowflake('author_id').notNull(),
-  childThreadId: snowflake('child_thread_id'),
-  parentChannelId: snowflake('parent_channel_id'),
-  cleanContent: varchar('clean_content'),
-  content: varchar('content').notNull(),
-  // TODO: get this form the flags
-  pinned: boolean('pinned').notNull().default(false),
-  type: integer('type').notNull(),
-  webhookId: snowflake('webhook_id'),
-  referenceId: snowflake('reference_id'),
-  applicationId: snowflake('application_id'),
-  reactions: json('reactions').$type<DBMessageReaction[]>(),
-}, (t) => [
-  index('message_channel_id_idx').on(t.channelId),
-  index('message_parent_channel_id_idx').on(t.parentChannelId),
-]);
+export const dbMessage = pgTable(
+  'db_message',
+  {
+    id: snowflake('id').primaryKey(),
+    serverId: snowflake('server_id')
+      .notNull()
+      .references(() => dbServer.id, { onDelete: 'cascade' }),
+    channelId: snowflake('channel_id')
+      .notNull()
+      .references(() => dbChannel.id, { onDelete: 'cascade' }),
+    authorId: snowflake('author_id').notNull(),
+    childThreadId: snowflake('child_thread_id'),
+    parentChannelId: snowflake('parent_channel_id'),
+    cleanContent: varchar('clean_content'),
+    content: varchar('content').notNull(),
+    // TODO: get this form the flags
+    pinned: boolean('pinned').notNull().default(false),
+    type: integer('type').notNull(),
+    webhookId: snowflake('webhook_id'),
+    referenceId: snowflake('reference_id'),
+    applicationId: snowflake('application_id'),
+    reactions: json('reactions').$type<DBMessageReaction[]>(),
+  },
+  (t) => [
+    index('message_channel_id_idx').on(t.channelId),
+    index('message_parent_channel_id_idx').on(t.parentChannelId),
+  ]
+);
 
 export const messageRelations = relations(dbMessage, ({ one, many }) => ({
   user: one(dbDiscordUser, {
@@ -165,20 +172,22 @@ export type DBMessage = typeof dbMessage.$inferSelect;
 
 // Attachments
 
-export const dbAttachments = pgTable('attachments', {
-  id: text('id').primaryKey(),
-  messageId: snowflake('message_id').notNull(),
-  name: text('file_name').notNull(),
-  url: text('url').notNull(),
-  proxyUrl: text('proxyUrl').notNull(),
-  description: text('description'),
-  contentType: text('content_type'),
-  size: integer('size'),
-  height: integer('height'),
-  width: integer('width'),
-}, (t) => [
-  index('attachment_message_id_idx').on(t.messageId),
-]);
+export const dbAttachments = pgTable(
+  'attachments',
+  {
+    id: text('id').primaryKey(),
+    messageId: snowflake('message_id').notNull(),
+    name: text('file_name').notNull(),
+    url: text('url').notNull(),
+    proxyUrl: text('proxyUrl').notNull(),
+    description: text('description'),
+    contentType: text('content_type'),
+    size: integer('size'),
+    height: integer('height'),
+    width: integer('width'),
+  },
+  (t) => [index('attachment_message_id_idx').on(t.messageId)]
+);
 
 export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
   messages: one(dbMessage, {

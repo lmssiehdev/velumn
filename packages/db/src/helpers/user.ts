@@ -3,15 +3,18 @@ import { db } from '..';
 import { type DBUser, dbDiscordUser } from '../schema';
 
 export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {
-  await db.insert(dbDiscordUser).values({
-    ...user,
-    anonymizeName,
-  }).onConflictDoUpdate({
-    target: dbDiscordUser.id,
-    set: {
+  await db
+    .insert(dbDiscordUser)
+    .values({
+      ...user,
       anonymizeName,
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: dbDiscordUser.id,
+      set: {
+        anonymizeName,
+      },
+    });
 }
 
 export async function upsertUser(userId: string) {

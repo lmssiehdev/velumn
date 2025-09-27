@@ -15,7 +15,7 @@ if (client) {
   client = new SapphireClient({
     shards: 'auto',
     logger: {
-      level: LogLevel.Debug
+      level: LogLevel.Debug,
     },
     intents: [
       GatewayIntentBits.Guilds,
