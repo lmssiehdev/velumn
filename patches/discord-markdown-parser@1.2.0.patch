@@ -1,12 +1,17 @@
 diff --git a/dist/index.js b/dist/index.js
-index 8afffd8bdd0da9670a7438fd2a5ab5d06b9f4018..b9a9673ddaffb261e15c76f080c69db10d79ecc8 100644
+index 8afffd8bdd0da9670a7438fd2a5ab5d06b9f4018..e72cf7084fd48ac82e6a57e6436ea77db9fa4846 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -32,7 +32,9 @@ exports.rules = {
+@@ -32,7 +32,14 @@ exports.rules = {
      blockQuote: blockQuote_1.blockQuote,
      codeBlock: codeBlock_1.codeBlock,
      newline: simple_markdown_1.default.defaultRules.newline,
-+    list: simple_markdown_1.default.defaultRules.list,
++    list: Object.assign({}, simple_markdown_1.default.defaultRules.list, {
++        match: function (source, state, prevCapture) {
++            state._list = true;
++            return simple_markdown_1.default.defaultRules.list.match(source, state, prevCapture);
++        },
++    }),
      escape: simple_markdown_1.default.defaultRules.escape,
 +    link: simple_markdown_1.default.defaultRules.link,
      autolink: autolink_1.autolink,

@@ -22,6 +22,19 @@ export function Twemoji({ name, className = "size-12" }: { name: string, classNa
   return <img className={cn('inline-block not-prose', className)} loading="lazy" aria-label={name} alt={name} draggable="false" src={emojiToTwemoji(name)}></img>
 }
 
+export function List({ items, ordered }: { items: SingleASTNode[][], ordered?: boolean }) {
+  const Tag = ordered ? 'ol' : 'ul';
+  return <Tag className='my-0!'>
+    {
+      items.map((item, idx) => {
+        return <li className='marker:text-black' key={idx}>
+          {item.map((i, childIdx) => renderASTNode(i, childIdx + idx + 1, item))}
+        </li>
+      })
+    }
+  </Tag>
+}
+
 function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent: SingleASTNode | SingleASTNode[] | null): React.ReactNode {
   if (Array.isArray(node)) {
     return node.map((child, i) => renderASTNode(child, i, node));
@@ -108,6 +121,8 @@ function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent:
       const size = parent?.every((n: { type: string, content?: string }) => n.type === "twemoji" || (n.type === 'text' && n?.content === " ")) ? 'size-12' : 'size-[1.375rem]';
       return <Twemoji name={node.name} key={key} className={size} />;
 
+    case 'list':
+      return <List key={key} items={node.items as SingleASTNode[][]} />
     default:
       return null;
   }

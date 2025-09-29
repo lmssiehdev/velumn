@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   discord-markdown-parser@1.2.0:
-    hash: bqvnawrrtn7rtlfgvcvgttsvym
+    hash: mpskokpkhuj5crvtpxq2j4gfwa
     path: patches/discord-markdown-parser@1.2.0.patch
 
 importers:
@@ -233,7 +233,7 @@ importers:
         version: 0.38.24
       discord-markdown-parser:
         specifier: ^1.2.0
-        version: 1.2.0(patch_hash=bqvnawrrtn7rtlfgvcvgttsvym)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 1.2.0(patch_hash=mpskokpkhuj5crvtpxq2j4gfwa)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lucide-react:
         specifier: ^0.542.0
         version: 0.542.0(react@18.3.1)
@@ -7721,7 +7721,7 @@ snapshots:
 
   discord-api-types@0.38.24: {}
 
-  discord-markdown-parser@1.2.0(patch_hash=bqvnawrrtn7rtlfgvcvgttsvym)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  discord-markdown-parser@1.2.0(patch_hash=mpskokpkhuj5crvtpxq2j4gfwa)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@khanacademy/simple-markdown': 0.13.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
