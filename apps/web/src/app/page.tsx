@@ -3,6 +3,7 @@ import { CheckCircleIcon, CheckIcon, PlusIcon, SlidersIcon } from "@phosphor-ico
 import Link from "next/link";
 
 export default function Home() {
+  return <div>Main page is a work in progress {":)"}</div>
   return (
     <>
       <div className="border-b border-x border-neutral-300">
