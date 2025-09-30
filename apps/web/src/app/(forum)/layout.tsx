@@ -7,7 +7,16 @@ import { ChannelType } from "discord-api-types/v10";
 import Link from "next/link";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <div className="px-2 m-10 max-w-screen-lg mx-auto">{children}</div>;
+  return <div className="mx-auto">
+    <div className=" border-b  border-x border-neutral-300">
+      <div className="max-w-screen-lg  border-x border-neutral-300 mx-auto p-2 px-4">
+        <Link href="/" className="text-xl text-black">Velumn</Link>
+      </div>
+    </div>
+    <div className="py-2 max-w-screen-lg mx-auto">
+      {children}
+    </div>
+  </div>;
 }
 
 export async function FrontPageSidebar({

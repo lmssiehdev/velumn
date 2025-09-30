@@ -18,11 +18,7 @@ export default function RootLayout({
       <body
         className={`${funnelSans.variable} font-sans antialiased`}
       >
-        <div className="border-b border-x border-neutral-300">
-          <div className="max-w-screen-xl border-x border-neutral-300 mx-auto p-2 px-4">
-            <Link href="/" className="text-xl text-black">Velumn</Link>
-          </div>
-        </div>
+
         {children}
       </body>
     </html>

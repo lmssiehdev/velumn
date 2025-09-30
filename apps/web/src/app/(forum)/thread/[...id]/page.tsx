@@ -3,9 +3,8 @@ import { DiscordMarkdown, Twemoji } from "@/components/markdown/renderer";
 import { DiscordIcon } from "@/components/misc";
 import ThreadFeedback from "@/components/thread-feedback";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { getAllMessagesInThreadsCache, getServerInfoByChannelIdCache } from "@/utils/cache";
-import { ChatIcon, DetectiveIcon, Image, ImageIcon } from "@phosphor-icons/react/dist/ssr";
+import { ChatIcon, ChatsCircleIcon, DetectiveIcon, HashIcon, ImageIcon } from "@phosphor-icons/react/dist/ssr";
 import { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
@@ -21,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { adjectives, nouns, uniqueUsernameGenerator } from "unique-username-generator"
 import { DBMessage, DBUser } from "@repo/db/schema/discord";
 import { cn } from "@/lib/utils";
+import { ChannelType } from "discord-api-types/v10";
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const { id: [threadId] } = await params;
 
@@ -139,8 +139,20 @@ export default async function Page({
           }))
         })}
       />
-      <div>
-        <h1 className="text-balance font-medium tracking-tight text-3xl lg:text-4xl max-w-4xl mb-6 px-3">{thread.channelName}</h1>
+      <div >
+        <div className="my-6 px-3">
+          <h1 className="my-2 text-balance font-medium tracking-tight text-3xl lg:text-4xl max-w-4xl ">{thread.channelName}
+          </h1>
+          <Link href={`/channel/${thread.parentId}`} className=" w-fit flex items-center gap-1 text-sm border-1 px-2 py-0.5 border-purple-700 hover:bg-purple-700 hover:text-white transition-all text-purple-700">
+            {thread.type === ChannelType.GuildForum ? (
+              <ChatsCircleIcon className="size-3.5" />
+            ) : (
+              <HashIcon className="size-3.5" weight="bold" />
+            )}
+
+            General
+          </Link>
+        </div>
       </div>
       <div className="overflow-hidden md:flex-row flex-col flex gap-6">
         <div className="flex-1 overflow-hidden">
