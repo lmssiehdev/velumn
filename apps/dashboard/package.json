@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "bun with-env next build --turbopack",
+    "build": "next build --turbopack",
     "with-env": "bun run --env-file=../../.env --",
     "start": "next start",
     "lint": "biome check",
@@ -20,6 +20,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@repo/db": "workspace:*",
     "@repo/utils": "workspace:*",
+    "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-query": "^5.89.0",
     "@tanstack/react-query-devtools": "^5.89.0",
     "@trpc/client": "^11.5.1",
