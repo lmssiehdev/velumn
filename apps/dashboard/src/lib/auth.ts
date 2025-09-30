@@ -1,4 +1,3 @@
-import { webEnv } from '@/env';
 import { checkout, polar, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
 import { setBulkServersPlanByUserId } from '@repo/db/helpers/servers';
@@ -8,7 +7,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 
 const polarClient = new Polar({
-  accessToken: webEnv.POLAR_ACCESS_TOKEN,
+  accessToken: process.env.POLAR_ACCESS_TOKEN,
   // Use 'sandbox' if you're using the Polar Sandbox environment
   // Remember that access tokens, products, etc. are completely separated between environments.
   // Access tokens obtained in Production are for instance not usable in the Sandbox environment.
@@ -36,7 +35,7 @@ export const auth = betterAuth({
           authenticatedUsersOnly: true,
         }),
         webhooks({
-          secret: webEnv.POLAR_WEBHOOK_SECRET,
+          secret: process.env.POLAR_WEBHOOK_SECRET!,
           onPayload: async (payload) => {
             const { type, data } = payload;
 
@@ -62,8 +61,8 @@ export const auth = betterAuth({
   ],
   socialProviders: {
     discord: {
-      clientId: webEnv.DISCORD_CLIENT_ID,
-      clientSecret: webEnv.DISCORD_CLIENT_SECRET,
+      clientId: process.env.DISCORD_CLIENT_ID!,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       scope: ['identify', 'email', 'guilds'],
       disableDefaultScope: true,
       enabled: true,
