@@ -30,7 +30,7 @@ export default async function Page({
     });
 
     return <div className="p-4 mx-auto">
-        <h2 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6">
+        <h2 className=" text-balance font-medium tracking-tight text-3xl lg:text-4xl max-w-4xl mb-6">
             Join a Discussion
         </h2>
         <div className="flex gap-6">

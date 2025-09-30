@@ -18,7 +18,7 @@ export async function FrontPageSidebar({
   activeChannelId?: string;
 }) {
   return (
-    <div className="max-w-xs w-full space-y-6 ">
+    <div className="max-w-xs w-full space-y-6 hidden md:block">
       <ServerInfo server={server} />
       <Boards serverId={server.id} activeChannelId={activeChannelId} />
     </div>
