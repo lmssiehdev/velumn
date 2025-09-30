@@ -4,8 +4,7 @@
     "base": "src",
     "arguments": "arguments",
     "commands": "commands",
-    "listeners": "listeners",
-    "preconditions": "preconditions"
+    "listeners": "listeners"
   },
   "customFileTemplates": {
     "enabled": false,
