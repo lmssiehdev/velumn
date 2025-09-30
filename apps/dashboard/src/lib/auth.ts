@@ -19,7 +19,7 @@ export const auth = betterAuth({
     provider: 'pg',
   }),
   trustedOrigins: [
-    ...(process.env.VERCEL_URL ? [`https://${process.env.NEXT_PUBLIC_VERCEL_URL}`] : [])
+    process.env.BETTER_AUTH_URL!,
   ],
   plugins: [
     polar({

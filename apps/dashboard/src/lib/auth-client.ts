@@ -3,7 +3,5 @@ import { createAuthClient } from 'better-auth/react';
 
 export const authClient = createAuthClient({
   plugins: [polarClient()],
-  baseURL: process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3001'
+  baseURL: process.env.BETTER_AUTH_URL!
 });
