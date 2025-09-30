@@ -34,7 +34,7 @@ function FileShowcase({ attachment }: { attachment: DBAttachments }) {
 
     return (
         <div
-            className="group flex gap-2.5 border border-neutral-300 p-4 shadow-[0_1px_4px_0_hsl(0_0%_0%_/_0.08)] max-w-md w-full mt-2 relative"
+            className="group flex gap-2.5 border border-neutral-300 p-4 shadow max-w-md w-full mt-2 relative"
         >
             <div className="flex items-center justify-center">
                 <File weight="thin" className="size-10" />
