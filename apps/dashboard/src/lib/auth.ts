@@ -69,6 +69,7 @@ export const auth = betterAuth({
       scope: ['identify', 'email', 'guilds'],
       disableDefaultScope: true,
       enabled: true,
+      callbackUrl: `https://${process.env.VERCEL_URL}/api/auth/discord/callback`,
     },
   },
 });
