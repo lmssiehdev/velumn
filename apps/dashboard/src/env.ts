@@ -6,9 +6,9 @@ export const webEnv = createEnv({
         DISCORD_CLIENT_ID: z.string(),
         DISCORD_CLIENT_SECRET: z.string(),
         BETTER_AUTH_SECRET: z.string(),
-        // Payments
         POLAR_ACCESS_TOKEN: z.string(),
         POLAR_WEBHOOK_SECRET: z.string(),
+        DATABASE_URL: z.string(),
     },
     client: {
         NEXT_PUBLIC_DISCORD_CLIENT_ID: z.string(),
