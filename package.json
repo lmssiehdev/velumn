@@ -5,7 +5,8 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "check-types": "turbo run check-types",
-    "lint": "biome check . --write"
+    "lint": "biome check . --write",
+    "with-env": "bun run --env-file=../../.env --"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.2",

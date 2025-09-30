@@ -48,18 +48,18 @@ export async function getAllMessagesInThreads(channelId: string) {
   const users =
     userIds.length > 0
       ? await db
-          .select()
-          .from(dbDiscordUser)
-          .where(inArray(dbDiscordUser.id, userIds))
+        .select()
+        .from(dbDiscordUser)
+        .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-          .select()
-          .from(dbAttachments)
-          .where(inArray(dbAttachments.messageId, messageIds))
+        .select()
+        .from(dbAttachments)
+        .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));

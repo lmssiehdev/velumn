@@ -1,6 +1,6 @@
 import { and, count, desc, eq, exists, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { db } from '..';
+import { db } from '../index';
 import {
   type DBServer,
   dbChannel,
@@ -134,10 +134,10 @@ export async function getAllThreads(
     .where(
       getBy === 'server'
         ? and(
-            eq(dbChannel.serverId, id),
-            isNotNull(dbChannel.parentId),
-            eq(dbChannel.pinned, pinned)
-          )
+          eq(dbChannel.serverId, id),
+          isNotNull(dbChannel.parentId),
+          eq(dbChannel.pinned, pinned)
+        )
         : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)

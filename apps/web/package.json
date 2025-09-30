@@ -5,9 +5,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "bun with-env next build --turbopack",
+    "with-env": "bun run --env-file=../../.env --",
     "start": "next start",
-    "type-check": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "format": "biome format --write"
   },
   "peerDependencyRules": {
     "ignoreMissing": [

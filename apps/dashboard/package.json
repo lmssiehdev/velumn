@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "next build --turbopack",
+    "build": "bun with-env next build --turbopack",
+    "with-env": "bun run --env-file=../../.env --",
     "start": "next start",
     "lint": "biome check",
+    "typecheck": "tsc --noEmit",
     "format": "biome format --write"
   },
   "dependencies": {

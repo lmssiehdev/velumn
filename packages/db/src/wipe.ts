@@ -1,5 +1,5 @@
 // import pg from 'pg';
-// import { url } from './index.js';
+// import { url } from './index;
 
 // async function dropDatabase() {
 //   if (process.env.NODE_ENV === 'production') {
