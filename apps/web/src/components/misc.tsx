@@ -1,9 +1,9 @@
 
 export function DiscordIcon() {
-    return <svg
+  return <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="32"
-    height="32"
+    width="37"
+    height="37"
     fill="none"
     viewBox="0 0 32 32"
   >

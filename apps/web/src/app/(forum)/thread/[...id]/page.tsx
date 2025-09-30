@@ -5,7 +5,7 @@ import ThreadFeedback from "@/components/thread-feedback";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getAllMessagesInThreadsCache, getServerInfoByChannelIdCache } from "@/utils/cache";
-import { ChatIcon, DetectiveIcon } from "@phosphor-icons/react/dist/ssr";
+import { ChatIcon, DetectiveIcon, Image, ImageIcon } from "@phosphor-icons/react/dist/ssr";
 import { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
@@ -19,7 +19,8 @@ import { getSlugFromTitle, slugifyThreadUrl } from "@/lib/slugify";
 import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { adjectives, nouns, uniqueUsernameGenerator } from "unique-username-generator"
-import { DBUser } from "@repo/db/schema/discord";
+import { DBMessage, DBUser } from "@repo/db/schema/discord";
+import { cn } from "@/lib/utils";
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const { id: [threadId] } = await params;
 
@@ -94,7 +95,12 @@ export default async function Page({
   const authorId = thread.messages[0]?.user?.id;
   const dateModified = thread.messages.map(m => m.id).reduce((snowflake, snowflake2) => {
     return BigInt(snowflake) > BigInt(snowflake2) ? snowflake : snowflake2;
-  })
+  });
+
+  const messagesLookup = new Map<string, MessageWithMetadata>(
+    thread.messages.map((x) => [x.id, x])
+  );
+
   return (
     <div>
       <JsonLd<DiscussionForumPosting>
@@ -134,29 +140,28 @@ export default async function Page({
         })}
       />
       <div>
-        <h1 className=" text-balance text-2xl sm:text-xl font-medium tracking-tight md:text-3xl lg:text-4xl max-w-4xl mb-6 px-3">{thread.channelName}</h1>
+        <h1 className="text-balance font-medium tracking-tight text-3xl lg:text-4xl max-w-4xl mb-6 px-3">{thread.channelName}</h1>
       </div>
-      <div className="flex gap-6">
-        <div className="flex-1">
-          {originalPost != undefined && <MessagePost key={originalPost?.id} message={originalPost!} authorId={authorId!} />
+      <div className="overflow-hidden md:flex-row flex-col flex gap-6">
+        <div className="flex-1 overflow-hidden">
+          {originalPost != undefined && <MessagePost key={originalPost?.id} message={originalPost!} authorId={authorId!} isOriginalPost={true} />
           }
-          <div className="px-3 my-3 flex gap-2 items-center">
+          <div className="px-3 my-4 flex gap-2 items-center">
             <ChatIcon className="size-5" />
             <span className="text-sm">
               {orderedMessages.length} Replies
             </span>
           </div>
-          <Separator className="my-4" />
-          {orderedMessages.map((message) => {
-            return (
-              <div className="py-3" key={message.id}>
-                <MessagePost message={message} authorId={authorId!} />
-              </div>
-            )
-          })}
+          <div className="space-y-2">
+            {orderedMessages.map((message) => {
+              return (
+                <MessagePost key={message.id} referenceMessage={messagesLookup.get(message.referenceId!)} message={message} authorId={authorId!} />
+              )
+            })}
+          </div>
           {orderedMessages.length === 0 && op.id === authorId && <NoReplies />}
         </div>
-        <div className="max-w-xs w-full space-y-6">
+        <div className="max-w-xs w-full space-y-6 hidden md:block">
           <ServerInfo server={server} />
           <ThreadFeedback />
         </div>
@@ -165,74 +170,115 @@ export default async function Page({
   );
 }
 
-function MessagePost({ message, authorId }: {
-  message: NonNullable<Awaited<ReturnType<typeof getAllMessagesInThreads>>>["messages"][number],
+type MessageWithMetadata = NonNullable<Awaited<ReturnType<typeof getAllMessagesInThreads>>>["messages"][number];
+function MessagePost({ message, authorId, referenceMessage, isOriginalPost = false }: {
+  message: MessageWithMetadata,
   authorId: string,
+  referenceMessage?: MessageWithMetadata,
+  isOriginalPost?: boolean,
 }) {
-  const authorName = anonymizeName(message.user!)
+  const authorName = anonymizeName(message.user!);
   return (
-    <div key={message.id} className="flex gap-4 px-3 max-w-screen-md">
-      <div className="flex pt-1">
-        <DiscordIcon />
-      </div>
-      <div className="flex-1 ">
-        <div>
-          <div className="flex items-center mb-1">
-            <div className="flex gap-1 items-center font-medium">
-              <span className="text-sm font-medium">
-                {authorName}
-              </span>
-              {message.user?.id === authorId && (
-                <span className="text-xs border-1 px-1 border-purple-700 text-purple-700">
-                  OP
-                </span>
-              )}
-              {
-                message.user?.anonymizeName && (
-                  <span className="text-xs px-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DetectiveIcon className="size-5" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>User prefers to remain anonymous</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </span>
-                )
-              }
-              {message.user?.isBot && (
-                <span className="text-xs rounded border-1 px-1 ">
-                  BOT
-                </span>
-              )}
-            </div>
-            <div className="text-sm text-neutral-500 transition-colors hover:text-neutral-800">
-              <span className="mx-1">•</span>
-              <span className="text-xs">
-                {snowflakeToReadableDate(message.id)}
-              </span>
-            </div>
-            {false && message.referenceId && (
-              <Button asChild size={"sm"} variant={"link"}>
-                <Link
-                  href={`#${message.referenceId}`}
-                  className="hover:underline underline-offset-2"
-                >
-                  // reply
-                </Link>
-              </Button>
-            )}
-          </div>
+
+    <div key={message.id} id={message.id} className={cn("p-3", { "border border-neutral-200": !isOriginalPost })}>
+      {
+        message.referenceId && <ReferenceMessage message={referenceMessage!} />
+      }
+      <div className="flex gap-2">
+
+        <div className="flex items-center flex-col w-[50px]">
+          <DiscordIcon />
         </div>
-        <div>
-          <DiscordMarkdown>{message.content}</DiscordMarkdown>
-          {/* TODO: Borken ID, don't use relations */}
-          <Attachments attachments={message.attachments!} />
+        <div className="flex-1 ">
+          <div>
+            <div className="flex items-center mb-1">
+              <div className="flex gap-1 items-center font-medium">
+                <span className="text-sm font-medium">
+                  {authorName}
+                </span>
+                {message.user?.id === authorId && (
+                  <span className="text-xs border-1 px-1 border-purple-700 text-purple-700">
+                    OP
+                  </span>
+                )}
+                {
+                  message.user?.anonymizeName && (
+                    <span className="text-xs px-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DetectiveIcon className="size-5" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>User prefers to remain anonymous</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  )
+                }
+                {message.user?.isBot && (
+                  <span className="text-xs rounded border-1 px-1 ">
+                    BOT
+                  </span>
+                )}
+              </div>
+              <div className="text-sm text-neutral-500 transition-colors hover:text-neutral-800">
+                <span className="mx-1">•</span>
+                <span className="text-xs">
+                  {snowflakeToReadableDate(message.id)}
+                </span>
+              </div>
+              {false && message.referenceId && (
+                <Button asChild size={"sm"} variant={"link"}>
+                  <Link
+                    href={`#${message.referenceId}`}
+                    className="hover:underline underline-offset-2"
+                  >
+                  // reply
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+          <div>
+            <DiscordMarkdown>{message.content}</DiscordMarkdown>
+            <Attachments attachments={message.attachments!} />
+          </div>
         </div>
       </div>
     </div>
+  )
+}
 
+function ReferenceMessage({ message }: { message: MessageWithMetadata }) {
+  const user = message?.user!;
+
+  if (!message?.content && !message?.attachments.length) {
+    return
+  }
+
+  return (
+    <div className="ml-2 flex items-center">
+      <div className="w-[50px] flex flex-col items-end justify-end">
+        <ReferenceLinkIcon className="size-8" />
+      </div>
+      {
+        message ?
+          (<Link href={`#${message.id}`} className="whitespace-nowrap text-ellipsis overflow-hidden">
+            <span className="text-sm font-semibold">
+              {
+                `@${user.displayName}`
+              }
+            </span>
+            <span className="[&_*]:!text-xs [&_*]:!inline [&_*]:!m-0 [&_*]:!p-[1px]">
+              {
+                !message?.content ? <span className="text-sm italic">Click to see attachments <ImageIcon className="size-5" /> </span> : (
+                  <DiscordMarkdown isReferenceReply={true}>{message.content.substring(0, 150)}</DiscordMarkdown>
+                )
+              }
+            </span>
+          </Link>) : <span className="text-sm italic">Original message was deleted</span>
+      }
+    </div >
   )
 }
 
@@ -265,4 +311,23 @@ export function anonymizeName(user: DBUser) {
     seed: user.id,
     style: "lowerCase",
   });
+}
+
+function ReferenceLinkIcon({
+  className,
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      width="21"
+      height="4"
+      fill="none"
+      aria-label="Reply Spline"
+      className={cn("inline-block shrink-0 text-current", className)}
+      viewBox="0 0 21 4"
+    >
+      <path stroke="#72767D" d="M1 9V6a5 5 0 0 1 5-5h12"></path>
+    </svg>
+  )
 }
