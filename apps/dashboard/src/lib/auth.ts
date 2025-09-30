@@ -18,6 +18,9 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
+  trustedOrigins: [
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [])
+  ],
   plugins: [
     polar({
       client: polarClient,
