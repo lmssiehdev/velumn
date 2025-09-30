@@ -2,7 +2,7 @@ import { createBotInvite, getChannelsInServer } from '@repo/db/helpers/servers';
 import { ChannelType } from 'discord-api-types/v10';
 import { z } from 'zod';
 import { procedure, router } from '@/server/trpc';
-import { webEnv } from '@repo/utils/env/web';
+import { webEnv } from '@/env';
 
 // TODO: protect
 export const serverRouter = router({

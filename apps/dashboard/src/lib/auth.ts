@@ -1,8 +1,8 @@
+import { webEnv } from '@/env';
 import { checkout, polar, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
 import { setBulkServersPlanByUserId } from '@repo/db/helpers/servers';
 import { db } from '@repo/db/index';
-import { webEnv } from '@repo/utils/env/web';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
