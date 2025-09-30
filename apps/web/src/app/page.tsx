@@ -1,15 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { CheckCircleIcon, CheckIcon, PlusIcon, SlidersIcon } from "@phosphor-icons/react/dist/ssr";
-import Link from "next/link";
 
 export default function Home() {
   return (
     <>
-      <div className="border-b border-x border-neutral-300">
-        <div className="max-w-screen-xl border-x border-neutral-300 mx-auto p-2 px-4">
-          <Link href="/" className="text-xl text-black">Velumn</Link>
-        </div>
-      </div>
       <div className="max-w-screen-xl p-1 mx-auto border-x border-neutral-300">
         <header className="my-50 text-center ">
           <h1 className="text-7xl mb-8 font-bold">From discord to forum</h1>
