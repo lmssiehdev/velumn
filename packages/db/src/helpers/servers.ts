@@ -48,7 +48,7 @@ export async function getChannelsInServer(serverId: string) {
   });
 }
 
-export async function setBulkServersPlanByUserId(
+export async function setServerPlanById(
   serverId: string,
   plan: ServerPlan
 ) {

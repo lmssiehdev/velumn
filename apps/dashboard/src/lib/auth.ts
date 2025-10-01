@@ -1,10 +1,12 @@
 import { checkout, polar, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
-import { setBulkServersPlanByUserId } from '@repo/db/helpers/servers';
+import { setServerPlanById } from '@repo/db/helpers/servers';
 import { db } from '@repo/db/index';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
+import { log } from './log';
+import { parseError } from './error';
 
 const polarClient = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN,
@@ -41,21 +43,29 @@ export const auth = betterAuth({
           secret: process.env.POLAR_WEBHOOK_SECRET!,
           onPayload: async (payload) => {
             const { type, data } = payload;
-
-            switch (type) {
-              case 'subscription.created':
-              case 'subscription.updated': {
-                const guildId = data.metadata.referenceId as string;
-                setBulkServersPlanByUserId(guildId, 'PAID');
-                break;
+            console.log({
+              // @ts-expect-error meh
+              referenceId: data?.metadata?.referenceId,
+            })
+            try {
+              switch (type) {
+                case 'subscription.created':
+                case 'subscription.updated': {
+                  const guildId = data.metadata.referenceId as string;
+                  setServerPlanById(guildId, 'PAID');
+                  break;
+                }
+                case 'subscription.revoked':
+                case 'subscription.canceled': {
+                  const guildId = data.metadata.referenceId as string;
+                  setServerPlanById(guildId, 'FREE');
+                  break;
+                }
               }
-              case 'subscription.revoked':
-              case 'subscription.canceled': {
-                const guildId = data.metadata.referenceId as string;
-                setBulkServersPlanByUserId(guildId, 'FREE');
-                break;
-              }
+            } catch (e) {
+              parseError(e);
             }
+
           },
         }),
       ],

@@ -1,11 +1,12 @@
-import {withSentryConfig} from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
+import { withAxiom } from 'next-axiom';
 
 const nextConfig: NextConfig = {
   transpilePackages: ['db', 'utils'],
 };
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withAxiom(nextConfig), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
