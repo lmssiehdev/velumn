@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { CheckCircleIcon, CheckIcon, PlusIcon, SlidersIcon } from "@phosphor-icons/react/dist/ssr";
+import { CaretDownIcon, CheckCircleIcon, CheckIcon, PlusIcon, SlidersIcon } from "@phosphor-icons/react/dist/ssr";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import Link from "next/link";
 
 export default function Home() {
-  return <div>Main page is a work in progress {":)"}</div>
   return (
     <>
       <div className="border-b border-x border-neutral-300">
@@ -13,7 +17,7 @@ export default function Home() {
       </div>
       <div className="max-w-screen-xl p-1 mx-auto border-x border-neutral-300">
         <header className="my-50 text-center ">
-          <h1 className="text-7xl mb-8 font-bold">From discord to forum</h1>
+          <h1 className="text-7xl mb-8 font-bold leading-tight">From discord to forum</h1>
           <p className="text-neutral-600 max-w-lg w-full text-wrap mx-auto">
             Convert your Discord community into a clean, fast, SEO-optimized forum in under 60 seconds.
 
@@ -77,8 +81,8 @@ export default function Home() {
 
         </section>
         <section className="my-80 border-t border-neutral-300">
-          <div className="py-40 max-w-screen-lg mx-auto">
-            <div className="pb-40 text-center space-y-2">
+          <div className="max-w-screen-lg mx-auto">
+            <div className="py-40 text-center space-y-2">
               <span className="text-lg">All batteries included</span>
               <h2 className="text-4xl font-semibold">Why use Velumn with Discord for creating your Forum?</h2>
             </div>
@@ -163,6 +167,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+        <FAQ />
+        <BottomCTA />
       </div>
       <footer className="border-t border-neutral-300">
         <div className=" border-x max-w-screen-xl mx-auto py-2 px-4">
@@ -171,4 +177,113 @@ export default function Home() {
       </footer>
     </>
   );
+}
+
+
+
+export function FAQ() {
+  return (
+    <section className=" border-t border-neutral-300">
+      <div className="block md:grid grid-cols-3 py-60 max-w-[74rem]  mx-auto">
+        <div className="text-4xl font-bold space-y-2 p-8 w-full">
+          <div>Got questions?</div>
+          <div className="text-neutral-500">We’ve got answers.</div>
+        </div>
+        <div className="w-full mx-auto space-y-4 prose [*_p]:max-w-full max-w-full p-4  col-span-2">
+          <Collapsible>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left font-medium hover:bg-accent">
+              How does Velumn work?
+              <CaretDownIcon className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4 pt-2 ">
+              <>
+                <div>
+                  Velumn crawls your Discord server and indexes threads in channels you specify, turning them into beautifully designed, well-optimized, SEO-friendly pages.
+                </div>
+
+                <div>
+                  You keep doing what you do best—building community on Discord—while Velumn makes those conversations discoverable on the web.
+                </div>
+              </>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left font-medium hover:bg-accent">
+              What sets Velumn apart from other forum solutions?
+              <CaretDownIcon className="h-4 w-4 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4 pt-2">
+              <p>
+                Velumn is the right choice if you already have—or are planning to build—a community on Discord. With Velumn, you get all the advantages of a traditional forum without splitting your focus between two different platforms or dealing with the hassle of managing your own infrastructure.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left font-medium hover:bg-accent">
+              Can I use Velumn for free?
+              <CaretDownIcon className="h-4 w-4 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4 pt-2">
+              <p>
+                To keep spam low while ensuring we maintain high-quality support as we actively develop the product, we currently only offer free tiers for non-commercial open source projects and other non-profit communities. [Contact us here for more info]
+              </p>
+
+              <p>
+                In the future, we plan to offer a free tier.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left font-medium hover:bg-accent">
+              How does Velumn handle privacy?
+              <CaretDownIcon className="h-4 w-4 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4 pt-2">
+              <div className="max-w-full">
+                Velumn goes to great lengths to ensure your community stays private when needed. We do not sync avatars or Discord tags—we only sync display names. Users also have the option to anonymize their display names using the <pre className="p-0.5! inline bg-neutral-200 text-black rounded">/anonymize</pre> command.
+              </div>
+
+              <p>
+                We're actively working on making this even better. If you have any suggestions, please let us know.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left font-medium hover:bg-accent">
+              Is there a limit on members?
+              <CaretDownIcon className="h-4 w-4 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4 pt-2">
+              <p>
+                No. We have a flat fee for servers of all sizes.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
+
+        </div>
+      </div >
+    </section >
+  )
+}
+
+function BottomCTA() {
+  return (
+    <section className=" border-t border-neutral-300">
+      <div className="bg-white rounded border py-40 my-40 space-y-6 text-center max-w-screen-lg  mx-auto">
+        <h3 className="text-4xl font-bold leading-tight ">
+          Ready to make your Discord searchable?
+        </h3>
+        <p className="text-neutral-600 ">
+          Try Velumn free for 7 days. No credit card required.
+        </p>
+        <Button variant={"default"} size={"lg"}>
+          Start Free Trial
+        </Button>
+      </div>
+    </section>
+  )
 }
