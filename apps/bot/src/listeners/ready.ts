@@ -11,6 +11,23 @@ const { values } = parseArgs({
   },
 });
 
+@ApplyOptions<Listener.Options>({
+  once: true,
+  event: Events.ClientReady,
+  name: 'indexing-timer',
+})
+export class Indexing extends Listener {
+  async run(client: Client) {
+    if (!values.index) {
+      await testing(client);
+      return;
+    }
+
+    // TODO: run this every day;
+    await indexServers(client);
+  }
+}
+
 const guilds = {
   namerio: '1228579842212106302',
   testserver: '1385955477912948806',
@@ -51,20 +68,4 @@ async function testing(client: Client) {
   }
 
   console.log(message);
-}
-
-@ApplyOptions<Listener.Options>({
-  once: true,
-  event: Events.ClientReady,
-  name: 'indexing-timer',
-})
-export class Indexing extends Listener {
-  async run(client: Client) {
-    if (values.index) {
-      // TODO: run this every day;
-      await indexServers(client);
-    } else {
-      await testing(client);
-    }
-  }
 }

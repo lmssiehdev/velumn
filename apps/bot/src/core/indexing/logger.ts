@@ -4,7 +4,7 @@ import type {
   Guild,
   GuildTextBasedChannel,
 } from 'discord.js';
-import type { IndexableChannels } from '../core/indexing';
+import { IndexableChannels } from './helpers';
 
 /**
  * @fileoverview Logger moved to separate file to avoid crowding the main indexing file

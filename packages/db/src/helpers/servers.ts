@@ -115,6 +115,10 @@ export async function createBulkServers(servers: DBServer[]) {
   return servers;
 }
 
+export async function getAllServers() {
+  return await db.query.dbServer.findMany();
+}
+
 export async function getServerInfo(serverId: string) {
   return await db.query.dbServer.findFirst({
     where: and(eq(dbServer.id, serverId)),
@@ -165,10 +169,10 @@ export async function getAllThreads(
     .where(
       getBy === 'server'
         ? and(
-            eq(dbChannel.serverId, id),
-            isNotNull(dbChannel.parentId),
-            eq(dbChannel.pinned, pinned)
-          )
+          eq(dbChannel.serverId, id),
+          isNotNull(dbChannel.parentId),
+          eq(dbChannel.pinned, pinned)
+        )
         : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
