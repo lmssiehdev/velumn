@@ -1,6 +1,6 @@
-import { and, count, desc, eq, exists, isNotNull, isNull } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
-import { db } from '../index';
+import { and, count, desc, eq, exists, inArray, isNotNull, isNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { db } from "../index";
 import {
   type DBChannel,
   type DBServer,
@@ -12,16 +12,10 @@ import {
   pendingDiscordInvite,
   type ServerPlan,
   user,
-} from '../schema';
-import { buildConflictUpdateColumns } from '../utils';
+} from "../schema";
+import { buildConflictUpdateColumns } from "../utils";
 
-export async function createBotInvite({
-  userId,
-  serverId,
-}: {
-  userId: string;
-  serverId: string;
-}) {
+export async function createBotInvite({ userId, serverId }: { userId: string; serverId: string }) {
   await db
     .insert(pendingDiscordInvite)
     .values({
@@ -56,9 +50,7 @@ export async function getUserWhoInvited(serverId: string) {
   });
 }
 
-export async function getChannelsInServer(
-  serverId: string
-): Promise<DBChannel[] | undefined> {
+export async function getChannelsInServer(serverId: string): Promise<DBChannel[] | undefined> {
   const result = await db
     .select({
       channel: dbChannel,
@@ -93,7 +85,7 @@ export async function upsertServer(server: DBServerInsert) {
       target: dbServer.id,
       set: buildConflictUpdateColumns(
         dbServer,
-        Object.keys(updateFields) as Array<keyof typeof updateFields>
+        Object.keys(updateFields) as Array<keyof typeof updateFields>,
       ),
     });
 }
@@ -144,17 +136,27 @@ export async function getServerInfoByChannelId(channelId: string) {
   return server;
 }
 
+export async function getBulkServersPlan(serverIds: string[]) {
+  return await db.query.dbServer.findMany({
+    where: inArray(dbServer.id, serverIds),
+    columns: {
+      plan: true,
+      id: true,
+    },
+  });
+}
+
 export async function getAllThreads(
-  getBy: 'server' | 'channel',
+  getBy: "server" | "channel",
   config: {
     id: string;
     pinned?: boolean;
     page?: number;
-  }
+  },
 ) {
   const { id, pinned = false, page = 1 } = config;
   const LIMIT_PER_PAGE = pinned ? 1 : 10;
-  const parentChannel = alias(dbChannel, 'parentChannel');
+  const parentChannel = alias(dbChannel, "parentChannel");
   const result = await db
     .select({
       channel: dbChannel,
@@ -167,13 +169,13 @@ export async function getAllThreads(
     .innerJoin(dbDiscordUser, eq(dbChannel.authorId, dbDiscordUser.id))
     .leftJoin(parentChannel, eq(dbChannel.parentId, parentChannel.id))
     .where(
-      getBy === 'server'
+      getBy === "server"
         ? and(
-          eq(dbChannel.serverId, id),
-          isNotNull(dbChannel.parentId),
-          eq(dbChannel.pinned, pinned)
-        )
-        : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
+            eq(dbChannel.serverId, id),
+            isNotNull(dbChannel.parentId),
+            eq(dbChannel.pinned, pinned),
+          )
+        : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned)),
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
     .limit(LIMIT_PER_PAGE + 1)
@@ -199,12 +201,7 @@ export async function getTopicsInServer(serverId: string) {
       and(
         eq(dbChannel.serverId, serverId),
         isNull(dbChannel.parentId),
-        exists(
-          db
-            .select()
-            .from(dbMessage)
-            .where(eq(dbMessage.parentChannelId, dbChannel.id))
-        )
-      )
+        exists(db.select().from(dbMessage).where(eq(dbMessage.parentChannelId, dbChannel.id))),
+      ),
     );
 }

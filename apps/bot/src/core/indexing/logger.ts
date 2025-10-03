@@ -7,11 +7,19 @@ import type {
 import { IndexableChannels } from './helpers';
 
 /**
- * @fileoverview Logger moved to separate file to avoid crowding the main indexing file
- * and keep the code readable while keeping rigorous logging.
+ * @fileoverview Logger moved to separate file to avoid crowding the indexing code
+ * and keep it readable while still having detailed logging.
  */
 
 const errToLogStringMap = {
+  channel_indexing_disabled: (channel: IndexableChannels) => {
+    container.logger.info("Indexing disabled forchannel", {
+      channel: channel.name,
+      channelId: channel.id,
+      guild: channel.guild.name,
+      guildId: channel.guild.id
+    })
+  },
   no_channels: (guild: Guild) => {
     container.logger.info('No channels found', {
       guild: guild.name,

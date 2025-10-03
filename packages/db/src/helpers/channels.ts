@@ -10,6 +10,16 @@ import {
   dbServer,
 } from '../schema';
 
+export async function getBulkIndexingStatus(channelIds: string[]) {
+  if (channelIds.length) return [];
+  return await db.query.dbChannel.findMany({
+    where: inArray(dbChannel.id, channelIds),
+    columns: {
+      id: true,
+      indexingEnabled: true,
+    }
+  })
+}
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
 ) {
@@ -73,18 +83,18 @@ export async function getAllMessagesInThreads(channelId: string) {
   const users =
     userIds.length > 0
       ? await db
-          .select()
-          .from(dbDiscordUser)
-          .where(inArray(dbDiscordUser.id, userIds))
+        .select()
+        .from(dbDiscordUser)
+        .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-          .select()
-          .from(dbAttachments)
-          .where(inArray(dbAttachments.messageId, messageIds))
+        .select()
+        .from(dbAttachments)
+        .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));
@@ -173,20 +183,13 @@ export async function upsertChannel(data: {
   update: Partial<DBChannel>;
   create: DBChannel;
 }) {
-  const exist = await findChannelById(data.create.id);
-
-  if (!exist) {
-    await db.insert(dbChannel).values(data.create);
-    return;
-  }
-
   await db
-    .update(dbChannel)
-    .set({
-      id: data.create.id,
-      ...data.update,
+    .insert(dbChannel)
+    .values(data.create)
+    .onConflictDoUpdate({
+      target: dbChannel.id,
+      set: data.update
     })
-    .where(eq(dbChannel.id, data.create.id));
 }
 
 export async function updateChannel(data: Partial<DBChannel>) {

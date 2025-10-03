@@ -18,13 +18,15 @@ export class JoinedGuild extends Listener {
   async run(guild: Guild) {
     try {
       // TODO: leave if no valid invite
-      const invitedBy = await getUserWhoInvited(guild.id);
+      let invitedBy = await getUserWhoInvited(guild.id);
 
       if (!invitedBy) {
         this.container.logger.error(
           'Only invites from the dashboard are allowed'
         );
-        return;
+
+        if (process.env.NODE_ENV === 'production') return;
+        invitedBy = { userId: "1335068922067550229" }
       }
       // TODO: handle blacklisted servers and leave if necessary;
       // TODO: handle invite code;
