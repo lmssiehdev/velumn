@@ -9,7 +9,6 @@ import {
   pgEnum,
   pgTable,
   text,
-  time,
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -57,7 +56,7 @@ export const dbServer = pgTable('db_server', {
   name: varchar('name').notNull(),
   description: varchar('description'),
   memberCount: integer('member_count').notNull(),
-  kickedAt: timestamp('kicked_at', { mode: "date" }),
+  kickedAt: timestamp('kicked_at', { mode: 'date' }),
   plan: planEnum('plan').notNull().default('FREE'),
   invitedBy: text('invitedBy'),
   anonymizeUsers: boolean('anonymize_users').default(false).notNull(),

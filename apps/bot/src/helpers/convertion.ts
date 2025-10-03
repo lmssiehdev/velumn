@@ -2,7 +2,6 @@ import type {
   DBChannel,
   DBMessage,
   DBMessageWithRelations,
-  DBServer,
   DBServerInsert,
   DBUser,
 } from '@repo/db/schema/index';

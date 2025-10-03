@@ -3,9 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { User } from 'better-auth';
 import { createContext, useContext, useMemo, useState } from 'react';
+import type { AuthUser } from '@/lib/auth';
 import { TRPCProvider } from '@/lib/trpc';
 import type { AppRouter } from '@/server/trpc/root';
-import { AuthUser } from '@/lib/auth';
 
 function makeQueryClient() {
   return new QueryClient({
@@ -72,7 +72,6 @@ export function AuthProvider({
   user: User;
   children: React.ReactNode;
 }) {
-
   const value = useMemo(() => ({ user }), [user?.id]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

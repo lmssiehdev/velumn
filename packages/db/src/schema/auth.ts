@@ -15,8 +15,8 @@ export const user = pgTable(
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    serverId: snowflake("server_id"),
-    finishedOnboarding: boolean("finished_onboarding").default(false).notNull(),
+    serverId: snowflake('server_id'),
+    finishedOnboarding: boolean('finished_onboarding').default(false).notNull(),
   },
   (t) => [index('user_email_idx').on(t.email)]
 );

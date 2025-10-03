@@ -61,8 +61,9 @@ export class ManageAccount extends Command {
       !interaction.guild ||
       !interaction.channel ||
       interaction.channel?.isDMBased()
-    )
+    ) {
       return;
+    }
 
     const embed = new EmbedBuilder()
       .setColor(0x00_99_ff)

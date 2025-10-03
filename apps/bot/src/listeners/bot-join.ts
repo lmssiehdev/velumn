@@ -1,10 +1,14 @@
 import { upsertBulkChannels } from '@repo/db/helpers/channels';
-import { getUserWhoInvited, linkServerToUser, upsertServer } from '@repo/db/helpers/servers';
+import {
+  getUserWhoInvited,
+  linkServerToUser,
+  upsertServer,
+} from '@repo/db/helpers/servers';
+import { resetUserServerIdLink } from '@repo/db/helpers/user';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import { ChannelType, Events, type Guild } from 'discord.js';
 import { toDbChannel, toDbServer } from '../helpers/convertion';
-import { resetUserServerIdLink, updateAuthUser } from '@repo/db/helpers/user';
 
 @ApplyOptions<Listener.Options>({
   event: Events.GuildCreate,
@@ -41,7 +45,6 @@ export class JoinedGuild extends Listener {
             x.type === ChannelType.GuildAnnouncement ||
             x.type === ChannelType.GuildForum)
       );
-
 
       // !! should probably be done in a transaction
       await linkServerToUser(guild.id, invitedBy.userId);

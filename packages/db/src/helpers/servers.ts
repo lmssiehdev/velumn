@@ -2,7 +2,9 @@ import { and, count, desc, eq, exists, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../index';
 import {
+  type DBChannel,
   type DBServer,
+  type DBServerInsert,
   dbChannel,
   dbDiscordUser,
   dbMessage,
@@ -10,8 +12,6 @@ import {
   pendingDiscordInvite,
   type ServerPlan,
   user,
-  DBServerInsert,
-  DBChannel,
 } from '../schema';
 import { buildConflictUpdateColumns } from '../utils';
 
@@ -56,26 +56,25 @@ export async function getUserWhoInvited(serverId: string) {
   });
 }
 
-export async function getChannelsInServer(serverId: string): Promise<DBChannel[] | undefined> {
-   const result = await db.select({
-    channel: dbChannel
-  })
-  .from(dbChannel)
-  .leftJoin(dbServer, eq(dbServer.id, dbChannel.serverId))
-  .where( and(
-    eq(dbChannel.serverId, serverId),
-    isNull(dbServer.kickedAt)
-  ))
+export async function getChannelsInServer(
+  serverId: string
+): Promise<DBChannel[] | undefined> {
+  const result = await db
+    .select({
+      channel: dbChannel,
+    })
+    .from(dbChannel)
+    .leftJoin(dbServer, eq(dbServer.id, dbChannel.serverId))
+    .where(and(eq(dbChannel.serverId, serverId), isNull(dbServer.kickedAt)));
 
-  if (!result) return undefined;
+  if (!result) {
+    return;
+  }
 
-  return result.map(({channel}) => channel)
+  return result.map(({ channel }) => channel);
 }
 
-export async function setServerPlanById(
-  serverId: string,
-  plan: ServerPlan
-) {
+export async function setServerPlanById(serverId: string, plan: ServerPlan) {
   return await db
     .update(dbServer)
     .set({
@@ -87,11 +86,15 @@ export async function setServerPlanById(
 export async function upsertServer(server: DBServerInsert) {
   const { id, invitedBy, ...updateFields } = server;
 
-  await db.insert(dbServer)
+  await db
+    .insert(dbServer)
     .values(server)
     .onConflictDoUpdate({
       target: dbServer.id,
-      set: buildConflictUpdateColumns(dbServer, Object.keys(updateFields) as Array<keyof typeof updateFields>),
+      set: buildConflictUpdateColumns(
+        dbServer,
+        Object.keys(updateFields) as Array<keyof typeof updateFields>
+      ),
     });
 }
 
@@ -162,10 +165,10 @@ export async function getAllThreads(
     .where(
       getBy === 'server'
         ? and(
-          eq(dbChannel.serverId, id),
-          isNotNull(dbChannel.parentId),
-          eq(dbChannel.pinned, pinned)
-        )
+            eq(dbChannel.serverId, id),
+            isNotNull(dbChannel.parentId),
+            eq(dbChannel.pinned, pinned)
+          )
         : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)

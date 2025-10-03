@@ -3,9 +3,9 @@
  *
  * @see https://github.com/twitter/twemoji/blob/d94f4cf793e6d5ca592aa00f58a88f6a4229ad43/scripts/build.js#L571C7-L589C8
  */
-export function emojiToTwemoji(emoji: string, version = '14.0.2') {
+export function emojiToTwemoji(emoji: string, _version = '14.0.2') {
   function toCodePoint(unicodeSurrogates: string) {
-    var r = [],
+    let r = [],
       c = 0,
       p = 0,
       i = 0;

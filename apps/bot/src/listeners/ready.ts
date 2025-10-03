@@ -1,16 +1,8 @@
 import { parseArgs } from 'node:util';
-import { upsertBulkChannels } from '@repo/db/helpers/channels';
-import { upsertServer } from '@repo/db/helpers/servers';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
-import {
-  ChannelType,
-  type Client,
-  MessageFlags,
-  RESTJSONErrorCodes,
-} from 'discord.js';
+import { ChannelType, type Client, RESTJSONErrorCodes } from 'discord.js';
 import { indexServers } from '../core/indexing';
-import { toDBMessage, toDbChannel, toDbServer } from '../helpers/convertion';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),

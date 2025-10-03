@@ -1,5 +1,5 @@
-import { getCurrentUserOrRedirect } from '@/server/user';
 import { redirect } from 'next/navigation';
+import { getCurrentUserOrRedirect } from '@/server/user';
 
 export default async function RootLayout({
   children,
@@ -8,13 +8,9 @@ export default async function RootLayout({
 }>) {
   const { user } = await getCurrentUserOrRedirect();
 
-  if ( !user.finishedOnboarding ) {
-    redirect("/onboarding")
+  if (!user.finishedOnboarding) {
+    redirect('/onboarding');
   }
 
-  return (
-    <>
-        {children}
-    </>
-  );
+  return <>{children}</>;
 }

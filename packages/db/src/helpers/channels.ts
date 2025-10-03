@@ -1,4 +1,4 @@
-import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
 import {
   type DBAttachments,
@@ -10,14 +10,15 @@ import {
   dbServer,
 } from '../schema';
 
-
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
 ) {
-  if (channels.length === 0) return;
+  if (channels.length === 0) {
+    return;
+  }
 
-  const enableIds = channels.filter(c => c.status).map(c => c.channelId);
-  const disableIds = channels.filter(c => !c.status).map(c => c.channelId);
+  const enableIds = channels.filter((c) => c.status).map((c) => c.channelId);
+  const disableIds = channels.filter((c) => !c.status).map((c) => c.channelId);
 
   if (enableIds.length > 0) {
     await db
@@ -58,7 +59,9 @@ export async function getAllMessagesInThreads(channelId: string) {
     .where(eq(dbChannel.id, channelId))
     .limit(1);
 
-  if (!channel[0]) return null;
+  if (!channel[0]) {
+    return null;
+  }
 
   const messages = await db
     .select()
@@ -70,25 +73,27 @@ export async function getAllMessagesInThreads(channelId: string) {
   const users =
     userIds.length > 0
       ? await db
-        .select()
-        .from(dbDiscordUser)
-        .where(inArray(dbDiscordUser.id, userIds))
+          .select()
+          .from(dbDiscordUser)
+          .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-        .select()
-        .from(dbAttachments)
-        .where(inArray(dbAttachments.messageId, messageIds))
+          .select()
+          .from(dbAttachments)
+          .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));
   const attachmentsByMessage = attachments.reduce(
     (acc, att) => {
-      if (!acc[att.messageId]) acc[att.messageId] = [];
-      acc[att.messageId]!.push(att);
+      if (!acc[att.messageId]) {
+        acc[att.messageId] = [];
+      }
+      acc[att.messageId]?.push(att);
       return acc;
     },
     {} as Record<string, DBAttachments[]>

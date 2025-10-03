@@ -4,14 +4,10 @@ import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
 export const getGuildsCache = cache((userId: string) => {
-  return unstable_cache(
-    () => getGuilds(userId),
-    ["user-guilds", userId],
-    {
-      revalidate: 60 * 3,
-      tags: ["user-guilds"]
-    }
-  )();
+  return unstable_cache(() => getGuilds(userId), ['user-guilds', userId], {
+    revalidate: 60 * 3,
+    tags: ['user-guilds'],
+  })();
 });
 
 export type Guild = {

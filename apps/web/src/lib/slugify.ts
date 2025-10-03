@@ -2,7 +2,7 @@ import slugify from 'slugify';
 
 export function getSlugFromTitle(title: string) {
   // trim long numbers from the title
-  const processedTitle = title!.replace(/\d{6,}/g, (match) =>
+  const processedTitle = title?.replace(/\d{6,}/g, (match) =>
     match.substring(0, 5)
   );
 
