@@ -16,7 +16,25 @@ const polarClient = new Polar({
   server: 'sandbox',
 });
 
+export type AuthUser = typeof auth.$Infer.Session.user;
+export type BetterAuthServer = typeof auth;
+
 export const auth = betterAuth({
+  user: {
+    additionalFields: {
+      serverId: {
+        type: "string",
+        required: false,
+        input: false,
+        bigint: true,
+      },
+      finishedOnboarding: {
+        type: "boolean",
+        required: false,
+        input: false,
+      },
+    }
+  },
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),

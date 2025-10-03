@@ -1,6 +1,6 @@
 {
-  "id": "31d2f1a0-9da4-4452-96ea-cdc4ae1caada",
-  "prevId": "55210271-33d1-4268-b2fa-838696ad9864",
+  "id": "0d7391d7-1f11-402f-80c8-6a0ccb1bf76f",
+  "prevId": "731a9690-48d2-41d6-be11-6e5757c8816f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -289,6 +289,19 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finished_onboarding": {
+          "name": "finished_onboarding",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {
@@ -543,7 +556,7 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": false
         }
       },
       "indexes": {
@@ -851,7 +864,7 @@
         },
         "kicked_at": {
           "name": "kicked_at",
-          "type": "time",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
@@ -863,21 +876,9 @@
           "notNull": true,
           "default": "'FREE'"
         },
-        "polar_customer_id": {
-          "name": "polar_customer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "polar_subscription_id": {
-          "name": "polar_subscription_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "invitedBy": {
           "name": "invitedBy",
-          "type": "bigint",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -903,7 +904,7 @@
       "columns": {
         "server_id": {
           "name": "server_id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },

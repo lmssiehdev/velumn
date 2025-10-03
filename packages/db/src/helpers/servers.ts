@@ -9,7 +9,11 @@ import {
   dbServer,
   pendingDiscordInvite,
   type ServerPlan,
+  user,
+  DBServerInsert,
+  DBChannel,
 } from '../schema';
+import { buildConflictUpdateColumns } from '../utils';
 
 export async function createBotInvite({
   userId,
@@ -22,30 +26,50 @@ export async function createBotInvite({
     .insert(pendingDiscordInvite)
     .values({
       userId,
+      updatedAt: new Date(),
       serverId,
     })
     .onConflictDoUpdate({
       target: pendingDiscordInvite.serverId,
       set: {
         userId,
+        updatedAt: new Date(),
       },
     });
 }
 
-export async function getUserWhoInvited(guildId: string) {
+export async function linkServerToUser(serverId: string, userId: string) {
+  await db
+    .update(user)
+    .set({
+      serverId,
+    })
+    .where(eq(user.id, userId));
+}
+
+export async function getUserWhoInvited(serverId: string) {
   return await db.query.pendingDiscordInvite.findFirst({
-    where: eq(pendingDiscordInvite.serverId, guildId),
+    where: eq(pendingDiscordInvite.serverId, serverId),
     columns: {
       userId: true,
     },
   });
 }
 
-export async function getChannelsInServer(serverId: string) {
-  return await db.query.dbChannel.findMany({
-    where: eq(dbChannel.serverId, serverId),
-    limit: 10,
-  });
+export async function getChannelsInServer(serverId: string): Promise<DBChannel[] | undefined> {
+   const result = await db.select({
+    channel: dbChannel
+  })
+  .from(dbChannel)
+  .leftJoin(dbServer, eq(dbServer.id, dbChannel.serverId))
+  .where( and(
+    eq(dbChannel.serverId, serverId),
+    isNull(dbServer.kickedAt)
+  ))
+
+  if (!result) return undefined;
+
+  return result.map(({channel}) => channel)
 }
 
 export async function setServerPlanById(
@@ -60,11 +84,15 @@ export async function setServerPlanById(
     .where(eq(dbServer.id, serverId));
 }
 
-export async function upsertServer(server: DBServer) {
-  await db.insert(dbServer).values(server).onConflictDoUpdate({
-    target: dbServer.id,
-    set: server,
-  });
+export async function upsertServer(server: DBServerInsert) {
+  const { id, invitedBy, ...updateFields } = server;
+
+  await db.insert(dbServer)
+    .values(server)
+    .onConflictDoUpdate({
+      target: dbServer.id,
+      set: buildConflictUpdateColumns(dbServer, Object.keys(updateFields) as Array<keyof typeof updateFields>),
+    });
 }
 
 export async function createBulkServers(servers: DBServer[]) {

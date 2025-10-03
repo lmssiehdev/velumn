@@ -15,7 +15,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { user } from './auth';
 
-const snowflake = customType<{
+export const snowflake = customType<{
   data: string;
 }>({
   dataType() {
@@ -57,12 +57,9 @@ export const dbServer = pgTable('db_server', {
   name: varchar('name').notNull(),
   description: varchar('description'),
   memberCount: integer('member_count').notNull(),
-  kickedAt: time('kicked_at'),
+  kickedAt: timestamp('kicked_at', { mode: "date" }),
   plan: planEnum('plan').notNull().default('FREE'),
-  polarCustomerId: text('polar_customer_id'),
-  polarSubscriptionId: text('polar_subscription_id'),
-  invitedBy: snowflake('invitedBy'),
-
+  invitedBy: text('invitedBy'),
   anonymizeUsers: boolean('anonymize_users').default(false).notNull(),
 });
 
@@ -74,6 +71,7 @@ export const serverRelations = relations(dbServer, ({ one, many }) => ({
   }),
 }));
 
+export type DBServerInsert = typeof dbServer.$inferInsert;
 export type DBServer = typeof dbServer.$inferSelect;
 
 //
@@ -95,7 +93,7 @@ export const dbChannel = pgTable(
     type: integer('type').notNull(),
     pinned: boolean('pinned').default(false).notNull(),
 
-    indexingEnabled: boolean('indexing_enabled').default(true).notNull(),
+    indexingEnabled: boolean('indexing_enabled').default(false).notNull(),
   },
   (table) => [
     index('channel_pinned_idx').on(table.pinned),
@@ -206,7 +204,7 @@ export type DBMessageWithRelations = DBMessage & {
 // used to link the user with the bot, surely there is a better way
 // but this works for now
 export const pendingDiscordInvite = pgTable('pending_discord_invite', {
-  serverId: text('server_id').notNull().primaryKey(),
+  serverId: snowflake('server_id').notNull().primaryKey(),
   userId: text('user_id').notNull(),
   updatedAt: timestamp('updated_at')
     .defaultNow()

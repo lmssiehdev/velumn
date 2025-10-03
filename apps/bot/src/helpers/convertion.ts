@@ -3,8 +3,9 @@ import type {
   DBMessage,
   DBMessageWithRelations,
   DBServer,
+  DBServerInsert,
   DBUser,
-} from '@repo/db/schema';
+} from '@repo/db/schema/index';
 import {
   ChannelFlags,
   type Guild,
@@ -38,7 +39,8 @@ export async function toDbChannel(
         : null,
     lastIndexedMessageId: null,
     type: channel.type,
-    archived: channel.isThread() && channel.archived,
+    // archived: channel.isThread() && (channel.archived ?? false),
+    indexingEnabled: false,
     pinned: channel.isThread() && channel.flags.has(ChannelFlags.Pinned),
   };
 
@@ -95,12 +97,12 @@ export function toDbReactions(message: Message): DBMessage['reactions'] {
 export async function toDBMessage(
   message: Message
 ): Promise<DBMessageWithRelations> {
-  if (!message.guildId) {
-    throw new Error('Message is not in a guild');
-  }
   let fullMessage = message;
   if (fullMessage.partial) {
     fullMessage = await fullMessage.fetch();
+  }
+  if (!fullMessage.guildId) {
+    throw new Error('Message is not in a guild');
   }
   const convertedMessage: DBMessageWithRelations = {
     id: fullMessage.id,
@@ -223,7 +225,7 @@ export async function messagesToDBMessagesSet(messages: Message[]) {
 //
 
 export function toDbServer(guild: Guild) {
-  const convertedServer: DBServer = {
+  const convertedServer: DBServerInsert = {
     id: guild.id,
     name: guild.name,
     description: guild.description,

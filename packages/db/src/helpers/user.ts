@@ -1,6 +1,20 @@
-import { eq, inArray } from 'drizzle-orm';
-import { db } from '..';
-import { type DBUser, dbDiscordUser } from '../schema';
+import { eq, inArray } from "drizzle-orm";
+import { db } from "..";
+import { AuthUser, type DBUser, dbDiscordUser, user } from "../schema";
+
+
+export async function updateAuthUser(userId: string, payload: Exclude<Partial<AuthUser>, "id">) {
+  await db
+    .update(user)
+    .set(payload)
+    .where(eq(user.id, userId));
+}
+export async function resetUserServerIdLink(serverId: string) {
+  await db
+    .update(user)
+    .set({ serverId: null })
+    .where(eq(user.serverId, serverId));
+}
 
 export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {
   await db
@@ -54,7 +68,7 @@ export async function upsertManyDiscordAccounts(users: DBUser[]) {
       acc[cur.id] = cur;
       return acc;
     },
-    {} as Record<string, DBUser>
+    {} as Record<string, DBUser>,
   );
 
   const toCreate = users.filter((c) => !existingMap[c.id]).map((c) => c);
@@ -68,9 +82,7 @@ export async function upsertManyDiscordAccounts(users: DBUser[]) {
 }
 
 export async function createManyDiscordAccounts(users: DBUser[]) {
-  const uniqueAccountsToCreate = new Map<string, DBUser>(
-    users.map((i) => [i.id, i])
-  );
+  const uniqueAccountsToCreate = new Map<string, DBUser>(users.map((i) => [i.id, i]));
   const accountSet = Array.from(uniqueAccountsToCreate.values());
 
   const chunkSize = 25;
@@ -79,17 +91,13 @@ export async function createManyDiscordAccounts(users: DBUser[]) {
     chunks.push(accountSet.slice(i, i + chunkSize));
   }
   for await (const chunk of chunks) {
-    await Promise.all(
-      chunk.map(async (user) => db.insert(dbDiscordUser).values(user))
-    );
+    await Promise.all(chunk.map(async (user) => db.insert(dbDiscordUser).values(user)));
   }
   return findManyDiscordAccountsById(accountSet.map((i) => i.id));
 }
 
 export async function updateManyDiscordAccounts(data: DBUser[]) {
-  const uniqueAccountsToCreate = new Map<string, DBUser>(
-    data.map((i) => [i.id, i])
-  );
+  const uniqueAccountsToCreate = new Map<string, DBUser>(data.map((i) => [i.id, i]));
   const accountSet = Array.from(uniqueAccountsToCreate.values());
 
   const chunkSize = 25;
@@ -100,8 +108,8 @@ export async function updateManyDiscordAccounts(data: DBUser[]) {
   for await (const chunk of chunks) {
     await Promise.all(
       chunk.map(async (user) =>
-        db.update(dbDiscordUser).set(user).where(eq(dbDiscordUser.id, user.id))
-      )
+        db.update(dbDiscordUser).set(user).where(eq(dbDiscordUser.id, user.id)),
+      ),
     );
   }
   return findManyDiscordAccountsById(accountSet.map((i) => i.id));

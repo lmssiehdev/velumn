@@ -1,28 +1,18 @@
-// import pg from 'pg';
-// import { url } from './index;
 
-// async function dropDatabase() {
-//   if (process.env.NODE_ENV === 'production') {
-//     return;
-//   }
-//   const pool = new pg.Pool({
-//     connectionString: url,
-//   });
+import { neon } from '@neondatabase/serverless';
 
-//   try {
-//     await pool.query(
-//       `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'discord-indexer'`
-//     );
-//     await pool.query('DROP DATABASE IF EXISTS "discord-indexer"');
-//     await pool.query(
-//       'CREATE DATABASE "discord-indexer" OWNER "discord-indexer"'
-//     );
-//     console.info('Database wiped successfully');
-//   } catch (error) {
-//     console.error('Error dropping database:', error);
-//   } finally {
-//     await pool.end();
-//   }
-// }
+async function wipeDatabase() {
+    if (process.env.NODE_ENV === 'production') {
+        return;
+    }
+    try {
+        const sql = neon(process.env.DATABASE_URL!);
 
-// dropDatabase();
+        await sql`DROP SCHEMA public CASCADE`;
+        await sql`CREATE SCHEMA public`;
+        console.log('Database wiped successfully!');
+    } catch (error) {
+        console.error('Error wiping database:', error);
+    }
+}
+wipeDatabase();

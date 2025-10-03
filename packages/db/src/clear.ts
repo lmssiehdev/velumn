@@ -13,6 +13,7 @@ export async function clearAllTables() {
     schema.session,
     schema.account,
     schema.verification,
+    schema.pendingDiscordInvite,
   ];
 
   for (const table of tables) {

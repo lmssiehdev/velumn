@@ -5,6 +5,7 @@ import type { User } from 'better-auth';
 import { createContext, useContext, useMemo, useState } from 'react';
 import { TRPCProvider } from '@/lib/trpc';
 import type { AppRouter } from '@/server/trpc/root';
+import { AuthUser } from '@/lib/auth';
 
 function makeQueryClient() {
   return new QueryClient({
@@ -54,7 +55,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 }
 
-const AuthContext = createContext<{ user: User }>({} as { user: User });
+const AuthContext = createContext<{ user: AuthUser }>({} as { user: AuthUser });
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -71,6 +72,7 @@ export function AuthProvider({
   user: User;
   children: React.ReactNode;
 }) {
+
   const value = useMemo(() => ({ user }), [user?.id]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

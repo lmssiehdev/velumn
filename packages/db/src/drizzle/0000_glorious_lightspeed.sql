@@ -35,6 +35,7 @@ CREATE TABLE "user" (
 	"image" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"server_id" bigint,
 	CONSTRAINT "user_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
@@ -62,14 +63,15 @@ CREATE TABLE "attachments" (
 --> statement-breakpoint
 CREATE TABLE "db_channel" (
 	"id" bigint PRIMARY KEY NOT NULL,
-	"server_id" bigint,
+	"server_id" bigint NOT NULL,
 	"parent_id" bigint,
 	"author_id" bigint,
 	"channel_name" varchar,
 	"archivedTimestamp" bigint,
 	"last_indexed_message_id" bigint,
 	"type" integer NOT NULL,
-	"pinned" boolean DEFAULT false NOT NULL
+	"pinned" boolean DEFAULT false NOT NULL,
+	"indexing_enabled" boolean DEFAULT true NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "db_user" (
@@ -83,15 +85,15 @@ CREATE TABLE "db_user" (
 --> statement-breakpoint
 CREATE TABLE "db_message" (
 	"id" bigint PRIMARY KEY NOT NULL,
-	"server_id" bigint,
-	"channel_id" bigint,
-	"author_id" bigint,
+	"server_id" bigint NOT NULL,
+	"channel_id" bigint NOT NULL,
+	"author_id" bigint NOT NULL,
 	"child_thread_id" bigint,
 	"parent_channel_id" bigint,
 	"clean_content" varchar,
-	"content" varchar,
-	"pinned" boolean,
-	"type" integer,
+	"content" varchar NOT NULL,
+	"pinned" boolean DEFAULT false NOT NULL,
+	"type" integer NOT NULL,
 	"webhook_id" bigint,
 	"reference_id" bigint,
 	"application_id" bigint,
@@ -103,20 +105,31 @@ CREATE TABLE "db_server" (
 	"name" varchar NOT NULL,
 	"description" varchar,
 	"member_count" integer NOT NULL,
-	"kicked_at" time,
+	"kicked_at" timestamp,
 	"plan" "plan" DEFAULT 'FREE' NOT NULL,
-	"polar_customer_id" text,
-	"polar_subscription_id" text,
-	"invitedBy" bigint
+	"invitedBy" text,
+	"anonymize_users" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "pending_discord_invite" (
-	"server_id" text PRIMARY KEY NOT NULL,
+	"server_id" bigint PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "channed_idx" ON "db_channel" USING btree ("id");--> statement-breakpoint
-CREATE INDEX "pinned_idx" ON "db_channel" USING btree ("pinned");
+ALTER TABLE "db_channel" ADD CONSTRAINT "db_channel_server_id_db_server_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."db_server"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "db_message" ADD CONSTRAINT "db_message_server_id_db_server_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."db_server"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "db_message" ADD CONSTRAINT "db_message_channel_id_db_channel_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."db_channel"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "account_user_id_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "session_user_id_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "session_token_idx" ON "session" USING btree ("token");--> statement-breakpoint
+CREATE INDEX "user_email_idx" ON "user" USING btree ("email");--> statement-breakpoint
+CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");--> statement-breakpoint
+CREATE INDEX "attachment_message_id_idx" ON "attachments" USING btree ("message_id");--> statement-breakpoint
+CREATE INDEX "channel_pinned_idx" ON "db_channel" USING btree ("pinned");--> statement-breakpoint
+CREATE INDEX "channel_parent_id_idx" ON "db_channel" USING btree ("parent_id");--> statement-breakpoint
+CREATE INDEX "channel_server_id_idx" ON "db_channel" USING btree ("server_id");--> statement-breakpoint
+CREATE INDEX "message_channel_id_idx" ON "db_message" USING btree ("channel_id");--> statement-breakpoint
+CREATE INDEX "message_parent_channel_id_idx" ON "db_message" USING btree ("parent_channel_id");

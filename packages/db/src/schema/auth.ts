@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm';
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import { dbServer } from './discord';
+import { dbServer, snowflake } from './discord';
 
 export const user = pgTable(
   'user',
@@ -15,9 +15,13 @@ export const user = pgTable(
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
+    serverId: snowflake("server_id"),
+    finishedOnboarding: boolean("finished_onboarding").default(false).notNull(),
   },
   (t) => [index('user_email_idx').on(t.email)]
 );
+
+export type AuthUser = typeof user.$inferSelect;
 
 export const userRelations = relations(user, ({ one, many }) => ({
   server: many(dbServer),

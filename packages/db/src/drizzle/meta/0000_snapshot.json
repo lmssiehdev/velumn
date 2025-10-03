@@ -1,5 +1,5 @@
 {
-  "id": "55210271-33d1-4268-b2fa-838696ad9864",
+  "id": "731a9690-48d2-41d6-be11-6e5757c8816f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -88,7 +88,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "account_user_id_idx": {
+          "name": "account_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
@@ -164,7 +180,38 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "session_user_id_idx": {
+          "name": "session_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "session_token_idx": {
+          "name": "session_token_idx",
+          "columns": [
+            {
+              "expression": "token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
@@ -242,9 +289,31 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_email_idx": {
+          "name": "user_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -303,7 +372,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "verification_identifier_idx": {
+          "name": "verification_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -376,7 +461,23 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "attachment_message_id_idx": {
+          "name": "attachment_message_id_idx",
+          "columns": [
+            {
+              "expression": "message_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -398,7 +499,7 @@
           "name": "server_id",
           "type": "bigint",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "parent_id": {
           "name": "parent_id",
@@ -442,26 +543,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "indexing_enabled": {
+          "name": "indexing_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         }
       },
       "indexes": {
-        "channed_idx": {
-          "name": "channed_idx",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "pinned_idx": {
-          "name": "pinned_idx",
+        "channel_pinned_idx": {
+          "name": "channel_pinned_idx",
           "columns": [
             {
               "expression": "pinned",
@@ -474,9 +567,53 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "channel_parent_id_idx": {
+          "name": "channel_parent_id_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "channel_server_id_idx": {
+          "name": "channel_server_id_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "db_channel_server_id_db_server_id_fk": {
+          "name": "db_channel_server_id_db_server_id_fk",
+          "tableFrom": "db_channel",
+          "tableTo": "db_server",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -548,19 +685,19 @@
           "name": "server_id",
           "type": "bigint",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "channel_id": {
           "name": "channel_id",
           "type": "bigint",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "author_id": {
           "name": "author_id",
           "type": "bigint",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "child_thread_id": {
           "name": "child_thread_id",
@@ -584,19 +721,20 @@
           "name": "content",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "pinned": {
           "name": "pinned",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": false
         },
         "type": {
           "name": "type",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "webhook_id": {
           "name": "webhook_id",
@@ -623,8 +761,66 @@
           "notNull": false
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
+      "indexes": {
+        "message_channel_id_idx": {
+          "name": "message_channel_id_idx",
+          "columns": [
+            {
+              "expression": "channel_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "message_parent_channel_id_idx": {
+          "name": "message_parent_channel_id_idx",
+          "columns": [
+            {
+              "expression": "parent_channel_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "db_message_server_id_db_server_id_fk": {
+          "name": "db_message_server_id_db_server_id_fk",
+          "tableFrom": "db_message",
+          "tableTo": "db_server",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "db_message_channel_id_db_channel_id_fk": {
+          "name": "db_message_channel_id_db_channel_id_fk",
+          "tableFrom": "db_message",
+          "tableTo": "db_channel",
+          "columnsFrom": [
+            "channel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -661,7 +857,7 @@
         },
         "kicked_at": {
           "name": "kicked_at",
-          "type": "time",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
@@ -673,23 +869,18 @@
           "notNull": true,
           "default": "'FREE'"
         },
-        "polar_customer_id": {
-          "name": "polar_customer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "polar_subscription_id": {
-          "name": "polar_subscription_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "invitedBy": {
           "name": "invitedBy",
-          "type": "bigint",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "anonymize_users": {
+          "name": "anonymize_users",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -706,7 +897,7 @@
       "columns": {
         "server_id": {
           "name": "server_id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },

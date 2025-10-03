@@ -1,7 +1,6 @@
 import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
 import {
-  attachmentRelations,
   type DBAttachments,
   type DBChannel,
   dbAttachments,
@@ -9,8 +8,31 @@ import {
   dbDiscordUser,
   dbMessage,
   dbServer,
-  user,
 } from '../schema';
+
+
+export async function setBulkIndexingStatus(
+  channels: { channelId: string; status: boolean }[]
+) {
+  if (channels.length === 0) return;
+
+  const enableIds = channels.filter(c => c.status).map(c => c.channelId);
+  const disableIds = channels.filter(c => !c.status).map(c => c.channelId);
+
+  if (enableIds.length > 0) {
+    await db
+      .update(dbChannel)
+      .set({ indexingEnabled: true })
+      .where(inArray(dbChannel.id, enableIds));
+  }
+
+  if (disableIds.length > 0) {
+    await db
+      .update(dbChannel)
+      .set({ indexingEnabled: false })
+      .where(inArray(dbChannel.id, disableIds));
+  }
+}
 
 export async function getChannelInfo(channelId: string) {
   const data = await db
