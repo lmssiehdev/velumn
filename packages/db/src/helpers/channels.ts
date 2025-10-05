@@ -73,18 +73,18 @@ export async function getAllMessagesInThreads(channelId: string) {
   const users =
     userIds.length > 0
       ? await db
-        .select()
-        .from(dbDiscordUser)
-        .where(inArray(dbDiscordUser.id, userIds))
+          .select()
+          .from(dbDiscordUser)
+          .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-        .select()
-        .from(dbAttachments)
-        .where(inArray(dbAttachments.messageId, messageIds))
+          .select()
+          .from(dbAttachments)
+          .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));
@@ -173,13 +173,10 @@ export async function upsertChannel(data: {
   update: Partial<DBChannel>;
   create: DBChannel;
 }) {
-  await db
-    .insert(dbChannel)
-    .values(data.create)
-    .onConflictDoUpdate({
-      target: dbChannel.id,
-      set: data.update
-    })
+  await db.insert(dbChannel).values(data.create).onConflictDoUpdate({
+    target: dbChannel.id,
+    set: data.update,
+  });
 }
 
 export async function updateChannel(data: Partial<DBChannel>) {

@@ -1,22 +1,19 @@
-
-import {
-  upsertChannel
-} from '@repo/db/helpers/channels';
+import { upsertChannel } from '@repo/db/helpers/channels';
 import { upsertManyMessages } from '@repo/db/helpers/messages';
 import { upsertManyDiscordAccounts } from '@repo/db/helpers/user';
+import { container } from '@sapphire/framework';
 import {
   ChannelType,
   type GuildTextBasedChannel,
-  type Message
+  type Message,
 } from 'discord.js';
 import {
   extractUsersSetFromMessages,
   messagesToDBMessagesSet,
   toDbChannel,
-  toDbUser
+  toDbUser,
 } from '../../helpers/convertion';
 import { getTheOldestSnowflakeId } from './helpers';
-import { container } from "@sapphire/framework";
 
 export async function storeIndexedData(
   messages: Message[],

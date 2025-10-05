@@ -105,7 +105,7 @@ export async function toDBMessage(
     throw new Error('Message is not in a guild');
   }
 
-  const embeds = message.embeds.flatMap(e => {
+  const embeds = message.embeds.flatMap((e) => {
     const result = embedSchema.safeParse(e.data);
     if (!result.success) {
       console.error('Invalid embed:', e.data, result.data, result.error);

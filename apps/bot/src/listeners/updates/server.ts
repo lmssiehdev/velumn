@@ -26,24 +26,24 @@ export class JoinedGuild extends Listener {
           'Only invites from the dashboard are allowed'
         );
 
-        if (process.env.NODE_ENV === 'production') return;
-        invitedBy = { userId: "1335068922067550229" }
+        if (process.env.NODE_ENV === 'production') {
+          return;
+        }
+        invitedBy = { userId: '1335068922067550229' };
       }
       // TODO: handle blacklisted servers and leave if necessary;
       // TODO: handle invite code;
       const converted = toDbServer(guild);
-      console.log({ convertedServer: converted })
+      console.log({ convertedServer: converted });
       await upsertServer({
         ...converted,
         invitedBy: invitedBy?.userId,
       });
 
-
       // we save channels to display them in the onboarding flow
       const channels = await guild.channels.fetch();
       const channelsToIndex = channels.filter(
-        (x) =>
-          x != null && isChannelIndexable(x)
+        (x) => x != null && isChannelIndexable(x)
       );
 
       // !! should probably be done in a transaction
@@ -82,7 +82,7 @@ export class LeftGuild extends Listener {
 export class SyncOnUpdate extends Listener {
   async run(_, newGuild: Guild) {
     try {
-      console.log("Update channel", newGuild)
+      console.log('Update channel', newGuild);
       const converted = toDbServer(newGuild);
       await upsertServer(converted);
     } catch (error) {

@@ -1,6 +1,5 @@
 import {
   bulkFindLatestMessageInChannel,
-  findChannelById,
   findLatestMessageInChannel,
   upsertChannel,
 } from '@repo/db/helpers/channels';
@@ -9,20 +8,21 @@ import {
   ChannelType,
   type GuildTextBasedChannel,
   type Message,
-  type Snowflake
+  PermissionFlagsBits,
+  type Snowflake,
 } from 'discord.js';
-import {
-  toDbChannel
-} from '../../helpers/convertion';
-import { Log } from './logger';
+import { toDbChannel } from '../../helpers/convertion';
 import { fetchAllMessages, type IndexableChannels } from './helpers';
+import { Log } from './logger';
 import { storeIndexedData } from './store';
-import { PermissionFlagsBits } from 'discord.js';
 
 export async function indexRootChannel(channel: IndexableChannels) {
   const botCanViewChannel = channel
     .permissionsFor(channel.client.user)
-    ?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory]);
+    ?.has([
+      PermissionFlagsBits.ViewChannel,
+      PermissionFlagsBits.ReadMessageHistory,
+    ]);
 
   if (!botCanViewChannel) {
     Log('bot_cannot_view_channel', channel);
@@ -174,12 +174,10 @@ export async function indexTextBasedChannel(
 
     if (!opts?.skipIndexingEnabledCheck) {
       // const channelSettings = await findChannelById(channel.isThread() ? channel.parentId! : channel.id);
-
       // if (!channelSettings?.indexingEnabled) {
       //   Log("channel_indexing_disabled", channel);
       //   return;
       // };
-
       // start = channelSettings.lastIndexedMessageId ?? undefined;
     }
     if (!start) {

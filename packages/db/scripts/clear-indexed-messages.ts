@@ -4,20 +4,15 @@ import * as schema from '../src/schema';
 
 async function clearDbMessages() {
   try {
-    const tables = [
-      schema.dbAttachments,
-      schema.dbMessage,
-      schema.dbChannel,
-    ];
+    const tables = [schema.dbAttachments, schema.dbMessage, schema.dbChannel];
 
     for (const table of tables) {
       await db.delete(table);
     }
-    console.log("Cleared Messages")
+    console.log('Cleared Messages');
   } catch (e) {
-    console.error("Failed to clear messages", e)
+    console.error('Failed to clear messages', e);
   }
-
 }
 
 await clearDbMessages();

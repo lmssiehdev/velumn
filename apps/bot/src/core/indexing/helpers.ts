@@ -1,9 +1,9 @@
-import {
-  type ForumChannel,
-  type Message,
-  type NewsChannel,
-  type TextBasedChannel,
-  type TextChannel
+import type {
+  ForumChannel,
+  Message,
+  NewsChannel,
+  TextBasedChannel,
+  TextChannel,
 } from 'discord.js';
 import { isSnowflakeLargerAsInt } from '../../helpers/snowflake';
 
@@ -32,7 +32,6 @@ export function getTheOldestSnowflakeId<T extends { id: string }>(
   });
   return sortedMessages[0].id;
 }
-
 
 export async function fetchAllMessages(
   channel: TextBasedChannel,

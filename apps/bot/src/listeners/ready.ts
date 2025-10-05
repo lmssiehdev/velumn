@@ -1,10 +1,9 @@
 import { parseArgs } from 'node:util';
+import { updateMessage } from '@repo/db/helpers/messages';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
-import { ChannelType, type Client, EmbedType, RESTJSONErrorCodes } from 'discord.js';
+import { ChannelType, type Client, RESTJSONErrorCodes } from 'discord.js';
 import { indexServers } from '../core/indexing';
-import { z } from "zod";
-import { updateMessage } from '@repo/db/helpers/messages';
 import { toDBMessage } from '../helpers/convertion';
 
 const { values } = parseArgs({
@@ -70,8 +69,12 @@ async function testing(client: Client) {
   }
 
   for (const { data } of message.embeds) {
-    console.log(data)
+    console.log(data);
   }
 
-  await updateMessage({ ...(await toDBMessage(message)), id: "1416268121131712554", authorId: "180046139402354690" })
+  await updateMessage({
+    ...(await toDBMessage(message)),
+    id: '1416268121131712554',
+    authorId: '180046139402354690',
+  });
 }

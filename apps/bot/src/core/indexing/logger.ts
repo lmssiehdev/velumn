@@ -4,7 +4,7 @@ import type {
   Guild,
   GuildTextBasedChannel,
 } from 'discord.js';
-import { IndexableChannels } from './helpers';
+import type { IndexableChannels } from './helpers';
 
 /**
  * @fileoverview Logger moved to separate file to avoid crowding the indexing code
@@ -13,12 +13,12 @@ import { IndexableChannels } from './helpers';
 
 const errToLogStringMap = {
   channel_indexing_disabled: (channel: GuildTextBasedChannel) => {
-    container.logger.info("Indexing disabled forchannel", {
+    container.logger.info('Indexing disabled forchannel', {
       channel: channel.name,
       channelId: channel.id,
       guild: channel.guild.name,
-      guildId: channel.guild.id
-    })
+      guildId: channel.guild.id,
+    });
   },
   no_channels: (guild: Guild) => {
     container.logger.info('No channels found', {

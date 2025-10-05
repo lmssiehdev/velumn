@@ -12,8 +12,8 @@ import {
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
+import type { EmbedSchema } from '../helpers/validation';
 import { user } from './auth';
-import { EmbedSchema } from '../helpers/validation';
 export const snowflake = customType<{
   data: string;
 }>({
