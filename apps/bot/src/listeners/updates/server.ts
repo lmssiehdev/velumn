@@ -7,8 +7,9 @@ import {
 import { resetUserServerIdLink } from '@repo/db/helpers/user';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
-import { ChannelType, Events, type Guild } from 'discord.js';
-import { toDbChannel, toDbServer } from '../helpers/convertion';
+import { Events, type Guild } from 'discord.js';
+import { isChannelIndexable } from '../../core/indexing/server';
+import { toDbChannel, toDbServer } from '../../helpers/convertion';
 
 @ApplyOptions<Listener.Options>({
   event: Events.GuildCreate,
@@ -31,21 +32,18 @@ export class JoinedGuild extends Listener {
       // TODO: handle blacklisted servers and leave if necessary;
       // TODO: handle invite code;
       const converted = toDbServer(guild);
+      console.log({ convertedServer: converted })
       await upsertServer({
         ...converted,
         invitedBy: invitedBy?.userId,
       });
 
-      // TODO: link the user with the server too;
 
       // we save channels to display them in the onboarding flow
       const channels = await guild.channels.fetch();
       const channelsToIndex = channels.filter(
         (x) =>
-          x != null &&
-          (x.type === ChannelType.GuildText ||
-            x.type === ChannelType.GuildAnnouncement ||
-            x.type === ChannelType.GuildForum)
+          x != null && isChannelIndexable(x)
       );
 
       // !! should probably be done in a transaction
@@ -55,7 +53,7 @@ export class JoinedGuild extends Listener {
       );
       await upsertBulkChannels(channelsToInsert);
     } catch (error) {
-      console.error('Error in JoinedGuild:', error);
+      this.container.logger.error('Error in JoinedGuild:', error);
     }
   }
 }
@@ -72,7 +70,7 @@ export class LeftGuild extends Listener {
       await upsertServer({ ...converted, kickedAt: new Date() });
       await resetUserServerIdLink(guild.id);
     } catch (error) {
-      this.container.logger.error('Failed to ', error);
+      this.container.logger.error('Failed to leave guild', error);
     }
   }
 }
@@ -82,12 +80,13 @@ export class LeftGuild extends Listener {
   name: 'guild-update',
 })
 export class SyncOnUpdate extends Listener {
-  async run(_oldGuild: Guild, newGuild: Guild) {
+  async run(_, newGuild: Guild) {
     try {
+      console.log("Update channel", newGuild)
       const converted = toDbServer(newGuild);
       await upsertServer(converted);
     } catch (error) {
-      console.error('Error in SyncOnUpdate:', error);
+      this.container.logger.error('Failed to update guild', error);
     }
   }
 }

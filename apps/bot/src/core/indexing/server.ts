@@ -3,7 +3,6 @@ import { ChannelType, GuildBasedChannel, type Client, type Guild } from "discord
 import { indexRootChannel } from "./channel";
 import { Log } from "./logger";
 import { shuffle } from "../../helpers/utils";
-import { getBulkIndexingStatus } from "@repo/db/helpers/channels";
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
@@ -18,16 +17,10 @@ export async function indexServers(client: Client) {
         return;
       }
 
-      const isIndexingEnabled = await getBulkIndexingStatus(channelsCahe.map(x => x.id));
-      const isIndexingEnabledLookup = new Map(isIndexingEnabled.map(x => [x.id, x.indexingEnabled]))
+      const shuffledChannels = shuffle(channelsCahe);
 
-      for await (const channel of channelsCahe) {
+      for await (const channel of shuffledChannels) {
         if (!isChannelIndexable(channel) || channel.nsfw) continue;
-        if (!isIndexingEnabledLookup.get(channel.id)) {
-          Log("channel_indexing_disabled", channel)
-          continue;
-        };
-
         await indexRootChannel(channel);
       }
     } catch (error) {
@@ -36,14 +29,14 @@ export async function indexServers(client: Client) {
   }
 }
 
-const isChannelIndexable = (channel: GuildBasedChannel) =>
+export const isChannelIndexable = (channel: GuildBasedChannel) =>
   channel.type === ChannelType.GuildText ||
   channel.type === ChannelType.GuildAnnouncement ||
   channel.type === ChannelType.GuildForum;
 
 
 async function randomizeServers(allGuilds: Guild[]) {
-  const guilds = allGuilds;
+  const guilds = process.env.NODE_END === "development" ? allGuilds : allGuilds.filter(x => x.id === "1385955477912948806");
 
   try {
     const serversPlans = await getBulkServersPlan(guilds.map(x => x.id))

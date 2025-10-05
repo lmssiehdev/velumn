@@ -1,8 +1,11 @@
 import { parseArgs } from 'node:util';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
-import { ChannelType, type Client, RESTJSONErrorCodes } from 'discord.js';
+import { ChannelType, type Client, EmbedType, RESTJSONErrorCodes } from 'discord.js';
 import { indexServers } from '../core/indexing';
+import { z } from "zod";
+import { updateMessage } from '@repo/db/helpers/messages';
+import { toDBMessage } from '../helpers/convertion';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -39,8 +42,7 @@ async function testing(client: Client) {
   if (!guild) {
     return;
   }
-
-  const channel = guild.channels.cache.get('1416197498942263416');
+  const channel = guild.channels.cache.get('1402284229332566098');
   if (
     channel?.type !== ChannelType.GuildText &&
     channel?.type !== ChannelType.PublicThread
@@ -48,7 +50,7 @@ async function testing(client: Client) {
     return;
   }
 
-  const message = await channel.messages.fetch('1422277878594273290');
+  const message = await channel.messages.fetch('1414440815404781651');
 
   if (message.reference) {
     try {
@@ -67,5 +69,9 @@ async function testing(client: Client) {
     return;
   }
 
-  console.log(message);
+  for (const { data } of message.embeds) {
+    console.log(data)
+  }
+
+  await updateMessage({ ...(await toDBMessage(message)), id: "1416268121131712554", authorId: "180046139402354690" })
 }

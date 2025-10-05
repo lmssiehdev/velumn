@@ -1,3 +1,4 @@
+import { embedSchema } from '@repo/db/helpers/validation';
 import type {
   DBChannel,
   DBMessage,
@@ -61,7 +62,7 @@ export function toDbUser(user: User) {
 // Message
 //
 
-export function toDbReactions(message: Message): DBMessage['reactions'] {
+function toDbReactions(message: Message): DBMessage['reactions'] {
   if (!message.guild) {
     return null;
   }
@@ -103,6 +104,16 @@ export async function toDBMessage(
   if (!fullMessage.guildId) {
     throw new Error('Message is not in a guild');
   }
+
+  const embeds = message.embeds.flatMap(e => {
+    const result = embedSchema.safeParse(e.data);
+    if (!result.success) {
+      console.error('Invalid embed:', e.data, result.data, result.error);
+      return [];
+    }
+    return [result.data];
+  });
+
   const convertedMessage: DBMessageWithRelations = {
     id: fullMessage.id,
     cleanContent: fullMessage.cleanContent,
@@ -128,6 +139,7 @@ export async function toDBMessage(
       };
     }),
     applicationId: message.applicationId,
+    embeds,
     // flags: message.flags.bitfield,
     // nonce: message.nonce ? message.nonce.toString() : null,
     // tts: message.tts,

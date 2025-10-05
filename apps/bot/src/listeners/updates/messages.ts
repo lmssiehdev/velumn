@@ -2,7 +2,7 @@ import {
   deleteManyMessagesById,
   deleteMesasgeById,
   getMessageById,
-  UpdateMessage,
+  updateMessage,
 } from '@repo/db/helpers/messages';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
@@ -29,7 +29,7 @@ export class UpdateDiscordMessage extends Listener {
         return;
       }
       const converted = await toDBMessage(newMessage);
-      await UpdateMessage(converted);
+      await updateMessage(converted);
     } catch (error) {
       this.container.logger.error('Failed to update message', error);
     }

@@ -21,6 +21,7 @@ import { adjectives, nouns, uniqueUsernameGenerator } from "unique-username-gene
 import { DBMessage, DBUser } from "@repo/db/schema/discord";
 import { cn } from "@/lib/utils";
 import { ChannelType } from "discord-api-types/v10";
+import { Embeds } from "@/components/markdown/embed";
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const { id: [threadId] } = await params;
 
@@ -85,6 +86,7 @@ export default async function Page({
     return <div>Thread doesn't exist</div>;
   }
 
+  console.log({ thread })
   const server = await getServerInfoByChannelIdCache(threadId);
 
   const op = originalPost.user!;
@@ -254,6 +256,7 @@ function MessagePost({ message, authorId, referenceMessage, isOriginalPost = fal
           <div>
             <DiscordMarkdown>{message.content}</DiscordMarkdown>
             <Attachments attachments={message.attachments!} />
+            <Embeds embeds={message.embeds} />
           </div>
         </div>
       </div>

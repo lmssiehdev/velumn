@@ -26,7 +26,7 @@ export async function getMessageById(messageId: string) {
   });
 }
 
-export async function UpdateMessage(msg: DBMessage) {
+export async function updateMessage(msg: DBMessage) {
   return await db
     .update(dbMessage)
     .set({

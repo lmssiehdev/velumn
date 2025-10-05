@@ -10,16 +10,6 @@ import {
   dbServer,
 } from '../schema';
 
-export async function getBulkIndexingStatus(channelIds: string[]) {
-  if (channelIds.length) return [];
-  return await db.query.dbChannel.findMany({
-    where: inArray(dbChannel.id, channelIds),
-    columns: {
-      id: true,
-      indexingEnabled: true,
-    }
-  })
-}
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
 ) {

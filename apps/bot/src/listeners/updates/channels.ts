@@ -9,7 +9,6 @@ import {
   type Channel,
   Events,
   type GuildChannel,
-  NewsChannel,
   type ThreadChannel,
 } from 'discord.js';
 import { toDbChannel } from '../../helpers/convertion';
@@ -36,21 +35,21 @@ export class DeleteChannel extends Listener {
   name: 'update-channel',
 })
 export class UpdateChannel extends Listener {
-  async run(_, oldChannel: GuildChannel) {
+  async run(_, newChannel: GuildChannel) {
     try {
-      const channel = await findChannelById(oldChannel.id);
+      const channel = await findChannelById(newChannel.id);
       if (!channel) {
         return;
       }
       await upsertChannel({
         create: channel,
         update: {
-          id: oldChannel.id,
-          channelName: NewsChannel.name,
+          id: newChannel.id,
+          channelName: newChannel.name,
         },
       });
     } catch (error) {
-      this.container.logger.error('Failed to delete channel', error);
+      this.container.logger.error('Failed to update channel', error);
     }
   }
 }

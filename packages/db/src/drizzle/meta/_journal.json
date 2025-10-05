@@ -15,6 +15,13 @@
       "when": 1759367250622,
       "tag": "0001_flowery_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759609187548,
+      "tag": "0002_narrow_blob",
+      "breakpoints": true
     }
   ]
 }

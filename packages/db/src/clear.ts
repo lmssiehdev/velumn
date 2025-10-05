@@ -2,7 +2,7 @@ import { db } from '.';
 // biome-ignore lint/performance/noNamespaceImport: <explanation>
 import * as schema from './schema';
 
-export async function clearAllTables() {
+async function clearAllTables() {
   const tables = [
     schema.dbAttachments,
     schema.dbMessage,

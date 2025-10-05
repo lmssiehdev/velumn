@@ -12,7 +12,7 @@ import { IndexableChannels } from './helpers';
  */
 
 const errToLogStringMap = {
-  channel_indexing_disabled: (channel: IndexableChannels) => {
+  channel_indexing_disabled: (channel: GuildTextBasedChannel) => {
     container.logger.info("Indexing disabled forchannel", {
       channel: channel.name,
       channelId: channel.id,

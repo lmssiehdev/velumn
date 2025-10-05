@@ -13,7 +13,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { user } from './auth';
-
+import { EmbedSchema } from '../helpers/validation';
 export const snowflake = customType<{
   data: string;
 }>({
@@ -146,6 +146,7 @@ export const dbMessage = pgTable(
     referenceId: snowflake('reference_id'),
     applicationId: snowflake('application_id'),
     reactions: json('reactions').$type<DBMessageReaction[]>(),
+    embeds: json('embeds').$type<EmbedSchema[]>().default([]),
   },
   (t) => [
     index('message_channel_id_idx').on(t.channelId),
