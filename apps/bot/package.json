@@ -6,7 +6,8 @@
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
-    "test": "vitest run"
+    "with-env": "bun run --env-file=../../.env --",
+    "test": "bun test"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:^",
@@ -24,6 +25,7 @@
     "@sapphire/plugin-api": "^8.3.1",
     "@sapphire/plugin-logger": "^4.1.0",
     "@t3-oss/env-core": "^0.13.8",
+    "@types/bun": "^1.2.23",
     "discord-api-types": "^0.38.24",
     "discord.js": "~14.22.1",
     "zod": "^4.1.5"

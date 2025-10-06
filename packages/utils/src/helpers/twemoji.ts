@@ -3,7 +3,7 @@
  *
  * @see https://github.com/twitter/twemoji/blob/d94f4cf793e6d5ca592aa00f58a88f6a4229ad43/scripts/build.js#L571C7-L589C8
  */
-export function emojiToTwemoji(emoji: string, _version = '14.0.2') {
+export function emojiToTwemoji(emoji: string, version = "14.0.2") {
   function toCodePoint(unicodeSurrogates: string) {
     let r = [],
       c = 0,
@@ -12,9 +12,7 @@ export function emojiToTwemoji(emoji: string, _version = '14.0.2') {
     while (i < unicodeSurrogates.length) {
       c = unicodeSurrogates.charCodeAt(i++);
       if (p) {
-        r.push(
-          (0x1_00_00 + ((p - 0xd8_00) << 10) + (c - 0xdc_00)).toString(16)
-        );
+        r.push((0x1_00_00 + ((p - 0xd8_00) << 10) + (c - 0xdc_00)).toString(16));
         p = 0;
       } else if (0xd8_00 <= c && c <= 0xdb_ff) {
         p = c;
@@ -22,10 +20,19 @@ export function emojiToTwemoji(emoji: string, _version = '14.0.2') {
         r.push(c.toString(16));
       }
     }
-    return r.join('-');
+    return r.join("-");
   }
 
-  const filename = toCodePoint(emoji);
+  let code = toCodePoint(emoji);
 
-  return `https://raw.githubusercontent.com/jdecked/twemoji/refs/heads/main/assets/svg/${filename}.svg`;
+  // Fix for "copyright" and "trademark" emojis
+  if (code.substring(0, 2) == "00") {
+    code = code.substring(2);
+  }
+
+  // Remove variation selector (FE0F) which is commonly added to emojis
+  const regex = /-fe0f/gi;
+  code = code.replace(regex, "");
+
+  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@${version}/assets/svg/${code}.svg`;
 }

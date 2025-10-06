@@ -55,6 +55,9 @@ importers:
       '@t3-oss/env-core':
         specifier: ^0.13.8
         version: 0.13.8(typescript@5.9.2)(zod@4.1.5)
+      '@types/bun':
+        specifier: ^1.2.23
+        version: 1.2.23(@types/react@19.1.0)
       discord-api-types:
         specifier: ^0.38.24
         version: 0.38.24
@@ -369,7 +372,7 @@ importers:
         version: 17.2.3
       drizzle-orm:
         specifier: ^0.44.5
-        version: 0.44.5(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(kysely@0.28.7)(pg@8.16.3)
+        version: 0.44.5(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(bun-types@1.2.23(@types/react@19.1.0))(kysely@0.28.7)(pg@8.16.3)
       pg:
         specifier: ^8.16.3
         version: 8.16.3
@@ -3406,6 +3409,9 @@ packages:
       react-dom: '>=18.2.0'
       typescript: '>=5.7.2'
 
+  '@types/bun@1.2.23':
+    resolution: {integrity: sha512-le8ueOY5b6VKYf19xT3McVbXqLqmxzPXHsQT/q9JHgikJ2X22wyTW3g3ohz2ZMnp7dod6aduIiq8A14Xyimm0A==}
+
   '@types/chai@5.2.2':
     resolution: {integrity: sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg==}
 
@@ -3829,6 +3835,11 @@ packages:
 
   buffer@5.6.0:
     resolution: {integrity: sha512-/gDYp/UtU0eA1ys8bOs9J6a+E/KWIY+DZ+Q2WESNUA0jFRsJOc0SNUO6xJ5SGA1xueg3NL65W6s+NY5l9cunuw==}
+
+  bun-types@1.2.23:
+    resolution: {integrity: sha512-R9f0hKAZXgFU3mlrA0YpE/fiDvwV0FT9rORApt2aQVWSuJDzZOyB5QLc0N/4HF57CS8IXJ6+L5E4W1bW6NS2Aw==}
+    peerDependencies:
+      '@types/react': ^19
 
   bytes@3.1.2:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
@@ -7865,7 +7876,7 @@ snapshots:
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
-      '@jridgewell/trace-mapping': 0.3.30
+      '@jridgewell/trace-mapping': 0.3.31
 
   '@jridgewell/remapping@2.3.5':
     dependencies:
@@ -8923,7 +8934,7 @@ snapshots:
 
   '@sapphire/discord-utilities@3.5.0':
     dependencies:
-      discord-api-types: 0.38.24
+      discord-api-types: 0.38.26
 
   '@sapphire/discord.js-utilities@7.3.3':
     dependencies:
@@ -10054,6 +10065,12 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       typescript: 5.9.2
 
+  '@types/bun@1.2.23(@types/react@19.1.0)':
+    dependencies:
+      bun-types: 1.2.23(@types/react@19.1.0)
+    transitivePeerDependencies:
+      - '@types/react'
+
   '@types/chai@5.2.2':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -10590,6 +10607,11 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
+  bun-types@1.2.23(@types/react@19.1.0):
+    dependencies:
+      '@types/node': 22.18.8
+      '@types/react': 19.1.0
+
   bytes@3.1.2: {}
 
   cac@6.7.14: {}
@@ -10860,11 +10882,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.5(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(kysely@0.28.7)(pg@8.16.3):
+  drizzle-orm@0.44.5(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(bun-types@1.2.23(@types/react@19.1.0))(kysely@0.28.7)(pg@8.16.3):
     optionalDependencies:
       '@neondatabase/serverless': 1.0.2
       '@opentelemetry/api': 1.9.0
       '@types/pg': 8.15.5
+      bun-types: 1.2.23(@types/react@19.1.0)
       kysely: 0.28.7
       pg: 8.16.3
 

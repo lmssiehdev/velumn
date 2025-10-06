@@ -7,16 +7,25 @@ import { ChannelType } from "discord-api-types/v10";
 import Link from "next/link";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto">
-    <div className=" border-b  border-x border-neutral-300">
-      <div className="max-w-screen-lg  border-x border-neutral-300 mx-auto p-2 px-4">
-        <Link href="/" className="text-xl text-black">Velumn</Link>
+  return (
+    <div className="mx-auto">
+      <div className=" border-b  border-x border-neutral-300">
+        <div className="max-w-screen-lg  border-x border-neutral-300 mx-auto p-2 px-4">
+          <Link href="/" className="text-xl text-black">
+            Velumn
+          </Link>
+        </div>
+      </div>
+      <div className="py-2 pb-20 max-w-screen-lg mx-auto">{children}</div>
+      <div className="border-t border-x border-neutral-300">
+        <div className="max-w-screen-lg  border-x border-neutral-300 mx-auto p-2 px-4">
+          <Link href="/" className="text-xl text-black">
+            Footer
+          </Link>
+        </div>
       </div>
     </div>
-    <div className="py-2 max-w-screen-lg mx-auto">
-      {children}
-    </div>
-  </div>;
+  );
 }
 
 export async function FrontPageSidebar({
@@ -39,15 +48,13 @@ export function ServerInfo({ server }: { server?: DBServer }) {
   return (
     <div className="border border-neutral-300 p-4">
       <div className="text-lg">{server.name}</div>
-      <div className="text-sm text-neutral-700">
-        {server.memberCount} members
-      </div>
+      <div className="text-sm text-neutral-700">{server.memberCount} members</div>
       <p className="my-3">{server.description}</p>
       <Button className="cursor-pointer pointer hover:bg-purple-200 text-purple-600 bg-purple-100 transition-all">
         Join Server
       </Button>
     </div>
-  )
+  );
 }
 
 async function Boards({
@@ -58,18 +65,21 @@ async function Boards({
   activeChannelId?: string;
 }) {
   // display forum channels first
-  const topics = (await getTopicsInServer(serverId)).sort((a, b) => a.type > b.type ? -1 : 1);
+  const topics = (await getTopicsInServer(serverId)).sort((a, b) => (a.type > b.type ? -1 : 1));
 
   return (
     <div className="border border-neutral-300 p-4">
       <div className="pl-2 mb-2 flex gap-2 items-center justify-between">
         <div className="">Boards</div>
-        {
-          activeChannelId && (<Link href={`/server/${serverId}`} className="text-xs cursor-pointer px-1 hover:bg-purple-200 hover:text-purple-500 transition-all">
+        {activeChannelId && (
+          <Link
+            href={`/server/${serverId}`}
+            className="text-xs cursor-pointer px-1 hover:bg-purple-200 hover:text-purple-500 transition-all"
+          >
             {/* <XIcon className="size-3" weight="bold" /> */}
             show all
-          </Link>)
-        }
+          </Link>
+        )}
       </div>
       {topics.map((topic) => {
         return (

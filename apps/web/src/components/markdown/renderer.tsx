@@ -1,139 +1,179 @@
-
-import React from 'react';
-import { parse } from 'discord-markdown-parser';
-import { type SingleASTNode } from '@khanacademy/simple-markdown';
-import { Code } from './code';
-import { Spoiler } from './spoiler';
-import dayjs from 'dayjs';
-import { cn } from '@/lib/utils';
-import { emojiToTwemoji } from '@repo/utils/helpers/twemoji';
-
-function Mention({ type = "user", children }: { type?: "user" | "channel", children: string }) {
-  const prefix = type === "user" ? "@" : "#";
-  return <span className='inline-block mx-[0.5px] text-purple-800 bg-purple-100 rounded'>{prefix}{children}</span>;
-}
+import React from "react";
+import { parse } from "discord-markdown-parser";
+import { type SingleASTNode } from "@khanacademy/simple-markdown";
+import { Code } from "./code";
+import { Spoiler } from "./spoiler";
+import dayjs from "dayjs";
+import { CustomEmoji, getEmojiSize, Twemoji } from "./emoji";
+import { DBMessage } from "@repo/db/schema/discord";
+import { Mention } from "./mention";
 
 function Timestamp({ children }: { children: string }) {
   // TODO: needs more testing;
-  return <span className='bg-neutral-200 rounded'>{dayjs.unix(Number(children)).format('MMMM D, YYYY')}</span>;
+  return (
+    <span className="bg-neutral-200 rounded">
+      {dayjs.unix(Number(children)).format("MMMM D, YYYY")}
+    </span>
+  );
 }
 
-export function Twemoji({ name, className = "size-12" }: { name: string, className?: string }) {
-  return <img className={cn('inline-block not-prose', className)} loading="lazy" aria-label={name} alt={name} draggable="false" src={emojiToTwemoji(name)}></img>
+export function List({ items, ordered }: { items: SingleASTNode[][]; ordered?: boolean }) {
+  const Tag = ordered ? "ol" : "ul";
+  return (
+    <Tag className="my-0!">
+      {items.map((item, idx) => {
+        return (
+          <li className="marker:text-black" key={idx}>
+            {item.map((i, childIdx) => renderASTNode(i, childIdx + idx + 1, item, true))}
+          </li>
+        );
+      })}
+    </Tag>
+  );
 }
 
-export function List({ items, ordered }: { items: SingleASTNode[][], ordered?: boolean }) {
-  const Tag = ordered ? 'ol' : 'ul';
-  return <Tag className='my-0!'>
-    {
-      items.map((item, idx) => {
-        return <li className='marker:text-black' key={idx}>
-          {item.map((i, childIdx) => renderASTNode(i, childIdx + idx + 1, item, true))}
-        </li>
-      })
-    }
-  </Tag>
-}
-
-function renderASTNode(node: SingleASTNode | SingleASTNode[], index = 0, parent: SingleASTNode | SingleASTNode[] | null, isReferenceReply = false): React.ReactNode {
+function renderASTNode(
+  node: SingleASTNode | SingleASTNode[],
+  index = 0,
+  parent: SingleASTNode | SingleASTNode[] | null,
+  isReferenceReply = false,
+  metadata?: DBMessage["metadata"],
+): React.ReactNode {
   if (Array.isArray(node)) {
-    return node.map((child, i) => renderASTNode(child, i, node, isReferenceReply));
+    return node.map((child, i) => renderASTNode(child, i, node, isReferenceReply, metadata));
   }
 
-  if (isReferenceReply && ["br", "inlineCode", "codeBlock"].includes(node.type)) return " "
+  if (isReferenceReply && ["br", "inlineCode", "codeBlock"].includes(node.type)) return " ";
 
   const key = index;
 
   switch (node.type) {
-    case 'text':
+    case "text":
       return <span key={index}>{node.content}</span>;
 
-    case 'br':
+    case "br":
       return <br key={key} />;
 
-    case 'heading': {
+    case "heading": {
       const Tag = `h${node.level}`;
-      // @ts-expect-error
-      return <Tag key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply)}</Tag>;
+      return (
+        // @ts-expect-error
+        <Tag key={key}>
+          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+        </Tag>
+      );
     }
 
-    case 'url':
+    case "guildNavigation":
+      return <div>10000</div>;
+
+    case "url":
       return (
         <a key={key} href={node.target} target="_blank" rel="noreferrer">
-          {renderASTNode(node.content, key + 1, node, isReferenceReply)}
+          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
         </a>
       );
 
-    case 'strikethrough':
-      return <s key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply)}</s>;
-
-    case 'strong':
-      return <strong key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply)}</strong>;
-
-    case 'em':
-      return <em key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply)}</em>;
-
-    case "underline":
-      return <u key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply)}</u>;
-
-    case 'inlineCode':
+    case "strikethrough":
       return (
-        <Code code={node.content} key={key} isInline>
-        </Code>
+        <s key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}</s>
       );
 
-    case 'link':
-      return <a key={key} href={node.target} target="_blank" rel="noreferrer">
-        {renderASTNode(node.content, key + 1, node, isReferenceReply)}
-      </a>
+    case "strong":
+      return (
+        <strong key={key}>
+          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+        </strong>
+      );
 
-    // TODO: handle custom discord emoji
-    case 'emoji':
-      return node.name;
+    case "em":
+      return (
+        <em key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}</em>
+      );
+
+    case "underline":
+      return (
+        <u key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}</u>
+      );
+
+    case "inlineCode":
+      return <Code code={node.content} key={key} isInline></Code>;
+
+    case "link":
+      return (
+        <a key={key} href={node.target} target="_blank" rel="noreferrer">
+          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+        </a>
+      );
+
+    case "emoji": {
+      return (
+        <CustomEmoji
+          name={node.name}
+          key={key}
+          emojiId={node.id}
+          animated={node.animated}
+          className={getEmojiSize(parent)}
+        />
+      );
+    }
+
+    case "twemoji":
+      return <Twemoji name={node.name} key={key} className={getEmojiSize(parent)} />;
 
     // discord specific
-    case 'user':
-      return <Mention key={key}>{node.id}</Mention>;
+    case "user":
+    case "channel":
+    case "role":
+      return (
+        <Mention type={node.type!} key={key} metadata={metadata!}>
+          {node.id}
+        </Mention>
+      );
 
-    case 'channel':
-      return <Mention key={key}>{node.id}</Mention>;
-
-    case 'role':
-      return <Mention key={key}>{node.id}</Mention>;
-
-    case 'everyone':
+    case "everyone":
       return <Mention key={key}>everyone</Mention>;
 
-    case 'here':
+    case "here":
       return <Mention key={key}>here</Mention>;
 
-    case 'timestamp':
+    case "timestamp":
       return <Timestamp key={key}>{node.timestamp}</Timestamp>;
 
-    case 'codeBlock':
+    case "codeBlock":
       return <Code code={node.content} language={node.lang} key={key}></Code>;
 
-    case 'spoiler':
-      return <Spoiler key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply)}</Spoiler>
+    case "spoiler":
+      return (
+        <Spoiler key={key}>
+          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+        </Spoiler>
+      );
 
-    case 'blockQuote':
-      return <blockquote key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply)}</blockquote>
+    case "blockQuote":
+      return (
+        <blockquote key={key}>
+          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+        </blockquote>
+      );
 
-    case 'twemoji':
-      const size = parent?.every((n: { type: string, content?: string }) => n.type === "twemoji" || (n.type === 'text' && n?.content === " ")) ? 'size-12' : 'size-[1.375rem]';
-      return <Twemoji name={node.name} key={key} className={size} />;
-
-    case 'list':
-      return <List key={key} items={node.items as SingleASTNode[][]} />
+    case "list":
+      return <List key={key} items={node.items as SingleASTNode[][]} />;
     default:
       return null;
   }
 }
 
-export const DiscordMarkdown = ({ children, isReferenceReply = false }: { children: string | null, isReferenceReply?: boolean }) => {
+export const DiscordMarkdown = ({
+  children,
+  isReferenceReply = false,
+  metadata,
+}: {
+  children: string | null;
+  isReferenceReply?: boolean;
+  metadata: DBMessage["metadata"];
+}) => {
   if (!children) return null;
-  const parsed = parse(children, 'normal');
-  return <div className='prose'>
-    {renderASTNode(parsed, 0, null, isReferenceReply)}
-  </div>;
-}
+  const parsed = parse(children, "normal");
+  return <div className="prose">{renderASTNode(parsed, 0, null, isReferenceReply, metadata)}</div>;
+};

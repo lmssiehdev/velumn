@@ -2,7 +2,7 @@ import {
   bulkFindLatestMessageInChannel,
   findLatestMessageInChannel,
   upsertChannel,
-} from '@repo/db/helpers/channels';
+} from "@repo/db/helpers/channels";
 import {
   type AnyThreadChannel,
   ChannelType,
@@ -10,37 +10,34 @@ import {
   type Message,
   PermissionFlagsBits,
   type Snowflake,
-} from 'discord.js';
-import { toDbChannel } from '../../helpers/convertion';
-import { fetchAllMessages, type IndexableChannels } from './helpers';
-import { Log } from './logger';
-import { storeIndexedData } from './store';
+} from "discord.js";
+import { toDbChannel } from "../../helpers/convertion";
+import { fetchAllMessages, type IndexableChannels } from "./helpers";
+import { Log } from "./logger";
+import { storeIndexedData } from "./store";
 
 export async function indexRootChannel(channel: IndexableChannels) {
   const botCanViewChannel = channel
     .permissionsFor(channel.client.user)
-    ?.has([
-      PermissionFlagsBits.ViewChannel,
-      PermissionFlagsBits.ReadMessageHistory,
-    ]);
+    ?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory]);
 
   if (!botCanViewChannel) {
-    Log('bot_cannot_view_channel', channel);
+    Log("bot_cannot_view_channel", channel);
     return;
   }
 
-  Log('attempting_to_index_channel', channel);
+  Log("attempting_to_index_channel", channel);
 
   if (channel.type === ChannelType.GuildForum) {
     const MAX_NUMBER_OF_THREADS_TO_COLLECT = 5000;
     const threadCutoffId = await findLatestMessageInChannel(channel.id);
     const archivedThreads: AnyThreadChannel[] = [];
 
-    Log('log_fetching_archived_channels', channel);
+    Log("log_fetching_archived_channels", channel);
 
     const fetchAllArchivedThreads = async (before?: number | string) => {
       const fetched = await channel.threads.fetchArchived({
-        type: 'public',
+        type: "public",
         before,
       });
 
@@ -50,12 +47,7 @@ export async function indexRootChannel(channel: IndexableChannels) {
 
       archivedThreads.push(...fetched.threads.values());
 
-      if (
-        !fetched.hasMore ||
-        !last ||
-        fetched.threads.size === 0 ||
-        isLastThreadOlderThanCutoff
-      ) {
+      if (!fetched.hasMore || !last || fetched.threads.size === 0 || isLastThreadOlderThanCutoff) {
         return;
       }
       await fetchAllArchivedThreads(last.id);
@@ -64,46 +56,36 @@ export async function indexRootChannel(channel: IndexableChannels) {
     await fetchAllArchivedThreads();
 
     console.log(
-      `Fetched ${archivedThreads.length} archived threads for channel ${channel.id} ${channel.name} in server ${channel.guildId} ${channel.guild.name}`
+      `Fetched ${archivedThreads.length} archived threads for channel ${channel.id} ${channel.name} in server ${channel.guildId} ${channel.guild.name}`,
     );
 
     const activeThreads = await channel.threads.fetchActive().catch((error) => {
-      Log('failed_to_fetch_active_threads', error, channel);
+      Log("failed_to_fetch_active_threads", error, channel);
       return {
         threads: new Map(),
         hasMore: false,
       };
     });
 
-    Log(
-      'log_threads_to_archive_info',
-      archivedThreads.length,
-      activeThreads.threads.size,
-      channel
-    );
+    Log("log_threads_to_archive_info", archivedThreads.length, activeThreads.threads.size, channel);
 
     // archived threads are sorted by archive timestamp from newest to oldest  so we reverse them
-    const threadsToIndex = [
-      ...archivedThreads.reverse(),
-      ...activeThreads.threads.values(),
-    ]
-      .filter(
-        (x) => x.type === ChannelType.PublicThread && x.parentId === channel.id
-      )
+    const threadsToIndex = [...archivedThreads.reverse(), ...activeThreads.threads.values()]
+      .filter((x) => x.type === ChannelType.PublicThread && x.parentId === channel.id)
       .slice(0, MAX_NUMBER_OF_THREADS_TO_COLLECT);
 
     Log(
-      'log_threads_prune_data',
+      "log_threads_prune_data",
       archivedThreads.length + activeThreads.threads.size,
       threadsToIndex.length,
-      channel
+      channel,
     );
 
     const mostRecentlyIndexedMessages = await bulkFindLatestMessageInChannel(
-      threadsToIndex.map((x) => x.id)
+      threadsToIndex.map((x) => x.id),
     );
     const threadMessageLookup = new Map<string, string | null>(
-      mostRecentlyIndexedMessages.map((x) => [x.channelId, x.latestMessageId])
+      mostRecentlyIndexedMessages.map((x) => [x.channelId, x.latestMessageId]),
     );
     const outOfDateThreads = threadsToIndex.filter((x) => {
       const lookup = threadMessageLookup.get(x.id);
@@ -113,18 +95,16 @@ export async function indexRootChannel(channel: IndexableChannels) {
       return BigInt(lookup) < BigInt(x.lastMessageId ?? x.id);
     });
 
-    Log(
-      'log_truncated_out_of_date_threads',
-      threadsToIndex.length,
-      outOfDateThreads.length
-    );
+    Log("log_truncated_out_of_date_threads", threadsToIndex.length, outOfDateThreads.length);
 
     // @hack: forums channels weren't getting inserted; look in this;
     upsertChannel({
       create: {
         ...(await toDbChannel(channel)),
       },
-      update: {},
+      update: {
+        channelName: channel.name,
+      },
     });
 
     let threadsIndexed = 0;
@@ -132,13 +112,7 @@ export async function indexRootChannel(channel: IndexableChannels) {
       if (thread.nsfw) {
         continue;
       }
-      Log(
-        'indexing_thread_info',
-        ++threadsIndexed,
-        outOfDateThreads.length,
-        thread,
-        channel
-      );
+      Log("indexing_thread_info", ++threadsIndexed, outOfDateThreads.length, thread, channel);
       await indexTextBasedChannel(thread, {
         fromMessageId: threadMessageLookup.get(thread.id)?.toString(),
       });
@@ -163,7 +137,7 @@ export async function indexTextBasedChannel(
   opts?: {
     fromMessageId?: Snowflake;
     skipIndexingEnabledCheck?: boolean;
-  }
+  },
 ) {
   if (channel.isDMBased() || !channel.viewable) {
     return;
@@ -184,7 +158,7 @@ export async function indexTextBasedChannel(
       start = await findLatestMessageInChannel(channel.id);
     }
 
-    Log('log_starting_indexing_from_message', channel, start);
+    Log("log_starting_indexing_from_message", channel, start);
 
     let messages: Message[] = [];
     if (
@@ -212,18 +186,12 @@ export async function indexTextBasedChannel(
 
       let threadsIndexed = 0;
       for await (const thread of threadsToIndex) {
-        Log(
-          'indexing_thread_info',
-          ++threadsIndexed,
-          threadsToIndex.length,
-          thread,
-          channel
-        );
+        Log("indexing_thread_info", ++threadsIndexed, threadsToIndex.length, thread, channel);
         await indexTextBasedChannel(thread);
       }
     }
     await storeIndexedData(messages, channel);
-    Log('log_indexing_complete', channel);
+    Log("log_indexing_complete", channel);
   } catch (error) {
     console.log(`Error indexing channel ${channel.name} ${channel.id}`, error);
   }
