@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { RainbowButton } from "@/components/ui/rainbow-button";
+import { RainbowButton, rainbowButtonVariants } from "@/components/ui/rainbow-button";
 import { cn } from "@/lib/utils";
 import { ChatsCircleIcon, HashIcon, XIcon } from "@phosphor-icons/react/dist/ssr";
 import { getTopicsInServer } from "@repo/db/helpers/servers";
@@ -19,11 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </div>
       <div className="py-2 pb-10 max-w-screen-lg w-full flex-1 mx-auto">{children}</div>
       <div className="border-t border-x border-neutral-300 mt-auto">
-        <div className="max-w-screen-lg border-neutral-300 mx-auto p-2 px-4">
-          <RainbowButton variant="outline" className="!border-t-0 !border-x-0">
-            Powered by Velumn
-          </RainbowButton>
-        </div>
+        <div className="max-w-screen-lg border-neutral-300 mx-auto p-2 px-4">Powered by Velumn</div>
       </div>
     </div>
   );

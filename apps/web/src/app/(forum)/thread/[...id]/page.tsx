@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { ChannelType } from "discord-api-types/v10";
 import { Embeds } from "@/components/markdown/embed";
 import { Twemoji } from "@/components/markdown/emoji";
+import { RainbowButton, rainbowButtonVariants } from "@/components/ui/rainbow-button";
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const {
     id: [threadId],
@@ -344,12 +345,13 @@ function ContinueDiscussion() {
           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center">
             <Twemoji name="💬" className="size-7" />
           </div>
-          <h3 className="mb-1 text-lg font-semibold text-neutral-900">Continue the Discussion</h3>
+          <h3 className="text-lg font-semibold text-neutral-900">Continue the Discussion</h3>
         </div>
+
         <a
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonVariants({
+          className={rainbowButtonVariants({
             variant: "outline",
             class: "group",
           })}

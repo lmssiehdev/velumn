@@ -25,7 +25,7 @@ export function Mention({
   metadata?: DBMessage["metadata"];
   children: string;
 }) {
-  const className = "inline-block mx-[0.5px] text-purple-800 bg-purple-100 rounded";
+  const className = "inline-block mx-[0.5px] text-purple-800 bg-purple-100 rounded align-baseline";
   const key = `${type}s` as keyof NonNullable<DBMessage["metadata"]>;
   const prefix = type === "channel" ? "#" : "@";
 

@@ -1,6 +1,6 @@
-import { Funnel_Sans } from 'next/font/google';
+import { Questrial } from "next/font/google";
 
-export const funnelSans = Funnel_Sans({
-  subsets: ['latin'],
-  variable: '--font-funnel-sans',
+export const funnelSans = Questrial({
+  weight: "400",
+  variable: "--font-questrial",
 });

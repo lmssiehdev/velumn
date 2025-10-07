@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { funnelSans, satoshi as satoshiFont } from "../styles/fonts";
+import { questrial, satoshi as satoshiFont } from "../styles/fonts";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -15,10 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${funnelSans.variable} font-sans antialiased`}
-      >
-
+      <body className={`${questrial.variable} font-sans antialiased bg-[#fefcf6] px-2`}>
         {children}
       </body>
     </html>
