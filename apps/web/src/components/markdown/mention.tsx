@@ -59,10 +59,14 @@ export function Mention({
       </span>
     );
   }
-  return (
-    <span className={className}>
-      {prefix}
-      {metadata[key][children]?.username ?? children}
-    </span>
-  );
+
+  if (key === "users") {
+    return (
+      <span className={className}>
+        {prefix}
+        {metadata[key][children]?.username ?? children}
+      </span>
+    );
+  }
+  return null;
 }

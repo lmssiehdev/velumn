@@ -113,13 +113,15 @@ function renderASTNode(
           key={key}
           emojiId={node.id}
           animated={node.animated}
-          className={getEmojiSize(parent)}
+          className={getEmojiSize(parent as SingleASTNode[])}
         />
       );
     }
 
     case "twemoji":
-      return <Twemoji name={node.name} key={key} className={getEmojiSize(parent)} />;
+      return (
+        <Twemoji name={node.name} key={key} className={getEmojiSize(parent as SingleASTNode[])} />
+      );
 
     // discord specific
     case "user":

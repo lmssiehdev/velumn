@@ -8,7 +8,7 @@
     "build": "next build --turbopack",
     "with-env": "bun run --env-file=../../.env --",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
+    "type-check": "tsc --noEmit",
     "lint": "biome check",
     "format": "biome format --write"
   },

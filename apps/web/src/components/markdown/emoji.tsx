@@ -7,16 +7,12 @@ function customEmojiUrl(id: string, animated: boolean = false) {
   return `https://cdn.discordapp.com/emojis/${id}.${extension}?size=128`;
 }
 
-export function getEmojiSize(
-  parent: any
-): string {
+export function getEmojiSize(parent: SingleASTNode[]): string {
   const emojiWithText = parent?.every(
-    (n) =>
-      ['twemoji', 'emoji'].includes(n.type) ||
-      (n.type === 'text' && n.content === ' ')
+    (n) => ["twemoji", "emoji"].includes(n.type) || (n.type === "text" && n.content === " "),
   );
 
-  return emojiWithText ? 'size-12' : 'size-[1.375rem]';
+  return emojiWithText ? "size-12" : "size-[1.375rem]";
 }
 type Props = {
   name: string;
@@ -25,9 +21,15 @@ type Props = {
   animated?: boolean;
 };
 
-
 export function CustomEmoji({ emojiId, animated, name, className = "size-12" }: Props) {
-  return <EmojiBase src={customEmojiUrl(emojiId!, animated)} animated name={name} className={className} />;
+  return (
+    <EmojiBase
+      src={customEmojiUrl(emojiId!, animated)}
+      animated
+      name={name}
+      className={className}
+    />
+  );
 }
 
 export function Twemoji({ name, className = "size-12" }: Props) {
