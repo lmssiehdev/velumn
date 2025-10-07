@@ -4,8 +4,7 @@ import { NextRequest } from "next/server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-// Image metadata
-export const alt = "About Acme";
+export const alt = "About Velumn";
 export const size = {
   width: 1200,
   height: 630,
@@ -61,7 +60,7 @@ export async function GET(req: NextRequest) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "22px",
+            gap: "8px",
             color: "#404040",
             marginTop: 20,
           }}
@@ -80,6 +79,8 @@ export async function GET(req: NextRequest) {
             style={{
               fontSize: 55,
               display: "flex",
+              marginLeft: "20px",
+              marginRight: "20px",
             }}
           >
             •
