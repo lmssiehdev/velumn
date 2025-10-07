@@ -31,6 +31,7 @@ import { ChannelType } from "discord-api-types/v10";
 import { Embeds } from "@/components/markdown/embed";
 import { Twemoji } from "@/components/markdown/emoji";
 import { RainbowButton, rainbowButtonVariants } from "@/components/ui/rainbow-button";
+
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const {
     id: [threadId],
@@ -44,6 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: [stri
       openGraph: {
         title: "Not Found",
         description: "Thread not found",
+        images: [`/og?id=${threadId}`],
       },
     };
   }
@@ -56,6 +58,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: [stri
         title: "Not Found",
         description: "Thread not found",
         url,
+        images: [`/og?id=${threadId}`],
       },
     };
   }
@@ -63,6 +66,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: [stri
     title: thread.channelName,
     // TODO: check for answer first then fallback to original post
     description: thread.messages[0]?.content.slice(0, 300),
+    openGraph: {
+      title: thread.channelName,
+      // TODO:
+      // description: "Thread not found",
+      url,
+      images: [`/og?id=${threadId}`],
+    },
     alternates: {
       canonical: url,
     },

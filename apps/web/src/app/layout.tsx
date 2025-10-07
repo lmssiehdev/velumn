@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { questrial, satoshi as satoshiFont } from "../styles/fonts";
+import { questrial } from "../styles/fonts";
 import Link from "next/link";
 
 export const metadata: Metadata = {
