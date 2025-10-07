@@ -1,5 +1,5 @@
-import { EmbedType } from "discord-api-types/v10";
-import z from "zod";
+import { EmbedType } from 'discord-api-types/v10';
+import z from 'zod';
 
 //
 // Metadata Schema
@@ -17,8 +17,8 @@ const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
           acc[id] = rest;
           return acc;
         },
-        {} as Record<string, z.infer<T>>,
-      ),
+        {} as Record<string, z.infer<T>>
+      )
     )
     .catch({});
 
@@ -41,19 +41,19 @@ export const messageMetadataSchema = z.object({
     z.object({
       name: z.string(),
       type: z.number(),
-    }),
+    })
   ),
   roles: collectionToRecord(
     z.object({
       name: z.string(),
       color: z.number(),
-    }),
+    })
   ),
   users: collectionToRecord(
     z.object({
       username: z.string(),
       globalName: z.string().nullable(),
-    }),
+    })
   ),
   internalLinks: z.array(internalLinksSchema),
 });
@@ -110,7 +110,7 @@ export const embedSchema = z
         name: z.string().max(256),
         value: z.string().max(1024),
         inline: z.boolean().optional(),
-      }),
+      })
     ),
   })
   .partial();
