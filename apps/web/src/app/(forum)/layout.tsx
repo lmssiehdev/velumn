@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { RainbowButton } from "@/components/ui/rainbow-button";
 import { cn } from "@/lib/utils";
 import { ChatsCircleIcon, HashIcon, XIcon } from "@phosphor-icons/react/dist/ssr";
 import { getTopicsInServer } from "@repo/db/helpers/servers";
@@ -8,20 +9,20 @@ import Link from "next/link";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto">
-      <div className=" border-b  border-x border-neutral-300">
-        <div className="max-w-screen-lg  border-x border-neutral-300 mx-auto p-2 px-4">
+    <div className="mx-auto flex flex-col min-h-screen">
+      <div className=" border-b border-x border-neutral-300">
+        <div className="max-w-screen-lg border-x border-neutral-300 mx-auto p-2 px-4">
           <Link href="/" className="text-xl text-black">
             Velumn
           </Link>
         </div>
       </div>
-      <div className="py-2 pb-20 max-w-screen-lg mx-auto">{children}</div>
-      <div className="border-t border-x border-neutral-300">
-        <div className="max-w-screen-lg  border-x border-neutral-300 mx-auto p-2 px-4">
-          <Link href="/" className="text-xl text-black">
-            Footer
-          </Link>
+      <div className="py-2 pb-10 max-w-screen-lg w-full flex-1 mx-auto">{children}</div>
+      <div className="border-t border-x border-neutral-300 mt-auto">
+        <div className="max-w-screen-lg border-neutral-300 mx-auto p-2 px-4">
+          <RainbowButton variant="outline" className="!border-t-0 !border-x-0">
+            Powered by Velumn
+          </RainbowButton>
         </div>
       </div>
     </div>
