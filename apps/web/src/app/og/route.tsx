@@ -4,8 +4,6 @@ import { NextRequest } from "next/server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const runtime = "edge";
-
 // Image metadata
 export const alt = "About Acme";
 export const size = {
