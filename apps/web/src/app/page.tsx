@@ -10,6 +10,10 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Link from "next/link";
 
+export const metadata = {
+  title: "Velumn - Make Your Discord Discussions Discoverable",
+};
+
 export default function Home() {
   return (
     <>
