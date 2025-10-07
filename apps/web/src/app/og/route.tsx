@@ -1,12 +1,10 @@
 import { getAllMessagesInThreadsCache, getServerInfoByChannelIdCache } from "@/utils/cache";
-import { ChatIcon } from "@phosphor-icons/react/dist/ssr";
-import { NextApiRequest } from "next";
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const runtime = "edge";
+export const runtime = "edge";
 
 // Image metadata
 export const alt = "About Acme";
@@ -26,12 +24,8 @@ export async function GET(req: NextRequest) {
     await getServerInfoByChannelIdCache(threadId),
   ]);
 
-  // TODO: trim title;
   // TODO: handle non existing threads;
-  //
-  // Font loading, process.cwd() is Next.js project directory
-  console.log("cwd", process.cwd());
-  const satoshi = await readFile(join(process.cwd(), "assets/Questrial-Regular.ttf"));
+  const questrial = await readFile(join(process.cwd(), "assets/Questrial-Regular.ttf"));
   return new ImageResponse(
     (
       <div
@@ -40,14 +34,16 @@ export async function GET(req: NextRequest) {
           width: "100%",
           height: "100%",
           display: "flex",
-          padding: "90px",
+          padding: "60px 40px 0 50px",
           flexDirection: "column",
+          position: "relative",
         }}
       >
         <div
           style={{
-            fontSize: 33,
+            fontSize: 44,
             display: "flex",
+            color: "#404040",
           }}
         >
           c/{server?.name}
@@ -55,9 +51,9 @@ export async function GET(req: NextRequest) {
         <div
           style={{
             display: "flex",
-            fontSize: 89,
+            fontSize: 77,
             fontWeight: "bold",
-            marginTop: 22,
+            marginTop: 20,
           }}
         >
           {thread?.channelName}
@@ -69,7 +65,7 @@ export async function GET(req: NextRequest) {
             alignItems: "center",
             gap: "22px",
             color: "#404040",
-            marginTop: 22,
+            marginTop: 20,
           }}
         >
           <CommentIcon size={44} />
@@ -99,6 +95,18 @@ export async function GET(req: NextRequest) {
             in #reports
           </div>
         </div>
+        <div
+          style={{
+            fontSize: 33,
+            position: "absolute",
+            display: "flex",
+            bottom: "5%",
+            right: "3%",
+          }}
+        >
+          <LogoIcon size={33} />
+          Velumn
+        </div>
       </div>
     ),
     {
@@ -106,7 +114,7 @@ export async function GET(req: NextRequest) {
       fonts: [
         {
           name: "Inter",
-          data: satoshi,
+          data: questrial,
           style: "normal",
           weight: 400,
         },
@@ -127,7 +135,22 @@ const CommentIcon = ({ size }: { size: number }) => (
   >
     <path
       fill="currentColor"
-      d="M232.07 186.76a80 80 0 0 0-62.5-114.17 80 80 0 1 0-145.64 66.17l-7.27 24.71a16 16 0 0 0 19.87 19.87l24.71-7.27a80.4 80.4 0 0 0 25.18 7.35 80 80 0 0 0 108.34 40.65l24.71 7.27a16 16 0 0 0 19.87-19.86ZM62 159.5a8.3 8.3 0 0 0-2.26.32L32 168l8.17-27.76a8 8 0 0 0-.63-6A64 64 0 1 1 65.8 160.5a8 8 0 0 0-3.8-1m153.79 28.73L224 216l-27.76-8.17a8 8 0 0 0-6 .63 64.05 64.05 0 0 1-85.87-24.88 79.93 79.93 0 0 0 70.33-93.87 64 64 0 0 1 41.75 92.48 8 8 0 0 0-.63 6.04Z"
+      d="M216 48H40a16 16 0 0 0-16 16v160a15.84 15.84 0 0 0 9.25 14.5A16.05 16.05 0 0 0 40 240a15.9 15.9 0 0 0 10.25-3.78l.09-.07L83 208h133a16 16 0 0 0 16-16V64a16 16 0 0 0-16-16m0 144H80a8 8 0 0 0-5.23 1.95L40 224V64h176Z"
     ></path>
+  </svg>
+);
+
+const LogoIcon = ({ size }: { size: number }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 256 256"
+    width={size}
+    height={size}
+    style={{
+      color: "#404040",
+      marginRight: "8px",
+    }}
+  >
+    <path d="M169.57 72.59A80 80 0 0 0 16 104v64a16 16 0 0 0 16 16h54.67A80.15 80.15 0 0 0 160 232h64a16 16 0 0 0 16-16v-64a80 80 0 0 0-70.43-79.41M32 104a64 64 0 1 1 64 64H32Zm192 112h-64a64.14 64.14 0 0 1-55.68-32.43 79.93 79.93 0 0 0 70.38-93.86A64 64 0 0 1 224 152Z"></path>
   </svg>
 );
