@@ -1,7 +1,7 @@
-import { count, eq } from "drizzle-orm";
-import { db } from "..";
-import { dbChannel } from "../schema";
-import { ChannelType } from "discord-api-types/v10";
+import { ChannelType } from 'discord-api-types/v10';
+import { count, eq } from 'drizzle-orm';
+import { db } from '..';
+import { dbChannel } from '../schema';
 
 export async function getThreadsCountTotal() {
   const threadsCount = await db

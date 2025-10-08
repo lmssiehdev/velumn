@@ -10,31 +10,30 @@ export function shuffle<T>(array: T[]): T[] {
   return newArray;
 }
 
-import { ZodSchema } from "zod";
-import { logger } from "./lib/log";
+import type { ZodSchema } from 'zod';
+import { logger } from './lib/log';
 
 export function safeParse<T>(
   schema: ZodSchema<T>,
   value: unknown,
   defaultValue: T,
-  logError = true,
+  logError = true
 ): T {
   const result = schema.safeParse(value);
   if (result.success) {
     return result.data;
-  } else {
-    const errorStack = new Error().stack;
-
-    if (logError) {
-      logger.error(
-        `Zod parsing failed.\n` +
-          `1. Schema: ${schema.description || "UnnamedSchema"}\n` +
-          `2. Input: ${JSON.stringify(value, null, 2)}\n` +
-          `3. Zod Error: ${result.error}\n` +
-          `4. Call Stack: ${errorStack}`,
-      );
-    }
-
-    return defaultValue;
   }
+  const errorStack = new Error().stack;
+
+  if (logError) {
+    logger.error(
+      'Zod parsing failed.\n' +
+        `1. Schema: ${schema.description || 'UnnamedSchema'}\n` +
+        `2. Input: ${JSON.stringify(value, null, 2)}\n` +
+        `3. Zod Error: ${result.error}\n` +
+        `4. Call Stack: ${errorStack}`
+    );
+  }
+
+  return defaultValue;
 }

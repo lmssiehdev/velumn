@@ -1,7 +1,7 @@
-import { getThreadsCountTotal } from "@repo/db/helpers/sitemap";
+import { getThreadsCountTotal } from '@repo/db/helpers/sitemap';
 
-const BASE_URL = "http://localhost:3000";
-export const LIMIT = 47000;
+const BASE_URL = 'http://localhost:3000';
+export const LIMIT = 47_000;
 
 export async function GET() {
   const count = await getThreadsCountTotal();
@@ -14,14 +14,14 @@ ${Array.from({ length: numSitemaps })
     (_, i) => `  <url>
   <loc>${BASE_URL}/sitemap.xml/${i}</loc>
   <lastmod>${new Date().toISOString()}</lastmod>
-</url>`,
+</url>`
   )
-  .join("\n")}
+  .join('\n')}
 </sitemapindex>`;
 
   return new Response(sitemap, {
     headers: {
-      "Content-Type": "application/xml",
+      'Content-Type': 'application/xml',
     },
   });
 }

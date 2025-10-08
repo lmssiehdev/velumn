@@ -1,23 +1,32 @@
-import { upsertChannel } from "@repo/db/helpers/channels";
-import { upsertManyMessages } from "@repo/db/helpers/messages";
-import { upsertManyDiscordAccounts } from "@repo/db/helpers/user";
-import { ChannelType, type GuildTextBasedChannel, type Message } from "discord.js";
+import { upsertChannel } from '@repo/db/helpers/channels';
+import { upsertManyMessages } from '@repo/db/helpers/messages';
+import { upsertManyDiscordAccounts } from '@repo/db/helpers/user';
+import {
+  ChannelType,
+  type GuildTextBasedChannel,
+  type Message,
+} from 'discord.js';
 import {
   extractUsersSetFromMessages,
   messagesToDBMessagesSet,
   toDbChannel,
   toDbUser,
-} from "../../helpers/convertion";
-import { getTheOldestSnowflakeId } from "./helpers";
-import { logger } from "../../helpers/lib/log";
+} from '../../helpers/convertion';
+import { logger } from '../../helpers/lib/log';
+import { getTheOldestSnowflakeId } from './helpers';
 
-export async function storeIndexedData(messages: Message[], channel: GuildTextBasedChannel) {
+export async function storeIndexedData(
+  messages: Message[],
+  channel: GuildTextBasedChannel
+) {
   if (channel.client.id == null) {
-    throw new Error("Received a null client id when indexing");
+    throw new Error('Received a null client id when indexing');
   }
 
   if (messages.length === 0) {
-    logger.info(`No messages to index for channel ${channel.name} ${channel.id}`);
+    logger.info(
+      `No messages to index for channel ${channel.name} ${channel.id}`
+    );
   }
 
   logger.info(`Upserting channel: ${channel.name} ${channel.id}`);
@@ -31,7 +40,7 @@ export async function storeIndexedData(messages: Message[], channel: GuildTextBa
     },
     update: {
       archivedTimestamp: convertedChannel.archivedTimestamp,
-      ...(lastIndexedMessageId === "0" ? {} : { lastIndexedMessageId }),
+      ...(lastIndexedMessageId === '0' ? {} : { lastIndexedMessageId }),
     },
   });
 
@@ -50,7 +59,9 @@ export async function storeIndexedData(messages: Message[], channel: GuildTextBa
   await upsertManyDiscordAccounts(convertedUsers);
   const botMessages = filteredMessages.filter((x) => x.author.bot);
 
-  const bots = [...new Map(botMessages.map((x) => [x.author.id, x.author])).values()];
+  const bots = [
+    ...new Map(botMessages.map((x) => [x.author.id, x.author])).values(),
+  ];
 
   if (bots.length > 0) {
     await upsertManyDiscordAccounts(bots.map(toDbUser));

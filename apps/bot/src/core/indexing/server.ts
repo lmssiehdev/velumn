@@ -1,9 +1,14 @@
-import { getBulkServersPlan } from "@repo/db/helpers/servers";
-import { ChannelType, type Client, type Guild, type GuildBasedChannel } from "discord.js";
-import { shuffle } from "../../helpers/utils";
-import { indexRootChannel } from "./channel";
-import { Log } from "./logger";
-import { logger } from "../../helpers/lib/log";
+import { getBulkServersPlan } from '@repo/db/helpers/servers';
+import {
+  ChannelType,
+  type Client,
+  type Guild,
+  type GuildBasedChannel,
+} from 'discord.js';
+import { logger } from '../../helpers/lib/log';
+import { shuffle } from '../../helpers/utils';
+import { indexRootChannel } from './channel';
+import { Log } from './logger';
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
@@ -14,7 +19,7 @@ export async function indexServers(client: Client) {
       const channelsCahe = [...guild.channels.cache.values()];
 
       if (channelsCahe.length === 0) {
-        Log("no_channels", guild);
+        Log('no_channels', guild);
         return;
       }
 
@@ -27,7 +32,7 @@ export async function indexServers(client: Client) {
         await indexRootChannel(channel);
       }
     } catch (error) {
-      Log("failed_to_fetch_guild", error, guild);
+      Log('failed_to_fetch_guild', error, guild);
     }
   }
 }
@@ -39,9 +44,9 @@ export const isChannelIndexable = (channel: GuildBasedChannel) =>
 
 async function randomizeServers(allGuilds: Guild[]) {
   const guilds =
-    process.env.NODE_END === "development"
+    process.env.NODE_END === 'development'
       ? allGuilds
-      : allGuilds.filter((x) => x.id === "1228579842212106302");
+      : allGuilds.filter((x) => x.id === '1228579842212106302');
 
   try {
     const serversPlans = await getBulkServersPlan(guilds.map((x) => x.id));
@@ -66,12 +71,12 @@ async function randomizeServers(allGuilds: Guild[]) {
         FREE: [],
         PAID: [],
         OPEN_SOURCE: [],
-      } as Record<"FREE" | "OPEN_SOURCE" | "PAID", Guild[]>,
+      } as Record<'FREE' | 'OPEN_SOURCE' | 'PAID', Guild[]>
     );
 
     return [...shuffle(PAID), ...shuffle(OPEN_SOURCE), ...shuffle(FREE)];
   } catch (err) {
-    logger.info("Failed_to_randomize_guilds", err);
+    logger.info('Failed_to_randomize_guilds', err);
     return shuffle(guilds);
   }
 }

@@ -3,14 +3,14 @@ import {
   internalLinksSchema,
   type MessageMetadataSchema,
   messageMetadataSchema,
-} from "@repo/db/helpers/validation";
+} from '@repo/db/helpers/validation';
 import type {
   DBChannel,
   DBMessage,
   DBMessageWithRelations,
   DBServerInsert,
   DBUser,
-} from "@repo/db/schema/index";
+} from '@repo/db/schema/index';
 import {
   ChannelFlags,
   type Guild,
@@ -19,17 +19,21 @@ import {
   type Message,
   type ThreadChannel,
   type User,
-} from "discord.js";
-import z from "zod";
-import { MessageLinkRegex } from "./regex";
-import { isChannelIndexable } from "../core/indexing/server.js";
+} from 'discord.js';
+import z from 'zod';
+import { isChannelIndexable } from '../core/indexing/server.js';
+import { MessageLinkRegex } from './regex';
 
-export async function toDbChannel(channel: GuildChannel | GuildBasedChannel | ThreadChannel) {
+export async function toDbChannel(
+  channel: GuildChannel | GuildBasedChannel | ThreadChannel
+) {
   if (!channel.guild) {
-    throw new Error("Channel is not in a guild");
+    throw new Error('Channel is not in a guild');
   }
 
-  const authorId = channel.isThread() ? (await channel.fetchOwner())?.id : undefined;
+  const authorId = channel.isThread()
+    ? (await channel.fetchOwner())?.id
+    : undefined;
 
   const convertedChannel: DBChannel = {
     id: channel.id,
@@ -38,7 +42,9 @@ export async function toDbChannel(channel: GuildChannel | GuildBasedChannel | Th
     serverId: channel.guild.id,
     parentId: channel.isThread() ? channel.parentId : null,
     archivedTimestamp:
-      channel.isThread() && channel.archiveTimestamp ? channel.archiveTimestamp : null,
+      channel.isThread() && channel.archiveTimestamp
+        ? channel.archiveTimestamp
+        : null,
     lastIndexedMessageId: null,
     type: channel.type,
     // archived: channel.isThread() && (channel.archived ?? false),
@@ -78,7 +84,7 @@ async function toDbInternalLink(message: Message) {
     .map((g) => groupSchema.safeParse(g))
     .filter(
       (s): s is { success: true; data: z.infer<typeof groupSchema> } =>
-        s.success && message.guildId === s.data.guildId,
+        s.success && message.guildId === s.data.guildId
     )
     .map((s) => s.data);
 
@@ -87,8 +93,10 @@ async function toDbInternalLink(message: Message) {
       try {
         const channel = await message.client.channels.fetch(g.channelId);
         if (!channel?.isTextBased() || channel.isDMBased()) return null;
-        if (!("messages" in channel)) return null;
-        const fetchedMessage = g.messageId ? await channel.messages.fetch(g.messageId) : null;
+        if (!('messages' in channel)) return null;
+        const fetchedMessage = g.messageId
+          ? await channel.messages.fetch(g.messageId)
+          : null;
 
         const data = {
           guild: {
@@ -105,10 +113,10 @@ async function toDbInternalLink(message: Message) {
 
         return internalLinksSchema.parse(data);
       } catch (error) {
-        console.error("Failed to fetch channel/message:", error);
+        console.error('Failed to fetch channel/message:', error);
         return null;
       }
-    }),
+    })
   );
   return internalLinks.filter((x) => x !== null) ?? [];
 }
@@ -127,17 +135,17 @@ export async function toDbMetadata(message: Message) {
     internalLinks,
   });
   if (!success) {
-    console.log("failed_to_parse_message_medata");
+    console.log('failed_to_parse_message_medata');
     return {} as MessageMetadataSchema;
   }
   return data;
 }
-function toDbReactions(message: Message): DBMessage["reactions"] {
+function toDbReactions(message: Message): DBMessage['reactions'] {
   if (!message.guild) {
     return null;
   }
 
-  const dbReactions: DBMessage["reactions"] = [];
+  const dbReactions: DBMessage['reactions'] = [];
   const reactions = message.reactions.cache.values();
 
   // TODO: check if we need to fetch the reactions..
@@ -164,19 +172,21 @@ function toDbReactions(message: Message): DBMessage["reactions"] {
 }
 
 // shut it, this code is pretty;
-export async function toDBMessage(message: Message): Promise<DBMessageWithRelations> {
+export async function toDBMessage(
+  message: Message
+): Promise<DBMessageWithRelations> {
   let fullMessage = message;
   if (fullMessage.partial) {
     fullMessage = await fullMessage.fetch();
   }
   if (!fullMessage.guildId) {
-    throw new Error("Message is not in a guild");
+    throw new Error('Message is not in a guild');
   }
 
   const embeds = message.embeds.flatMap((e) => {
     const result = embedSchema.safeParse(e.data);
     if (!result.success) {
-      console.error("Invalid embed:", e.data, result.data, result.error);
+      console.error('Invalid embed:', e.data, result.data, result.error);
       return [];
     }
     return [result.data];
@@ -187,7 +197,9 @@ export async function toDBMessage(message: Message): Promise<DBMessageWithRelati
     cleanContent: fullMessage.cleanContent,
     content: fullMessage.content,
     channelId: fullMessage.channelId,
-    parentChannelId: fullMessage.channel.isThread() ? fullMessage.channel.parentId : null,
+    parentChannelId: fullMessage.channel.isThread()
+      ? fullMessage.channel.parentId
+      : null,
     reactions: toDbReactions(fullMessage),
     attachments: message.attachments.map((attachment) => {
       return {
@@ -195,7 +207,7 @@ export async function toDBMessage(message: Message): Promise<DBMessageWithRelati
         url: attachment.url,
         messageId: message.id,
         proxyUrl: attachment.proxyURL,
-        name: attachment.name ?? "",
+        name: attachment.name ?? '',
         size: attachment.size,
         height: attachment.height,
         width: attachment.width,
