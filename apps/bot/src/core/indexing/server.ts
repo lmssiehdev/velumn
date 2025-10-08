@@ -3,6 +3,7 @@ import { ChannelType, type Client, type Guild, type GuildBasedChannel } from "di
 import { shuffle } from "../../helpers/utils";
 import { indexRootChannel } from "./channel";
 import { Log } from "./logger";
+import { logger } from "../../helpers/lib/log";
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
@@ -70,7 +71,7 @@ async function randomizeServers(allGuilds: Guild[]) {
 
     return [...shuffle(PAID), ...shuffle(OPEN_SOURCE), ...shuffle(FREE)];
   } catch (err) {
-    console.error("Failed_to_randomize_guilds", err);
+    logger.info("Failed_to_randomize_guilds", err);
     return shuffle(guilds);
   }
 }

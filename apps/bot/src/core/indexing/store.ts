@@ -1,35 +1,26 @@
-import { upsertChannel } from '@repo/db/helpers/channels';
-import { upsertManyMessages } from '@repo/db/helpers/messages';
-import { upsertManyDiscordAccounts } from '@repo/db/helpers/user';
-import { container } from '@sapphire/framework';
-import {
-  ChannelType,
-  type GuildTextBasedChannel,
-  type Message,
-} from 'discord.js';
+import { upsertChannel } from "@repo/db/helpers/channels";
+import { upsertManyMessages } from "@repo/db/helpers/messages";
+import { upsertManyDiscordAccounts } from "@repo/db/helpers/user";
+import { ChannelType, type GuildTextBasedChannel, type Message } from "discord.js";
 import {
   extractUsersSetFromMessages,
   messagesToDBMessagesSet,
   toDbChannel,
   toDbUser,
-} from '../../helpers/convertion';
-import { getTheOldestSnowflakeId } from './helpers';
+} from "../../helpers/convertion";
+import { getTheOldestSnowflakeId } from "./helpers";
+import { logger } from "../../helpers/lib/log";
 
-export async function storeIndexedData(
-  messages: Message[],
-  channel: GuildTextBasedChannel
-) {
+export async function storeIndexedData(messages: Message[], channel: GuildTextBasedChannel) {
   if (channel.client.id == null) {
-    throw new Error('Received a null client id when indexing');
+    throw new Error("Received a null client id when indexing");
   }
 
   if (messages.length === 0) {
-    container.logger.info(
-      `No messages to index for channel ${channel.name} ${channel.id}`
-    );
+    logger.info(`No messages to index for channel ${channel.name} ${channel.id}`);
   }
 
-  container.logger.info(`Upserting channel: ${channel.name} ${channel.id}`);
+  logger.info(`Upserting channel: ${channel.name} ${channel.id}`);
   const lastIndexedMessageId = getTheOldestSnowflakeId(messages);
 
   const convertedChannel = await toDbChannel(channel);
@@ -40,7 +31,7 @@ export async function storeIndexedData(
     },
     update: {
       archivedTimestamp: convertedChannel.archivedTimestamp,
-      ...(lastIndexedMessageId === '0' ? {} : { lastIndexedMessageId }),
+      ...(lastIndexedMessageId === "0" ? {} : { lastIndexedMessageId }),
     },
   });
 
@@ -54,20 +45,18 @@ export async function storeIndexedData(
   const convertedUsers = extractUsersSetFromMessages(filteredMessages);
   const convertedMessages = await messagesToDBMessagesSet(filteredMessages);
 
-  container.logger.info(`Upserting ${convertedUsers.length} discord accounts`);
+  logger.info(`Upserting ${convertedUsers.length} discord accounts`);
 
   await upsertManyDiscordAccounts(convertedUsers);
   const botMessages = filteredMessages.filter((x) => x.author.bot);
 
-  const bots = [
-    ...new Map(botMessages.map((x) => [x.author.id, x.author])).values(),
-  ];
+  const bots = [...new Map(botMessages.map((x) => [x.author.id, x.author])).values()];
 
   if (bots.length > 0) {
     await upsertManyDiscordAccounts(bots.map(toDbUser));
   }
 
-  container.logger.info(`Upserting ${convertedMessages.length} messages`);
+  logger.info(`Upserting ${convertedMessages.length} messages`);
 
   const _upserted = await upsertManyMessages(convertedMessages);
   // await Search.indexMessageForSearch(upserted);
