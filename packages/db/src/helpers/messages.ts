@@ -56,7 +56,6 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
   const messages = new Map<string, DBMessage>();
   const attachments = new Map<string, DBAttachment>();
 
-  // TODO: embeds
   for (const msg of msgs) {
     messages.set(msg.id, msg);
     if (!msg.attachments) {

@@ -65,9 +65,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: [stri
   return {
     title: thread.channelName,
     // TODO: check for answer first then fallback to original post
-    description: thread.messages[0]?.content.slice(0, 300),
     openGraph: {
       title: thread.channelName,
+      description: thread.messages[0]?.cleanContent?.slice(0, 300),
       // TODO:
       // description: "Thread not found",
       url,
