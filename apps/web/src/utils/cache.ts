@@ -1,4 +1,4 @@
-import { getAllMessagesInThreads } from '@repo/db/helpers/channels';
+import { getAllMessagesInThreads, getChannelInfo } from '@repo/db/helpers/channels';
 import { getAllThreads, getServerInfo, getServerInfoByChannelId } from '@repo/db/helpers/servers';
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
@@ -7,7 +7,9 @@ type ValidTags =
   | 'clear-all-threads'
   | `clear-thread-${string}`
   | 'clear-all-servers'
-  | `clear-server-${string}`;
+  | `clear-server-${string}`
+  | 'clear-all-channels'
+  | `clear-channel-${string}`
 
 // sanity check for now
 // biome-ignore lint/style/noMagicNumbers: TODO: refactor to a util function later
@@ -45,6 +47,18 @@ export const getServerInfoCached = cache((id: string) => {
     [`server-info-${id}`],
     {
       tags: [`clear-server-${id}`, 'clear-all-servers'] satisfies ValidTags[],
+      revalidate: THREE_DAYS_IN_SECONDS,
+    }
+  );
+  return cachedFn(id);
+});
+
+export const getChannelInfoCached = cache((id: string) => {
+  const cachedFn = unstable_cache(
+    getChannelInfo,
+    [`channel-info-${id}`],
+    {
+      tags: [`clear-channel-${id}`, 'clear-all-channels'] satisfies ValidTags[],
       revalidate: THREE_DAYS_IN_SECONDS,
     }
   );

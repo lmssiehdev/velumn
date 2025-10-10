@@ -2,6 +2,31 @@ import { ThreadList } from "@/app/(forum)/server/[id]/page";
 import { getChannelInfo } from "@repo/db/helpers/channels";
 import { getAllThreads } from "@repo/db/helpers/servers";
 import { FrontPageSidebar } from "../../layout";
+import { getChannelInfoCached } from "@/utils/cache";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+
+    const data = await getChannelInfoCached(id);
+
+    if (!data?.channel) {
+        return {
+            title: "Channel Not Found",
+            openGraph: {
+                title: "Channel Not Found",
+            },
+        };
+    }
+    return {
+        title: data.channel?.channelName,
+        // TODO: sync description?
+        // describe: data.channel?.description,
+        openGraph: {
+            title: data.channel?.channelName,
+            // description: data.channel?.description,
+        },
+    };
+}
 
 export default async function Page({
     params,
@@ -11,7 +36,7 @@ export default async function Page({
     searchParams: { page: string }
 }) {
     const { id: channelId } = await params;
-    const data = await getChannelInfo(channelId);
+    const data = await getChannelInfoCached(channelId);
     const searchParamsPage = Number(await searchParams.page ?? 1);
 
     if (!data) {
