@@ -12,6 +12,7 @@ import { indexServers } from '../core/indexing';
 import { isChannelIndexable } from '../core/indexing/server';
 import { toDbMetadata } from '../helpers/convertion';
 import { MessageLinkRegex } from '../helpers/regex';
+import { indexRootChannel, indexTextBasedChannel } from '../core/indexing/channel';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),

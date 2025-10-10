@@ -44,7 +44,7 @@ export const isChannelIndexable = (channel: GuildBasedChannel) =>
 
 async function randomizeServers(allGuilds: Guild[]) {
   const guilds =
-    process.env.NODE_END === 'development'
+    process.env.NODE_END !== 'development'
       ? allGuilds
       : allGuilds.filter((x) => x.id === '1228579842212106302');
 

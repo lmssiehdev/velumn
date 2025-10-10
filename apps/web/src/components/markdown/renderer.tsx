@@ -7,45 +7,27 @@ import dayjs from "dayjs";
 import { CustomEmoji, getEmojiSize, Twemoji } from "./emoji";
 import { DBMessage } from "@repo/db/schema/discord";
 import { Mention } from "./mention";
-
-function Timestamp({ children }: { children: string }) {
-  // TODO: needs more testing;
-  return (
-    <span className="bg-neutral-200 rounded">
-      {dayjs.unix(Number(children)).format("MMMM D, YYYY")}
-    </span>
-  );
-}
-
-export function List({ items, ordered }: { items: SingleASTNode[][]; ordered?: boolean }) {
-  const Tag = ordered ? "ol" : "ul";
-  return (
-    <Tag className="my-0!">
-      {items.map((item, idx) => {
-        return (
-          <li className="marker:text-black" key={idx}>
-            {item.map((i, childIdx) => renderASTNode(i, childIdx + idx + 1, item, true))}
-          </li>
-        );
-      })}
-    </Tag>
-  );
-}
+import { Link } from "./link";
 
 function renderASTNode(
   node: SingleASTNode | SingleASTNode[],
   index = 0,
   parent: SingleASTNode | SingleASTNode[] | null,
   isReferenceReply = false,
-  metadata?: DBMessage["metadata"],
+  message?: DBMessage,
 ): React.ReactNode {
   if (Array.isArray(node)) {
-    return node.map((child, i) => renderASTNode(child, i, node, isReferenceReply, metadata));
+    return node.map((child, i) => renderASTNode(child, i, node, isReferenceReply, message));
   }
 
   if (isReferenceReply && ["br", "inlineCode", "codeBlock"].includes(node.type)) return " ";
 
   const key = index;
+
+  function renderNodes(content: SingleASTNode | SingleASTNode[]) {
+    return renderASTNode(content, key + 1, node, isReferenceReply, message)
+  }
+
 
   switch (node.type) {
     case "text":
@@ -59,7 +41,7 @@ function renderASTNode(
       return (
         // @ts-expect-error
         <Tag key={key}>
-          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+          {renderNodes(node.content)}
         </Tag>
       );
     }
@@ -67,44 +49,36 @@ function renderASTNode(
     case "guildNavigation":
       return <div>10000</div>;
 
-    case "url":
-      return (
-        <a key={key} href={node.target} target="_blank" rel="noreferrer">
-          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
-        </a>
-      );
+
 
     case "strikethrough":
       return (
-        <s key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}</s>
+        <s key={key}>{renderNodes(node.content)}</s>
       );
 
     case "strong":
       return (
         <strong key={key}>
-          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+          {renderNodes(node.content)}
         </strong>
       );
 
     case "em":
       return (
-        <em key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}</em>
+        <em key={key}>{renderNodes(node.content)}</em>
       );
 
     case "underline":
       return (
-        <u key={key}>{renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}</u>
+        <u key={key}>{renderNodes(node.content)}</u>
       );
 
     case "inlineCode":
       return <Code code={node.content} key={key} isInline></Code>;
 
     case "link":
-      return (
-        <a key={key} href={node.target} target="_blank" rel="noreferrer">
-          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
-        </a>
-      );
+    case "url":
+      return <Link key={key} target={node.target} content={renderNodes(node.content) as string} message={message} />
 
     case "emoji": {
       return (
@@ -128,7 +102,7 @@ function renderASTNode(
     case "channel":
     case "role":
       return (
-        <Mention type={node.type!} key={key} metadata={metadata!}>
+        <Mention type={node.type!} key={key} message={message!}>
           {node.id}
         </Mention>
       );
@@ -148,14 +122,14 @@ function renderASTNode(
     case "spoiler":
       return (
         <Spoiler key={key}>
-          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+          {renderNodes(node.content)}
         </Spoiler>
       );
 
     case "blockQuote":
       return (
         <blockquote key={key}>
-          {renderASTNode(node.content, key + 1, node, isReferenceReply, metadata)}
+          {renderNodes(node.content)}
         </blockquote>
       );
 
@@ -169,13 +143,38 @@ function renderASTNode(
 export const DiscordMarkdown = ({
   children,
   isReferenceReply = false,
-  metadata,
+  message,
 }: {
   children: string | null;
   isReferenceReply?: boolean;
-  metadata: DBMessage["metadata"];
+  message: DBMessage;
 }) => {
   if (!children) return null;
   const parsed = parse(children, "normal");
-  return <div className="prose">{renderASTNode(parsed, 0, null, isReferenceReply, metadata)}</div>;
+  return <div className="prose">{renderASTNode(parsed, 0, null, isReferenceReply, message)}</div>;
 };
+
+
+function List({ items, ordered }: { items: SingleASTNode[][]; ordered?: boolean }) {
+  const Tag = ordered ? "ol" : "ul";
+  return (
+    <Tag className="my-0!">
+      {items.map((item, idx) => {
+        return (
+          <li className="marker:text-black" key={idx}>
+            {item.map((i, childIdx) => renderASTNode(i, childIdx + idx + 1, item, true))}
+          </li>
+        );
+      })}
+    </Tag>
+  );
+}
+
+function Timestamp({ children }: { children: string }) {
+  // TODO: needs more testing;
+  return (
+    <span className="bg-neutral-200 rounded">
+      {dayjs.unix(Number(children)).format("MMMM D, YYYY")}
+    </span>
+  );
+}

@@ -23,16 +23,22 @@ const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
     .catch({});
 
 export const internalLinksSchema = z.object({
+  original: z.string(),
   guild: z.object({
     id: z.string(),
     name: z.string(),
   }),
   channel: z.object({
+    parent: z.object({
+      name: z.string().optional(),
+      type: z.number().optional(),
+      parentId: z.string().optional(),
+    }).optional(),
     id: z.string(),
     type: z.number(),
     name: z.string(),
   }),
-  message: z.string().nullable(),
+  message: z.string().optional(),
 });
 
 export type MessageMetadataSchema = z.infer<typeof messageMetadataSchema>;

@@ -59,6 +59,7 @@ export function findManyDiscordAccountsById(ids: string[]) {
   });
 }
 
+// !! TODO: clean up
 export async function upsertManyDiscordAccounts(users: DBUser[]) {
   const existing = await findManyDiscordAccountsById(users.map((x) => x.id));
 

@@ -74,19 +74,22 @@ async function toDbInternalLink(message: Message) {
   if (!message.content) return [];
 
   const groupSchema = z.object({
+    original: z.string(),
     guildId: z.string(),
     channelId: z.string(),
-    messageId: z.string().nullable(),
+    messageId: z.string().optional(),
   });
 
   const validGroups = [...message.content.matchAll(MessageLinkRegex)]
-    .map((m) => ({ ...m.groups }))
-    .map((g) => groupSchema.safeParse(g))
-    .filter(
-      (s): s is { success: true; data: z.infer<typeof groupSchema> } =>
-        s.success && message.guildId === s.data.guildId
-    )
-    .map((s) => s.data);
+    .flatMap(m => {
+      const parsed = groupSchema.safeParse({ original: m[0], ...m.groups });
+      return parsed.success && message.guildId === parsed.data.guildId
+        ? [parsed.data]
+        : [];
+    });
+
+
+  if (validGroups.length === 0) return []
 
   const internalLinks = await Promise.all(
     validGroups.map(async (g) => {
@@ -99,17 +102,23 @@ async function toDbInternalLink(message: Message) {
           : null;
 
         const data = {
+          original: g.original,
           guild: {
             id: channel.guildId,
             name: channel.guild.name,
           },
           channel: {
+            parent: {
+              name: channel.parent?.name,
+              type: channel.parent?.type,
+              parentId: channel.parentId ?? undefined,
+            },
             id: channel.id,
             type: channel.type,
             name: channel.name,
           },
-          message: fetchedMessage?.id ?? null,
-        };
+          message: fetchedMessage?.id,
+        } satisfies z.infer<typeof internalLinksSchema>;
 
         return internalLinksSchema.parse(data);
       } catch (error) {

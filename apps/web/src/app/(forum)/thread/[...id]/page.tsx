@@ -283,7 +283,7 @@ function MessagePost({
             </div>
           </div>
           <div>
-            <DiscordMarkdown metadata={message.metadata}>{message.content}</DiscordMarkdown>
+            <DiscordMarkdown message={message}>{message.content}</DiscordMarkdown>
             <Attachments attachments={message.attachments!} />
             <Embeds embeds={message.embeds} />
           </div>
@@ -314,7 +314,7 @@ function ReferenceMessage({ message }: { message: MessageWithMetadata }) {
                 Click to see attachments <ImageIcon className="size-5" />{" "}
               </span>
             ) : (
-              <DiscordMarkdown metadata={message.metadata} isReferenceReply={true}>
+              <DiscordMarkdown message={message} isReferenceReply={true}>
                 {message.content.substring(0, 150)}
               </DiscordMarkdown>
             )}
