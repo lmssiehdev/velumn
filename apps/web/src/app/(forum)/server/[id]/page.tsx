@@ -1,12 +1,35 @@
 import { CaretLeftIcon, CaretRightIcon, ChatIcon, PushPinIcon } from "@phosphor-icons/react/ssr";
-import { getAllThreads, getServerInfo } from "@repo/db/helpers/servers";
+import { getAllThreads } from "@repo/db/helpers/servers";
 import Link from "next/link";
 import { FrontPageSidebar } from "../../layout";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import { Button } from "@/components/ui/button";
-import slugify from "slugify";
 import { slugifyThreadUrl } from "@/lib/slugify";
 import { anonymizeName } from "../../thread/[...id]/page";
+import { getServerInfoCached } from "@/utils/cache";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+
+    const server = await getServerInfoCached(id);
+
+    if (!server) {
+        return {
+            title: "Server Not Found",
+            openGraph: {
+                title: "Server Not Found",
+            },
+        };
+    }
+    return {
+        title: server.name,
+        describe: server.description,
+        openGraph: {
+            title: server.name,
+            description: server.description,
+        },
+    };
+}
 
 export default async function Page({
     params,
@@ -19,7 +42,7 @@ export default async function Page({
 
     const searchParamsPage = Number(searchParams.page ?? 1);
 
-    const server = await getServerInfo(id);
+    const server = await getServerInfoCached(id);
 
     if (!server) {
         return <div>Server doesn't exist</div>

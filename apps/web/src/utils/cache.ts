@@ -1,5 +1,5 @@
 import { getAllMessagesInThreads } from '@repo/db/helpers/channels';
-import { getServerInfoByChannelId } from '@repo/db/helpers/servers';
+import { getAllThreads, getServerInfo, getServerInfoByChannelId } from '@repo/db/helpers/servers';
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
@@ -30,6 +30,18 @@ export const getAllMessagesInThreadsCache = cache((id: string) => {
 export const getServerInfoByChannelIdCache = cache((id: string) => {
   const cachedFn = unstable_cache(
     getServerInfoByChannelId,
+    [`server-info-${id}`],
+    {
+      tags: [`clear-server-${id}`, 'clear-all-servers'] satisfies ValidTags[],
+      revalidate: THREE_DAYS_IN_SECONDS,
+    }
+  );
+  return cachedFn(id);
+});
+
+export const getServerInfoCached = cache((id: string) => {
+  const cachedFn = unstable_cache(
+    getServerInfo,
     [`server-info-${id}`],
     {
       tags: [`clear-server-${id}`, 'clear-all-servers'] satisfies ValidTags[],
