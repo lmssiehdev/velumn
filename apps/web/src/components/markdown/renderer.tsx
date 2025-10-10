@@ -78,7 +78,7 @@ function renderASTNode(
 
     case "link":
     case "url":
-      return <Link key={key} target={node.target} content={renderNodes(node.content) as string} message={message} />
+      return <Link key={key} target={node.target} content={renderNodes(node.content) as string} message={message!} />
 
     case "emoji": {
       return (
