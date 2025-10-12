@@ -5,7 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch --env-file=.env src/index.ts",
-    "build": "tsc",
+    "start": "tsx --env-file=.env src/index.ts",
     "with-env": "bun run --env-file=../../.env --",
     "test": "bun test"
   },

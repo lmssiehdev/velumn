@@ -13,6 +13,7 @@ import type {
 } from '@repo/db/schema/index';
 import {
   ChannelFlags,
+  Emoji,
   type Guild,
   type GuildBasedChannel,
   type GuildChannel,
@@ -272,4 +273,17 @@ export function toDbServer(guild: Guild) {
     memberCount: guild.memberCount,
   };
   return convertedServer;
+}
+
+//
+// Helpers
+//
+
+export function getEmojiData(emoji: Emoji) {
+  if (!emoji) return null;
+  return {
+    id: emoji.id,
+    name: emoji.name,
+    animated: emoji.animated ?? false,
+  };
 }

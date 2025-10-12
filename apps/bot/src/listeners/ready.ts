@@ -7,12 +7,13 @@ import {
   Message,
   RESTJSONErrorCodes,
 } from 'discord.js';
-import { safeParse, z } from 'zod';
+import { emoji, optional, safeParse, z } from 'zod';
 import { indexServers } from '../core/indexing';
 import { isChannelIndexable } from '../core/indexing/server';
-import { toDbMetadata } from '../helpers/convertion';
+import { getEmojiData, toDbChannel, toDbMetadata } from '../helpers/convertion';
 import { MessageLinkRegex } from '../helpers/regex';
 import { indexRootChannel, indexTextBasedChannel } from '../core/indexing/channel';
+import { text } from 'node:stream/consumers';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -49,7 +50,7 @@ async function testing(client: Client) {
   if (!guild) {
     return;
   }
-  const channel = guild.channels.cache.get('1424556548524478555');
+  const channel = guild.channels.cache.get('1385955478453882943');
   if (
     channel?.type !== ChannelType.GuildText &&
     channel?.type !== ChannelType.PublicThread
@@ -57,24 +58,31 @@ async function testing(client: Client) {
     return;
   }
 
-  const message = await channel.messages.fetch('1424558925855985684');
-
-  if (message.reference) {
-    try {
-      const repliedTo = await message.fetchReference();
-      console.log(`Replying to: ${repliedTo.content}`);
-    } catch (e) {
-      if (e.code === RESTJSONErrorCodes.UnknownMessage) {
-        console.log(`Message ${message.id} has been deleted`);
-        return;
-      }
-      console.log("Couldn't fetch message", e);
-    }
-  }
+  const message = await channel.messages.fetch('1426763593558396959');
 
   if (!message) {
     return;
   }
 
-  console.log(await toDbMetadata(message));
+  // TODO: save the display versoin
+  function toDbPoll(message: Message) {
+    if (!message.poll) return null;
+    const answerSchema = z.object({
+      text: z.string(),
+      voteCount: z.number(),
+    });
+    const poll = message.poll;
+    return {
+      question: poll.question.text,
+      answers: poll.answers.map(x => x).flatMap((a) => {
+        const parsed = answerSchema.safeParse({ text: a.text, voteCount: a.voteCount, emoji: getEmojiData(a.emoji!) });
+        if (!parsed.success) {
+          console.error('Failed to parse poll data:', a);
+          return [];
+        }
+        return [parsed.data];
+      }),
+    };
+  }
+  console.dir(toDbPoll(message), { depth: null })
 }
