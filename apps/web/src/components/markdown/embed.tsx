@@ -1,33 +1,35 @@
-import { DBMessage } from "@repo/db/schema/discord";
-import { dayjs } from "@repo/utils/helpers/dayjs";
+import type { DBMessage } from '@repo/db/schema/discord';
+import { dayjs } from '@repo/utils/helpers/dayjs';
 
-type DBEmbed = NonNullable<DBMessage["embeds"]>[number];
+type DBEmbed = NonNullable<DBMessage['embeds']>[number];
 
 export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
   if (!embeds?.length) return null;
-  return <>
-    {
-      embeds.map((embed, idx) => {
-        const borderLeftColor = embed.color ? '#' + embed.color.toString(16).padStart(6, '0') : "dadadc";
-        if (embed.type === "gifv") {
-          const { height, width } = embed.video!
+  return (
+    <>
+      {embeds.map((embed, idx) => {
+        const borderLeftColor = embed.color
+          ? '#' + embed.color.toString(16).padStart(6, '0')
+          : 'dadadc';
+        if (embed.type === 'gifv') {
+          const { height, width } = embed.video!;
           return (
-            <div key={idx} className="mt-4 rounded overflow-hidden">
+            <div className="mt-4 overflow-hidden rounded" key={idx}>
               <video
-                src={embed.video?.url}
-                poster={embed.thumbnail?.url}
                 autoPlay
                 loop
                 muted
+                poster={embed.thumbnail?.url}
+                src={embed.video?.url}
                 style={getScaledDownWidth({ width: width!, height: height! })}
               />
             </div>
           );
         }
-        if (embed.type === "image") {
+        if (embed.type === 'image') {
           const { height, width, url } = embed.image! ?? embed.thumbnail!;
           return (
-            <div key={idx} className="mt-4 rounded overflow-hidden">
+            <div className="mt-4 overflow-hidden rounded" key={idx}>
               <img
                 src={embed.url}
                 style={getScaledDownWidth({ width: width!, height: height! })}
@@ -38,52 +40,79 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 
         const previewUrl = embed.image ?? embed.thumbnail;
         return (
-          <div key={idx} className="grid w-md  border border-l-4 rounded-md shadow-xs pt-2 px-4 pb-3" style={{
-            borderLeftColor
-          }}>
-            {
-              embed.provider && <span className="text-xs text-neutral-600">{embed.provider.name}</span>
-            }
-            {
-              embed.author && <a className="text-sm  hover:underline font-semibold mt-2" target="_blank" href={embed.author.url}>{embed.author.name}</a>
-            }
-            {
-              embed.title && <a className="hover:underline font-semibold mt-2 text-blue-500" target="_blank" href={embed.url}>{embed.title}</a>
-            }
-            {
-              embed.type !== "video" && <div className="text-sm text-neutral-500 mt-1">{embed.description}</div>
-            }
-            <div className="mt-4 rounded overflow-hidden max-h-[300px]">
-              <img src={previewUrl?.url} className="overflow-hidden object-cover max-h-[100%] max-w-[100%]" style={getScaledDownWidth({ width: previewUrl?.width!, height: previewUrl?.height! })} />
+          <div
+            className="grid w-md rounded-md border border-l-4 px-4 pt-2 pb-3 shadow-xs"
+            key={idx}
+            style={{
+              borderLeftColor,
+            }}
+          >
+            {embed.provider && (
+              <span className="text-neutral-600 text-xs">
+                {embed.provider.name}
+              </span>
+            )}
+            {embed.author && (
+              <a
+                className="mt-2 font-semibold text-sm hover:underline"
+                href={embed.author.url}
+                target="_blank"
+              >
+                {embed.author.name}
+              </a>
+            )}
+            {embed.title && (
+              <a
+                className="mt-2 font-semibold text-blue-500 hover:underline"
+                href={embed.url}
+                target="_blank"
+              >
+                {embed.title}
+              </a>
+            )}
+            {embed.type !== 'video' && (
+              <div className="mt-1 text-neutral-500 text-sm">
+                {embed.description}
+              </div>
+            )}
+            <div className="mt-4 max-h-[300px] overflow-hidden rounded">
+              <img
+                className="max-h-[100%] max-w-[100%] overflow-hidden object-cover"
+                src={previewUrl?.url}
+                style={getScaledDownWidth({
+                  width: previewUrl?.width!,
+                  height: previewUrl?.height!,
+                })}
+              />
             </div>
             <div>
-              {
-                embed.footer && <div className="flex items-center mt-2">
-                  <img className="rounded-full size-5 object-contain mr-2" src={embed.footer.icon_url} />
-                  <div className="text-[13px] flex items-center gap-1">
-                    <p>
-                      {
-                        embed.footer.text
-                      }
-                    </p>
-                    •
-                    <p>
-                      {
-                        dayjs(embed.timestamp).format('M/D/YY, h:mm A')
-                      }
-                    </p>
+              {embed.footer && (
+                <div className="mt-2 flex items-center">
+                  <img
+                    className="mr-2 size-5 rounded-full object-contain"
+                    src={embed.footer.icon_url}
+                  />
+                  <div className="flex items-center gap-1 text-[13px]">
+                    <p>{embed.footer.text}</p>•
+                    <p>{dayjs(embed.timestamp).format('M/D/YY, h:mm A')}</p>
                   </div>
                 </div>
-              }
+              )}
             </div>
           </div>
-        )
-      })
-    }
-  </>
+        );
+      })}
+    </>
+  );
 }
 
-function getScaledDownWidth({ height, width }: { height: number, width: number }) {
+function getScaledDownWidth({
+  height,
+  width,
+}: {
+  height: number;
+  width: number;
+}) {
   const MAX_WIDTH = 400;
   const MAX_HEIGHT = 300;
 
@@ -97,6 +126,6 @@ function getScaledDownWidth({ height, width }: { height: number, width: number }
   return {
     width: `${scaledWidth}px`,
     height: `${scaledHeight}px`,
-    maxWidth: '100%'
-  }
+    maxWidth: '100%',
+  };
 }

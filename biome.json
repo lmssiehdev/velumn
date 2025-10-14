@@ -4,7 +4,6 @@
   "files": {
     "ignoreUnknown": true,
     "includes": [
-      "!**/*.{jsx,tsx}",
       "!**/dist",
       "!**/.next",
       "!**/node_modules",
