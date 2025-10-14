@@ -4,7 +4,6 @@ import {
   CheckIcon,
   ListChecksIcon,
   PlusIcon,
-  SlidersIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -246,19 +245,16 @@ export function FAQ() {
               <CaretDownIcon className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
             </CollapsibleTrigger>
             <CollapsibleContent className="px-4 pt-2 pb-4">
-              <>
-                <div>
-                  Velumn crawls your Discord server and indexes threads in
-                  channels you specify, turning them into beautifully designed,
-                  well-optimized, SEO-friendly pages.
-                </div>
+              <div>
+                Velumn crawls your Discord server and indexes threads in
+                channels you specify, turning them into beautifully designed,
+                well-optimized, SEO-friendly pages.
+              </div>
 
-                <div>
-                  You keep doing what you do best building community on Discord
-                  while Velumn makes those conversations discoverable on the
-                  web.
-                </div>
-              </>
+              <div>
+                You keep doing what you do best building community on Discord
+                while Velumn makes those conversations discoverable on the web.
+              </div>
             </CollapsibleContent>
           </Collapsible>
 

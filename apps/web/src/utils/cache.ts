@@ -3,7 +3,6 @@ import {
   getChannelInfo,
 } from '@repo/db/helpers/channels';
 import {
-  getAllThreads,
   getServerInfo,
   getServerInfoByChannelId,
 } from '@repo/db/helpers/servers';

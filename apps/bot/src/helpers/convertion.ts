@@ -15,7 +15,6 @@ import type {
 } from '@repo/db/schema/index';
 import {
   ChannelFlags,
-  Collection,
   type Emoji,
   type Guild,
   type GuildBasedChannel,
@@ -27,7 +26,6 @@ import {
   type User,
 } from 'discord.js';
 import z from 'zod';
-import { isChannelIndexable } from '../core/indexing/server.js';
 import { MessageLinkRegex } from './regex';
 
 export async function toDbChannel(
@@ -77,7 +75,9 @@ export function toDbUser(user: User) {
 //
 
 function toDbPoll(message: Message) {
-  if (!message.poll) return null;
+  if (!message.poll) {
+    return null;
+  }
 
   const { success, data, error } = pollSchema.safeParse(message.poll);
   if (!success) {
@@ -91,7 +91,9 @@ function toDbPoll(message: Message) {
 }
 
 async function toDbInternalLink(message: Message) {
-  if (!message.content) return [];
+  if (!message.content) {
+    return [];
+  }
 
   const groupSchema = z.object({
     original: z.string(),
@@ -109,14 +111,20 @@ async function toDbInternalLink(message: Message) {
     }
   );
 
-  if (validGroups.length === 0) return [];
+  if (validGroups.length === 0) {
+    return [];
+  }
 
   const internalLinks = await Promise.all(
     validGroups.map(async (g) => {
       try {
         const channel = await message.client.channels.fetch(g.channelId);
-        if (!channel?.isTextBased() || channel.isDMBased()) return null;
-        if (!('messages' in channel)) return null;
+        if (!channel?.isTextBased() || channel.isDMBased()) {
+          return null;
+        }
+        if (!('messages' in channel)) {
+          return null;
+        }
         const fetchedMessage = g.messageId
           ? await channel.messages.fetch(g.messageId)
           : null;
@@ -251,7 +259,9 @@ export async function messagesToDBMessagesSet(messages: Message[]) {
   const reversed = [...messages].reverse();
   const dbMessages = new Map<string, DBMessageWithRelations>();
   for await (const msg of reversed) {
-    if (dbMessages.has(msg.id)) continue;
+    if (dbMessages.has(msg.id)) {
+      continue;
+    }
     const converted = await toDBMessage(msg);
     dbMessages.set(msg.id, converted);
   }
@@ -277,7 +287,9 @@ export function toDbServer(guild: Guild) {
 //
 
 export function getEmojiData(emoji: Emoji) {
-  if (!emoji) return null;
+  if (!emoji) {
+    return null;
+  }
   return {
     id: emoji.id,
     name: emoji.name,
@@ -315,9 +327,13 @@ function toDbAttachments(message: Message | MessageSnapshot) {
 }
 
 export function toDBSnapshot(message: Message) {
-  if (!message.flags?.has(MessageFlags.HasSnapshot)) return null;
+  if (!message.flags?.has(MessageFlags.HasSnapshot)) {
+    return null;
+  }
   const snapshot = message.messageSnapshots.first();
-  if (!snapshot) return null;
+  if (!snapshot) {
+    return null;
+  }
 
   const { success, data, error } = snapShotSchema.safeParse(snapshot);
   if (!success) {

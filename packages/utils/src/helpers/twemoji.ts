@@ -28,7 +28,7 @@ export function emojiToTwemoji(emoji: string, version = '14.0.2') {
   let code = toCodePoint(emoji);
 
   // Fix for "copyright" and "trademark" emojis
-  if (code.substring(0, 2) == '00') {
+  if (code.substring(0, 2) === '00') {
     code = code.substring(2);
   }
 

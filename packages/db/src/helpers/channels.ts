@@ -5,7 +5,6 @@ import {
   type DBAttachments,
   type DBChannel,
   type DBMessage,
-  DBMessageWithRelations,
   type DBUser,
   dbAttachments,
   dbChannel,

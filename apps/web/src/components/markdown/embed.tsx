@@ -4,12 +4,14 @@ import { dayjs } from '@repo/utils/helpers/dayjs';
 type DBEmbed = NonNullable<DBMessage['embeds']>[number];
 
 export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
-  if (!embeds?.length) return null;
+  if (!embeds?.length) {
+    return null;
+  }
   return (
     <>
       {embeds.map((embed, idx) => {
         const borderLeftColor = embed.color
-          ? '#' + embed.color.toString(16).padStart(6, '0')
+          ? `#${embed.color.toString(16).padStart(6, '0')}`
           : 'dadadc';
         if (embed.type === 'gifv') {
           const { height, width } = embed.video!;

@@ -11,7 +11,7 @@ import { Spoiler } from './spoiler';
 
 function renderASTNode(
   node: SingleASTNode | SingleASTNode[],
-  index = 0,
+  index,
   parent: SingleASTNode | SingleASTNode[] | null,
   isReferenceReply = false,
   message?: DBMessage
@@ -22,8 +22,12 @@ function renderASTNode(
     );
   }
 
-  if (isReferenceReply && ['br', 'inlineCode', 'codeBlock'].includes(node.type))
+  if (
+    isReferenceReply &&
+    ['br', 'inlineCode', 'codeBlock'].includes(node.type)
+  ) {
     return ' ';
+  }
 
   const key = index;
 
@@ -140,7 +144,9 @@ export const DiscordMarkdown = ({
   isReferenceReply?: boolean;
   message: DBMessage;
 }) => {
-  if (!children) return null;
+  if (!children) {
+    return null;
+  }
   const parsed = parse(children, 'normal');
   return (
     <div className="prose">

@@ -1,17 +1,9 @@
-import {
-  ChatsCircleIcon,
-  HashIcon,
-  XIcon,
-} from '@phosphor-icons/react/dist/ssr';
+import { ChatsCircleIcon, HashIcon } from '@phosphor-icons/react/dist/ssr';
 import { getTopicsInServer } from '@repo/db/helpers/servers';
 import type { DBServer } from '@repo/db/schema/index';
 import { ChannelType } from 'discord-api-types/v10';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  RainbowButton,
-  rainbowButtonVariants,
-} from '@/components/ui/rainbow-button';
 import { cn } from '@/lib/utils';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -52,7 +44,9 @@ export async function FrontPageSidebar({
 }
 
 export function ServerInfo({ server }: { server?: DBServer }) {
-  if (!server) return;
+  if (!server) {
+    return;
+  }
   return (
     <div className="border border-neutral-300 p-4">
       <div className="text-lg">{server.name}</div>

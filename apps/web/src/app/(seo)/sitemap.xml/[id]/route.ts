@@ -5,7 +5,7 @@ import { LIMIT } from '../route';
 const BASE_URL = 'http://localhost:3000';
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;

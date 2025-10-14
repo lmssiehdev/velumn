@@ -15,7 +15,9 @@ import { cn } from '@/lib/utils';
 const isCode = (a: DBAttachments) =>
   !a.contentType?.startsWith('image/') || a.proxyURL?.endsWith('.svg');
 export function Attachments({ attachments }: { attachments: DBAttachments[] }) {
-  if (!attachments.length) return null;
+  if (!attachments.length) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col gap-2">

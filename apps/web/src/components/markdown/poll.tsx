@@ -2,7 +2,9 @@ import type { DBMessage } from '@repo/db/schema/discord';
 import { CustomEmoji, Twemoji } from './emoji';
 
 export function Poll({ poll }: { poll: DBMessage['poll'] }) {
-  if (!poll) return null;
+  if (!poll) {
+    return null;
+  }
   const totalVotes =
     Object.values(poll.answers).reduce(
       (acc, curr) => acc + curr.voteCount,

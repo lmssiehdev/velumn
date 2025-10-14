@@ -1,12 +1,10 @@
-import { SingleASTNode } from '@khanacademy/simple-markdown';
 import {
   CaretRightIcon,
-  ChatsCircleIcon,
   ChatTeardropIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import type { DBMessage } from '@repo/db/schema/discord';
 import { ChannelType } from 'discord-api-types/v10';
-import { ChannelIcon, ThreadIcon } from './mention';
+import { ChannelIcon } from './mention';
 
 export function Link({
   target,
@@ -25,7 +23,7 @@ export function Link({
     const { original, channel, message } = isInternalLink;
     const shortenedMessage =
       channel.name.length > 40
-        ? channel.name!.slice(0, 40) + '...'
+        ? `${channel.name?.slice(0, 40)}...`
         : channel.name;
     return (
       <a

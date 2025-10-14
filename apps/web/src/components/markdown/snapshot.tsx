@@ -3,7 +3,9 @@ import type { DBSnapshotSchema } from '@repo/db/helpers/validation';
 import { Attachments } from './attachments';
 
 export function Snapshot({ snapshot }: { snapshot: DBSnapshotSchema | null }) {
-  if (!snapshot) return null;
+  if (!snapshot) {
+    return null;
+  }
   console.log(snapshot.attachments);
   return (
     <div className="prose">

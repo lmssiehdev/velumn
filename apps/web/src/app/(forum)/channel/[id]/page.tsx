@@ -1,4 +1,3 @@
-import { getChannelInfo } from '@repo/db/helpers/channels';
 import { getAllThreads } from '@repo/db/helpers/servers';
 import { ThreadList } from '@/app/(forum)/server/[id]/page';
 import { getChannelInfoCached } from '@/utils/cache';

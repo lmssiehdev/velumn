@@ -2,7 +2,6 @@ import {
   CheckIcon,
   LightningIcon,
   LockIcon,
-  RocketIcon,
   TrendUpIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';

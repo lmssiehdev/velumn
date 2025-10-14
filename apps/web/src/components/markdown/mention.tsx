@@ -1,9 +1,4 @@
-import { IconWeight } from '@phosphor-icons/react/dist/lib/types';
-import {
-  ChatsCircleIcon,
-  HashIcon,
-  LeafIcon,
-} from '@phosphor-icons/react/dist/ssr';
+import { ChatsCircleIcon, HashIcon } from '@phosphor-icons/react/dist/ssr';
 import type { DBMessage } from '@repo/db/schema/discord';
 import { ChannelType } from 'discord-api-types/v10';
 import { cn } from '@/lib/utils';

@@ -1,15 +1,9 @@
 import { parseArgs } from 'node:util';
-import { findLatestMessageInChannel } from '@repo/db/helpers/channels';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
-import { AnyThreadChannel, ChannelType, type Client } from 'discord.js';
+import { ChannelType, type Client } from 'discord.js';
 import { indexServers } from '../core/indexing';
-import {
-  toDBMessage,
-  toDBSnapshot,
-  toDbChannel,
-  toDbMetadata,
-} from '../helpers/convertion';
+import { toDBSnapshot } from '../helpers/convertion';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -48,7 +42,9 @@ async function testing(client: Client) {
   }
 
   const channel = await guild.channels.fetch('1427089455797239811');
-  if (channel?.type !== ChannelType.PublicThread) return;
+  if (channel?.type !== ChannelType.PublicThread) {
+    return;
+  }
 
   const message = await channel.messages.fetch('1427109258025238568');
   // console.log(await toDBMessage(await message.fetchReference()))
