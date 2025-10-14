@@ -13,10 +13,15 @@ import {
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
-import type { DBSnapshotSchema, EmbedSchema, MessageMetadataSchema, PollSchema } from '../helpers/validation';
-import { user } from './auth';
-import { z } from "zod";
 import { createSelectSchema } from 'drizzle-zod';
+import type { z } from 'zod';
+import type {
+  DBSnapshotSchema,
+  EmbedSchema,
+  MessageMetadataSchema,
+  PollSchema,
+} from '../helpers/validation';
+import { user } from './auth';
 export const snowflake = customType<{
   data: string;
 }>({
@@ -203,7 +208,6 @@ export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
 // export type DBAttachments = typeof dbAttachments.$inferSelect;
 export type DBAttachments = z.infer<typeof dbAttachmentsSchema>;
 export const dbAttachmentsSchema = createSelectSchema(dbAttachments);
-
 
 export type DBMessageWithRelations = DBMessage & {
   attachments?: DBAttachments[];

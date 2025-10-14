@@ -16,13 +16,13 @@ import type {
 import {
   ChannelFlags,
   Collection,
-  Emoji,
-  MessageFlags,
-  MessageSnapshot,
+  type Emoji,
   type Guild,
   type GuildBasedChannel,
   type GuildChannel,
   type Message,
+  MessageFlags,
+  type MessageSnapshot,
   type ThreadChannel,
   type User,
 } from 'discord.js';
@@ -81,7 +81,10 @@ function toDbPoll(message: Message) {
 
   const { success, data, error } = pollSchema.safeParse(message.poll);
   if (!success) {
-    console.error('Failed to parse poll data:', error.issues.map((x) => x.message));
+    console.error(
+      'Failed to parse poll data:',
+      error.issues.map((x) => x.message)
+    );
     return null;
   }
   return data;
@@ -97,16 +100,16 @@ async function toDbInternalLink(message: Message) {
     messageId: z.string().optional(),
   });
 
-  const validGroups = [...message.content.matchAll(MessageLinkRegex)]
-    .flatMap(m => {
+  const validGroups = [...message.content.matchAll(MessageLinkRegex)].flatMap(
+    (m) => {
       const parsed = groupSchema.safeParse({ original: m[0], ...m.groups });
       return parsed.success && message.guildId === parsed.data.guildId
         ? [parsed.data]
         : [];
-    });
+    }
+  );
 
-
-  if (validGroups.length === 0) return []
+  if (validGroups.length === 0) return [];
 
   const internalLinks = await Promise.all(
     validGroups.map(async (g) => {
@@ -290,7 +293,7 @@ function toDbEmbeds(message: Message | MessageSnapshot) {
       return [];
     }
     return [result.data];
-  })
+  });
 }
 
 function toDbAttachments(message: Message | MessageSnapshot) {
@@ -311,9 +314,7 @@ function toDbAttachments(message: Message | MessageSnapshot) {
   });
 }
 
-export function toDBSnapshot(
-  message: Message
-) {
+export function toDBSnapshot(message: Message) {
   if (!message.flags?.has(MessageFlags.HasSnapshot)) return null;
   const snapshot = message.messageSnapshots.first();
   if (!snapshot) return null;

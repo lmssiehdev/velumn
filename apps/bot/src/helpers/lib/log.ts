@@ -6,7 +6,7 @@ const axiom = new Axiom({
 });
 
 export const logger = new Logger({
-  logLevel: "error",
+  logLevel: 'error',
   transports: [
     new AxiomJSTransport({
       axiom,

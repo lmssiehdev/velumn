@@ -5,11 +5,11 @@ import {
   type Guild,
   type GuildBasedChannel,
 } from 'discord.js';
+import { toDbServer } from '../../helpers/convertion';
 import { logger, safeStringify } from '../../helpers/lib/log';
 import { shuffle } from '../../helpers/utils';
 import { indexRootChannel } from './channel';
 import { Log } from './logger';
-import { toDbServer } from '../../helpers/convertion';
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
@@ -32,7 +32,7 @@ export async function indexServers(client: Client) {
         }
         await indexRootChannel(channel);
       }
-      console.log("Done indexing server", guild.name, guild.id);
+      console.log('Done indexing server', guild.name, guild.id);
     } catch (error) {
       Log('failed_to_fetch_guild', error, guild);
     }
@@ -48,7 +48,7 @@ async function randomizeServers(allGuilds: Guild[]) {
   const guilds =
     process.env.NODE_END !== 'development'
       ? allGuilds
-      : allGuilds.filter((x) => x.id === "1385955477912948806");
+      : allGuilds.filter((x) => x.id === '1385955477912948806');
 
   try {
     const serversPlans = await getBulkServersPlan(guilds.map((x) => x.id));
@@ -70,10 +70,10 @@ async function randomizeServers(allGuilds: Guild[]) {
         const converted = toDbServer(curr);
         await upsertServer({
           ...converted,
-          plan: "FREE",
-          invitedBy: "MOCK_USER_ID",
+          plan: 'FREE',
+          invitedBy: 'MOCK_USER_ID',
         });
-        plan = "FREE";
+        plan = 'FREE';
       }
 
       if (!plan) {
@@ -89,7 +89,7 @@ async function randomizeServers(allGuilds: Guild[]) {
     return [...shuffle(PAID), ...shuffle(OPEN_SOURCE), ...shuffle(FREE)];
   } catch (err) {
     logger.error('Failed_to_randomize_guilds', {
-      error: safeStringify(err)
+      error: safeStringify(err),
     });
     return shuffle(guilds);
   }

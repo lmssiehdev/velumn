@@ -4,7 +4,6 @@ import * as schema from '../src/schema';
 
 async function clearDbMessages() {
   try {
-
     await db.update(schema.dbChannel).set({
       lastIndexedMessageId: null,
     });

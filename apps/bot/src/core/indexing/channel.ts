@@ -227,6 +227,8 @@ export async function indexTextBasedChannel(
     await storeIndexedData(messages, channel);
     Log('log_indexing_complete', channel);
   } catch (error) {
-    logger.error(`Error indexing channel ${channel.name} ${channel.id}`, { error });
+    logger.error(`Error indexing channel ${channel.name} ${channel.id}`, {
+      error,
+    });
   }
 }

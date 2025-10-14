@@ -17,9 +17,9 @@ export const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
         {} as Record<string, z.infer<T>>
       )
     )
-    .catch(ctx => {
+    .catch((ctx) => {
       console.log('Failed to parse collection:', ctx);
-      return {}
+      return {};
     });
 
 export const collectionToArray = <T extends z.ZodObject>(schema: T) =>
@@ -32,11 +32,13 @@ export const collectionToArray = <T extends z.ZodObject>(schema: T) =>
       return Array.isArray(c) ? c : [];
     })
     .pipe(z.array(schema))
-    .catch(ctx => {
-      console.log('collection_to_array_schema_converstion_failed', z.prettifyError(ctx.error));
-      return []
+    .catch((ctx) => {
+      console.log(
+        'collection_to_array_schema_converstion_failed',
+        z.prettifyError(ctx.error)
+      );
+      return [];
     });
-
 
 //
 // Metadata Schema
@@ -49,11 +51,13 @@ export const internalLinksSchema = z.object({
     name: z.string(),
   }),
   channel: z.object({
-    parent: z.object({
-      name: z.string().optional(),
-      type: z.number().optional(),
-      parentId: z.string().optional(),
-    }).optional(),
+    parent: z
+      .object({
+        name: z.string().optional(),
+        type: z.number().optional(),
+        parentId: z.string().optional(),
+      })
+      .optional(),
     id: z.string(),
     type: z.number(),
     name: z.string(),
@@ -91,16 +95,20 @@ export const messageMetadataSchema = z.object({
 const answerSchema = z.object({
   text: z.string(),
   voteCount: z.number(),
-  emoji: z.object({
-    id: z.string().nullable(),
-    name: z.string(),
-    animated: z.boolean().catch(false),
-  }).nullable(),
+  emoji: z
+    .object({
+      id: z.string().nullable(),
+      name: z.string(),
+      animated: z.boolean().catch(false),
+    })
+    .nullable(),
 });
 export const pollSchema = z.object({
-  question: z.object({
-    text: z.string(),
-  }).transform((x) => x.text),
+  question: z
+    .object({
+      text: z.string(),
+    })
+    .transform((x) => x.text),
   resultsFinalized: z.boolean(),
   layoutType: z.enum(PollLayoutType),
   answers: collectionToRecord(answerSchema),
@@ -165,12 +173,13 @@ export const embedSchema = z
   })
   .partial();
 
-
 //
 // Snapshot Schema
 //
 
-export type DBSnapshotSchema = { forwardedInMessageId: string } & z.infer<typeof snapShotSchema>;
+export type DBSnapshotSchema = { forwardedInMessageId: string } & z.infer<
+  typeof snapShotSchema
+>;
 export const snapShotSchema = z.object({
   id: z.string().nullable(),
   content: z.string(),
@@ -179,5 +188,5 @@ export const snapShotSchema = z.object({
   editedTimestamp: z.number().nullable(),
   attachments: collectionToArray(dbAttachmentsSchema),
   embeds: z.array(embedSchema),
-  flags: z.number().or(z.any().transform(x => x.bitfield ?? 0)),
+  flags: z.number().or(z.any().transform((x) => x.bitfield ?? 0)),
 });

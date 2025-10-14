@@ -104,7 +104,7 @@ const errToLogStringMap = {
     start: string | undefined
   ) => {
     logger.info('Starting indexing from message', {
-      start: start ?? "start",
+      start: start ?? 'start',
       until: channel.lastMessageId,
       ...getChannelInfo(channel),
       event: 'log_starting_indexing_from_message',

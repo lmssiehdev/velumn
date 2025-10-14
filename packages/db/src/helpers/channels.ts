@@ -1,18 +1,18 @@
 import { asc, count, eq, inArray, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../index';
 import {
   type DBAttachments,
   type DBChannel,
-  DBMessage,
+  type DBMessage,
   DBMessageWithRelations,
-  DBUser,
+  type DBUser,
   dbAttachments,
   dbChannel,
   dbDiscordUser,
   dbMessage,
   dbServer,
 } from '../schema';
-import { alias } from 'drizzle-orm/pg-core';
 
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
@@ -56,13 +56,16 @@ export async function getChannelInfo(channelId: string) {
   return data[0];
 }
 
-export async function getAllMessagesInThreads(channelId: string): Promise<DBChannel & {
-  parent: DBChannel;
-  messages: (DBMessage & {
-    user: DBUser | null;
-    attachments: DBAttachments[];
-  })[];
-} | null> {
+export async function getAllMessagesInThreads(channelId: string): Promise<
+  | (DBChannel & {
+      parent: DBChannel;
+      messages: (DBMessage & {
+        user: DBUser | null;
+        attachments: DBAttachments[];
+      })[];
+    })
+  | null
+> {
   const parent = alias(dbChannel, 'parent');
   const threadWithParent = await db
     .select({
@@ -90,18 +93,18 @@ export async function getAllMessagesInThreads(channelId: string): Promise<DBChan
   const users =
     userIds.length > 0
       ? await db
-        .select()
-        .from(dbDiscordUser)
-        .where(inArray(dbDiscordUser.id, userIds))
+          .select()
+          .from(dbDiscordUser)
+          .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-        .select()
-        .from(dbAttachments)
-        .where(inArray(dbAttachments.messageId, messageIds))
+          .select()
+          .from(dbAttachments)
+          .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));
