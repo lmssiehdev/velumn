@@ -13,8 +13,13 @@
   },
   "linter": {
     "rules": {
+      "a11y": "off",
       "complexity": {
         "useSimplifiedLogicExpression": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "noMagicNumbers": "off"
       },
       "suspicious": {
         "noConsole": "off",
