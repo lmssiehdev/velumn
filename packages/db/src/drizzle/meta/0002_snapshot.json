@@ -1,6 +1,6 @@
 {
-  "id": "37d1426c-23bf-44c7-b6d2-dca7ce28a739",
-  "prevId": "0d7391d7-1f11-402f-80c8-6a0ccb1bf76f",
+  "id": "003b40c2-f1df-49f5-ae23-89ce77128bef",
+  "prevId": "9bd7f888-4017-4aa1-add9-87903309aade",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -431,8 +431,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "proxyUrl": {
-          "name": "proxyUrl",
+        "proxyURL": {
+          "name": "proxyURL",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -773,6 +773,26 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'[]'::json"
+        },
+        "poll": {
+          "name": "poll",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'null'::json"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'null'::json"
         }
       },
       "indexes": {
@@ -932,6 +952,62 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.thread_backlink": {
+      "name": "thread_backlink",
+      "schema": "",
+      "columns": {
+        "source_message_id": {
+          "name": "source_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_thread_id": {
+          "name": "target_thread_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "backlinks_to_thread_idx": {
+          "name": "backlinks_to_thread_idx",
+          "columns": [
+            {
+              "expression": "target_thread_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "thread_backlink_source_message_id_target_thread_id_pk": {
+          "name": "thread_backlink_source_message_id_target_thread_id_pk",
+          "columns": [
+            "source_message_id",
+            "target_thread_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

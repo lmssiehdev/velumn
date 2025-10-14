@@ -3,12 +3,16 @@ import { db } from '../index';
 import {
   type DBAttachments,
   type DBChannel,
+  DBMessage,
+  DBMessageWithRelations,
+  DBUser,
   dbAttachments,
   dbChannel,
   dbDiscordUser,
   dbMessage,
   dbServer,
 } from '../schema';
+import { alias } from 'drizzle-orm/pg-core';
 
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
@@ -52,16 +56,29 @@ export async function getChannelInfo(channelId: string) {
   return data[0];
 }
 
-export async function getAllMessagesInThreads(channelId: string) {
-  const channel = await db
-    .select()
+export async function getAllMessagesInThreads(channelId: string): Promise<DBChannel & {
+  parent: DBChannel;
+  messages: (DBMessage & {
+    user: DBUser | null;
+    attachments: DBAttachments[];
+  })[];
+} | null> {
+  const parent = alias(dbChannel, 'parent');
+  const threadWithParent = await db
+    .select({
+      channel: dbChannel,
+      parentChannel: parent,
+    })
     .from(dbChannel)
+    .innerJoin(parent, eq(dbChannel.parentId, parent.id))
     .where(eq(dbChannel.id, channelId))
     .limit(1);
 
-  if (!channel[0]) {
+  if (!threadWithParent[0] || !threadWithParent[0].channel) {
     return null;
   }
+
+  const { channel, parentChannel } = threadWithParent[0];
 
   const messages = await db
     .select()
@@ -73,18 +90,18 @@ export async function getAllMessagesInThreads(channelId: string) {
   const users =
     userIds.length > 0
       ? await db
-          .select()
-          .from(dbDiscordUser)
-          .where(inArray(dbDiscordUser.id, userIds))
+        .select()
+        .from(dbDiscordUser)
+        .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-          .select()
-          .from(dbAttachments)
-          .where(inArray(dbAttachments.messageId, messageIds))
+        .select()
+        .from(dbAttachments)
+        .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));
@@ -100,7 +117,8 @@ export async function getAllMessagesInThreads(channelId: string) {
   );
 
   return {
-    ...channel[0],
+    ...channel,
+    parent: parentChannel,
     messages: messages.map((message) => ({
       ...message,
       user: usersMap.get(message.authorId) || null,
@@ -108,18 +126,18 @@ export async function getAllMessagesInThreads(channelId: string) {
     })),
   };
 
-  return await db.query.dbChannel.findFirst({
-    where: eq(dbChannel.id, channelId),
-    with: {
-      messages: {
-        with: {
-          user: true,
-          attachments: true,
-        },
-        orderBy: [asc(dbChannel.id)],
-      },
-    },
-  });
+  // return await db.query.dbChannel.findFirst({
+  //   where: eq(dbChannel.id, channelId),
+  //   with: {
+  //     messages: {
+  //       with: {
+  //         user: true,
+  //         attachments: true,
+  //       },
+  //       orderBy: [asc(dbChannel.id)],
+  //     },
+  //   },
+  // });
 }
 
 export async function findLatestMessageInChannel(channelId: string) {

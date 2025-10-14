@@ -13,8 +13,10 @@ import {
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
-import type { EmbedSchema, MessageMetadataSchema } from '../helpers/validation';
+import type { DBSnapshotSchema, EmbedSchema, MessageMetadataSchema, PollSchema } from '../helpers/validation';
 import { user } from './auth';
+import { z } from "zod";
+import { createSelectSchema } from 'drizzle-zod';
 export const snowflake = customType<{
   data: string;
 }>({
@@ -148,7 +150,9 @@ export const dbMessage = pgTable(
     applicationId: snowflake('application_id'),
     reactions: json('reactions').$type<DBMessageReaction[]>(),
     embeds: json('embeds').$type<EmbedSchema[]>().default([]),
+    poll: json('poll').$type<PollSchema | null>().default(null),
     metadata: json('metadata').$type<MessageMetadataSchema>(),
+    snapshot: json('snapshot').$type<DBSnapshotSchema | null>().default(null),
   },
   (t) => [
     index('message_channel_id_idx').on(t.channelId),
@@ -179,7 +183,7 @@ export const dbAttachments = pgTable(
     messageId: snowflake('message_id').notNull(),
     name: text('file_name').notNull(),
     url: text('url').notNull(),
-    proxyUrl: text('proxyUrl').notNull(),
+    proxyURL: text('proxyURL').notNull(),
     description: text('description'),
     contentType: text('content_type'),
     size: integer('size'),
@@ -196,7 +200,10 @@ export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
   }),
 }));
 
-export type DBAttachments = typeof dbAttachments.$inferSelect;
+// export type DBAttachments = typeof dbAttachments.$inferSelect;
+export type DBAttachments = z.infer<typeof dbAttachmentsSchema>;
+export const dbAttachmentsSchema = createSelectSchema(dbAttachments);
+
 
 export type DBMessageWithRelations = DBMessage & {
   attachments?: DBAttachments[];

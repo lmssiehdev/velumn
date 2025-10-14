@@ -2,7 +2,6 @@
   "name": "@repo/db",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit",
     "dev": "tsx --env-file=.env --watch src/index.ts",
     "build": "tsc",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
@@ -36,6 +35,7 @@
     "discord-api-types": "^0.38.26",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.5",
+    "drizzle-zod": "^0.8.3",
     "pg": "^8.16.3",
     "zod": "^4.1.11"
   }

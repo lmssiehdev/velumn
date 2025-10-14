@@ -141,7 +141,7 @@ async function processAttachments(attachments: DBAttachment[]) {
             .insert(dbAttachments)
             .values({
               ...attachment,
-              proxyUrl: file.Location,
+              proxyURL: file.Location,
             })
             .onConflictDoNothing();
         });

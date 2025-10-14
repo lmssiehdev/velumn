@@ -14,13 +14,12 @@
     "typescript": "5.9.2",
     "ultracite": "5.2.14"
   },
-  "packageManager": "pnpm@9.0.0",
-  "engines": {
-    "node": ">=18"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "discord-markdown-parser@1.2.0": "patches/discord-markdown-parser@1.2.0.patch"
-    }
+  "packageManager": "bun@1.3.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "patchedDependencies": {
+    "discord-markdown-parser@1.2.0": "patches/discord-markdown-parser@1.2.0.patch"
   }
 }

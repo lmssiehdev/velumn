@@ -15,7 +15,7 @@ import type { DBAttachments } from "@repo/db/schema/index";
 // @ts-expect-error no types - used once;
 import bytes from "bytes";
 
-const isCode = (a: DBAttachments) => !a.contentType?.startsWith('image/') || a.proxyUrl.endsWith(".svg");
+const isCode = (a: DBAttachments) => !a.contentType?.startsWith('image/') || a.proxyURL?.endsWith(".svg");
 export function Attachments({ attachments }: { attachments: DBAttachments[] }) {
   if (!attachments.length) return null;
 
@@ -83,7 +83,7 @@ const MAX_IMAGES = 2;
 const _dummyImages = Array.from({ length: 10 }, () => ({
   id: Math.random(),
   name: "test.png",
-  proxyUrl: "https://discord-indexer.s3.us-east-1.amazonaws.com/1417376726077407343/troy-olson-O5UG81P7yzE-unsplash.jpg",
+  proxyURL: "https://discord-indexer.s3.us-east-1.amazonaws.com/1417376726077407343/troy-olson-O5UG81P7yzE-unsplash.jpg",
 })).splice(0, MAX_IMAGES);
 
 function ImageGallery({ images }: { images: DBAttachments[] }) {
@@ -104,14 +104,13 @@ function ImageGallery({ images }: { images: DBAttachments[] }) {
     9: "grid gap-1 grid-cols-3 grid-rows-3 *:h-[181px]",
     10: "grid gap-1 grid-cols-3 grid-rows-4 *:h-[181px] [&>*:first-child]:col-span-3",
   }
-
   return <div className={
     cn("max-w-[550px] w-full rounded overflow-hidden py-0.5", styles[images.length])
   }>
     {
-      images.map(({ id, proxyUrl, name }) => {
+      images.map(({ id, proxyURL, name }) => {
         return <img className="rounded inline-block min-h-full min-w-full object-cover"
-          src={proxyUrl}
+          src={proxyURL}
           alt={name}
           key={id} />
       }

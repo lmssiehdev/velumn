@@ -4,16 +4,12 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "tsx watch --env-file=.env src/index.ts",
-    "start": "tsx --env-file=.env src/index.ts",
-    "with-env": "bun run --env-file=../../.env --",
+    "dev": "NODE_END=development bun src/index.ts",
+    "start": "brun run src/index.ts",
     "test": "bun test"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:^",
-    "@types/node": "^22.15.3",
-    "tsx": "^4.20.5",
-    "vitest": "^3.2.4"
+    "@repo/typescript-config": "workspace:^"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",

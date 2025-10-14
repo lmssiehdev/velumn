@@ -31,6 +31,8 @@ import { ChannelType } from "discord-api-types/v10";
 import { Embeds } from "@/components/markdown/embed";
 import { Twemoji } from "@/components/markdown/emoji";
 import { RainbowButton, rainbowButtonVariants } from "@/components/ui/rainbow-button";
+import { Poll } from "@/components/markdown/poll";
+import { Snapshot } from "@/components/markdown/snapshot";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: [string, string?] }> }) {
   const {
@@ -106,6 +108,10 @@ export default async function Page({ params }: { params: Promise<{ id: [string, 
 
   const server = await getServerInfoByChannelIdCache(threadId);
 
+  if (!server) {
+    return <div>Server doesn't exist</div>;
+  }
+
   const op = originalPost.user!;
   const title = thread.channelName ?? originalPost.content!.slice(0, 100);
   const firstImage = originalPost.attachments.filter(isEmbeddableAttachment).at(0);
@@ -139,7 +145,7 @@ export default async function Page({ params }: { params: Promise<{ id: [string, 
             identifier: op.anonymizeName ? anonymizeName(op!) : op?.id,
           },
           // todo fall to an og?
-          image: firstImage?.proxyUrl || undefined,
+          image: firstImage?.proxyURL || undefined,
           headline: title,
           articleBody: originalPost.content,
           identifier: thread.id,
@@ -174,7 +180,7 @@ export default async function Page({ params }: { params: Promise<{ id: [string, 
             ) : (
               <HashIcon className="size-3.5" weight="bold" />
             )}
-            General
+            {thread.parent.channelName}
           </Link>
         </div>
       </div>
@@ -205,7 +211,7 @@ export default async function Page({ params }: { params: Promise<{ id: [string, 
             })}
           </div>
           {orderedMessages.length === 0 && op.id === authorId && <NoReplies />}
-          {orderedMessages.length !== 0 && <ContinueDiscussion />}
+          {orderedMessages.length !== 0 && <ContinueDiscussion url={ConstructDiscordLink({ serverId: server.id, threadId: thread.id })} />}
         </div>
         <div className="max-w-xs w-full space-y-6 hidden md:block">
           <ServerInfo server={server} />
@@ -214,6 +220,14 @@ export default async function Page({ params }: { params: Promise<{ id: [string, 
       </div>
     </div>
   );
+}
+
+function ConstructDiscordLink({ serverId, threadId, messageId }: { serverId: string, threadId: string, messageId?: string }) {
+  const parts = [serverId, threadId];
+
+  if (messageId) parts.push(messageId);
+
+  return `https://discord.com/channels/${parts.join('/')}`;
 }
 
 type MessageWithMetadata = NonNullable<
@@ -286,6 +300,8 @@ function MessagePost({
             <DiscordMarkdown message={message}>{message.content}</DiscordMarkdown>
             <Attachments attachments={message.attachments!} />
             <Embeds embeds={message.embeds} />
+            <Poll poll={message.poll} />
+            <Snapshot snapshot={message.snapshot} />
           </div>
         </div>
       </div>
@@ -347,7 +363,7 @@ function NoReplies() {
   );
 }
 
-function ContinueDiscussion() {
+function ContinueDiscussion({ url }: { url: string }) {
   return (
     <div className="mt-2 rounded-lg border border-neutral-200 p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className=" flex justify-between items-center">
@@ -360,6 +376,7 @@ function ContinueDiscussion() {
 
         <a
           target="_blank"
+          href={url}
           rel="noopener noreferrer"
           className={rainbowButtonVariants({
             variant: "outline",

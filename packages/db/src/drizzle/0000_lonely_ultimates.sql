@@ -36,6 +36,7 @@ CREATE TABLE "user" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	"server_id" bigint,
+	"finished_onboarding" boolean DEFAULT false NOT NULL,
 	CONSTRAINT "user_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
@@ -71,7 +72,7 @@ CREATE TABLE "db_channel" (
 	"last_indexed_message_id" bigint,
 	"type" integer NOT NULL,
 	"pinned" boolean DEFAULT false NOT NULL,
-	"indexing_enabled" boolean DEFAULT true NOT NULL
+	"indexing_enabled" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "db_user" (
@@ -97,7 +98,10 @@ CREATE TABLE "db_message" (
 	"webhook_id" bigint,
 	"reference_id" bigint,
 	"application_id" bigint,
-	"reactions" json
+	"reactions" json,
+	"embeds" json DEFAULT '[]'::json,
+	"poll" json DEFAULT 'null'::json,
+	"metadata" json
 );
 --> statement-breakpoint
 CREATE TABLE "db_server" (
@@ -117,6 +121,13 @@ CREATE TABLE "pending_discord_invite" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
+CREATE TABLE "thread_backlink" (
+	"source_message_id" text NOT NULL,
+	"target_thread_id" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "thread_backlink_source_message_id_target_thread_id_pk" PRIMARY KEY("source_message_id","target_thread_id")
+);
+--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "db_channel" ADD CONSTRAINT "db_channel_server_id_db_server_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."db_server"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -132,4 +143,5 @@ CREATE INDEX "channel_pinned_idx" ON "db_channel" USING btree ("pinned");--> sta
 CREATE INDEX "channel_parent_id_idx" ON "db_channel" USING btree ("parent_id");--> statement-breakpoint
 CREATE INDEX "channel_server_id_idx" ON "db_channel" USING btree ("server_id");--> statement-breakpoint
 CREATE INDEX "message_channel_id_idx" ON "db_message" USING btree ("channel_id");--> statement-breakpoint
-CREATE INDEX "message_parent_channel_id_idx" ON "db_message" USING btree ("parent_channel_id");
+CREATE INDEX "message_parent_channel_id_idx" ON "db_message" USING btree ("parent_channel_id");--> statement-breakpoint
+CREATE INDEX "backlinks_to_thread_idx" ON "thread_backlink" USING btree ("target_thread_id");

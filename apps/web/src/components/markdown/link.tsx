@@ -25,7 +25,7 @@ export function Link({ target, content, message }: { target: string, content: st
                 {shortenedMessage}
             </span>
             {
-                message && <span className="text-xs inline-block space-x-0.5">
+                message && <span className="text-xs inline-block space-x-0.5 align-middle">
                     <CaretRightIcon className="text-purple-800 size-2.5  inline-block" />
                     <ChatTeardropIcon size={32} weight="fill" className="text-purple-800 size-4 inline-block" />
                 </span>

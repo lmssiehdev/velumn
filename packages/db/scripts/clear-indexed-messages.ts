@@ -4,7 +4,12 @@ import * as schema from '../src/schema';
 
 async function clearDbMessages() {
   try {
-    const tables = [schema.dbAttachments, schema.dbMessage, schema.dbChannel];
+
+    await db.update(schema.dbChannel).set({
+      lastIndexedMessageId: null,
+    });
+
+    const tables = [schema.dbAttachments, schema.dbMessage];
 
     for (const table of tables) {
       await db.delete(table);

@@ -1,15 +1,12 @@
-import { EmbedType } from 'discord-api-types/v10';
+import { EmbedType, PollLayoutType } from 'discord-api-types/v10';
 import z from 'zod';
+import { dbAttachmentsSchema } from '../schema';
 
-//
-// Metadata Schema
-//
-
-const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
+export const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
   z
     .any()
     .transform((arr) => arr.map((x: unknown) => x))
-    .pipe(z.array(z.object({ id: z.string() }).and(schema)))
+    .pipe(z.array(z.object({ id: z.coerce.string() }).and(schema)))
     .transform((arr) =>
       arr.reduce(
         (acc, { id, ...rest }) => {
@@ -20,7 +17,30 @@ const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
         {} as Record<string, z.infer<T>>
       )
     )
-    .catch({});
+    .catch(ctx => {
+      console.log('Failed to parse collection:', ctx);
+      return {}
+    });
+
+export const collectionToArray = <T extends z.ZodObject>(schema: T) =>
+  z
+    .any()
+    .transform((c) => {
+      if (c instanceof Map) {
+        return Array.from(c.values());
+      }
+      return Array.isArray(c) ? c : [];
+    })
+    .pipe(z.array(schema))
+    .catch(ctx => {
+      console.log('collection_to_array_schema_converstion_failed', z.prettifyError(ctx.error));
+      return []
+    });
+
+
+//
+// Metadata Schema
+//
 
 export const internalLinksSchema = z.object({
   original: z.string(),
@@ -63,6 +83,30 @@ export const messageMetadataSchema = z.object({
   ),
   internalLinks: z.array(internalLinksSchema),
 });
+
+//
+// Poll Schema
+//
+
+const answerSchema = z.object({
+  text: z.string(),
+  voteCount: z.number(),
+  emoji: z.object({
+    id: z.string().nullable(),
+    name: z.string(),
+    animated: z.boolean().catch(false),
+  }).nullable(),
+});
+export const pollSchema = z.object({
+  question: z.object({
+    text: z.string(),
+  }).transform((x) => x.text),
+  resultsFinalized: z.boolean(),
+  layoutType: z.enum(PollLayoutType),
+  answers: collectionToRecord(answerSchema),
+});
+
+export type PollSchema = z.infer<typeof pollSchema>;
 
 //
 // Embed Schema
@@ -120,3 +164,20 @@ export const embedSchema = z
     ),
   })
   .partial();
+
+
+//
+// Snapshot Schema
+//
+
+export type DBSnapshotSchema = { forwardedInMessageId: string } & z.infer<typeof snapShotSchema>;
+export const snapShotSchema = z.object({
+  id: z.string().nullable(),
+  content: z.string(),
+  type: z.number(),
+  createdTimestamp: z.number(),
+  editedTimestamp: z.number().nullable(),
+  attachments: collectionToArray(dbAttachmentsSchema),
+  embeds: z.array(embedSchema),
+  flags: z.number().or(z.any().transform(x => x.bitfield ?? 0)),
+});

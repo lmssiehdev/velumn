@@ -10,7 +10,7 @@ import Link from "next/link";
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto flex flex-col min-h-screen">
-      <div className=" border-b border-x border-neutral-300">
+      <div className=" border-b border-neutral-300">
         <div className="max-w-screen-lg border-x border-neutral-300 mx-auto p-2 px-4">
           <Link href="/" className="text-xl text-black">
             Velumn

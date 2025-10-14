@@ -1,19 +1,14 @@
-import { parseArgs } from 'node:util';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
 import {
+  AnyThreadChannel,
   ChannelType,
-  type Client,
-  Message,
-  RESTJSONErrorCodes,
+  type Client
 } from 'discord.js';
-import { emoji, optional, safeParse, z } from 'zod';
+import { parseArgs } from 'node:util';
 import { indexServers } from '../core/indexing';
-import { isChannelIndexable } from '../core/indexing/server';
-import { getEmojiData, toDbChannel, toDbMetadata } from '../helpers/convertion';
-import { MessageLinkRegex } from '../helpers/regex';
-import { indexRootChannel, indexTextBasedChannel } from '../core/indexing/channel';
-import { text } from 'node:stream/consumers';
+import { findLatestMessageInChannel } from '@repo/db/helpers/channels';
+import { toDbChannel, toDBMessage, toDbMetadata, toDBSnapshot } from '../helpers/convertion';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -50,39 +45,61 @@ async function testing(client: Client) {
   if (!guild) {
     return;
   }
-  const channel = guild.channels.cache.get('1385955478453882943');
-  if (
-    channel?.type !== ChannelType.GuildText &&
-    channel?.type !== ChannelType.PublicThread
-  ) {
-    return;
-  }
 
-  const message = await channel.messages.fetch('1426763593558396959');
+  const channel = await guild.channels.fetch('1427089455797239811');
+  if (channel?.type !== ChannelType.PublicThread) return;
 
-  if (!message) {
-    return;
-  }
-
-  // TODO: save the display versoin
-  function toDbPoll(message: Message) {
-    if (!message.poll) return null;
-    const answerSchema = z.object({
-      text: z.string(),
-      voteCount: z.number(),
-    });
-    const poll = message.poll;
-    return {
-      question: poll.question.text,
-      answers: poll.answers.map(x => x).flatMap((a) => {
-        const parsed = answerSchema.safeParse({ text: a.text, voteCount: a.voteCount, emoji: getEmojiData(a.emoji!) });
-        if (!parsed.success) {
-          console.error('Failed to parse poll data:', a);
-          return [];
-        }
-        return [parsed.data];
-      }),
-    };
-  }
-  console.dir(toDbPoll(message), { depth: null })
+  const message = await channel.messages.fetch('1427109258025238568');
+  // console.log(await toDBMessage(await message.fetchReference()))
+  console.log({ att: message.attachments })
+  console.log(toDBSnapshot(message));
 }
+
+
+//
+// for (const channel of guild.channels.cache.values()) {
+//   if (
+//     channel?.type !== ChannelType.GuildText
+//   ) {
+//     continue;
+//   }
+
+//   if (!channel.viewable) continue;
+//   const threadCutoffId = await findLatestMessageInChannel(channel.id);
+//   const archivedThreads: AnyThreadChannel[] = [];
+//   const fetchAllArchivedThreads = async (before?: number | string) => {
+//     const fetched = await channel.threads.fetchArchived({
+//       type: 'public',
+//       before,
+//     });
+
+//     const last = fetched.threads.last();
+//     const isLastThreadOlderThanCutoff =
+//       last && threadCutoffId && BigInt(last.id) < BigInt(threadCutoffId);
+
+//     archivedThreads.push(...fetched.threads.values());
+
+//     if (
+//       !fetched.hasMore ||
+//       !last ||
+//       fetched.threads.size === 0 ||
+//       isLastThreadOlderThanCutoff
+//     ) {
+//       return;
+//     }
+//     await fetchAllArchivedThreads(last.id);
+//   };
+
+//   await fetchAllArchivedThreads();
+//   const activeThreads = await channel.threads.fetchActive();
+//   const threads = [
+//     ...archivedThreads.values(),
+//     ...activeThreads.threads.values(),
+//   ];
+
+//   for (const thread of threads) {
+//     console.log({ threadName: thread.name, threadId: thread.id });
+//   }
+// }
+// console.log("Done indexing server", guild.name, guild.id);
+// return;

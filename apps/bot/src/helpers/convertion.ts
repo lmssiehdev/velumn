@@ -3,6 +3,8 @@ import {
   internalLinksSchema,
   type MessageMetadataSchema,
   messageMetadataSchema,
+  pollSchema,
+  snapShotSchema,
 } from '@repo/db/helpers/validation';
 import type {
   DBChannel,
@@ -13,7 +15,10 @@ import type {
 } from '@repo/db/schema/index';
 import {
   ChannelFlags,
+  Collection,
   Emoji,
+  MessageFlags,
+  MessageSnapshot,
   type Guild,
   type GuildBasedChannel,
   type GuildChannel,
@@ -70,6 +75,17 @@ export function toDbUser(user: User) {
 //
 // Message
 //
+
+function toDbPoll(message: Message) {
+  if (!message.poll) return null;
+
+  const { success, data, error } = pollSchema.safeParse(message.poll);
+  if (!success) {
+    console.error('Failed to parse poll data:', error.issues.map((x) => x.message));
+    return null;
+  }
+  return data;
+}
 
 async function toDbInternalLink(message: Message) {
   if (!message.content) return [];
@@ -192,16 +208,6 @@ export async function toDBMessage(
   if (!fullMessage.guildId) {
     throw new Error('Message is not in a guild');
   }
-
-  const embeds = message.embeds.flatMap((e) => {
-    const result = embedSchema.safeParse(e.data);
-    if (!result.success) {
-      console.error('Invalid embed:', e.data, result.data, result.error);
-      return [];
-    }
-    return [result.data];
-  });
-
   const convertedMessage: DBMessageWithRelations = {
     id: fullMessage.id,
     cleanContent: fullMessage.cleanContent,
@@ -211,23 +217,9 @@ export async function toDBMessage(
       ? fullMessage.channel.parentId
       : null,
     reactions: toDbReactions(fullMessage),
-    attachments: message.attachments.map((attachment) => {
-      return {
-        id: attachment.id,
-        url: attachment.url,
-        messageId: message.id,
-        proxyUrl: attachment.proxyURL,
-        name: attachment.name ?? '',
-        size: attachment.size,
-        height: attachment.height,
-        width: attachment.width,
-        contentType: attachment.contentType,
-        description: attachment.description,
-        ephemeral: attachment.ephemeral ?? false,
-      };
-    }),
+    attachments: toDbAttachments(fullMessage),
+    embeds: toDbEmbeds(fullMessage),
     applicationId: message.applicationId,
-    embeds,
     // interactionId: message.interaction?.id ?? null,
     pinned: fullMessage.pinned,
     type: fullMessage.type,
@@ -238,6 +230,8 @@ export async function toDBMessage(
     // questionId: null,
     childThreadId: fullMessage.thread?.id ?? null,
     metadata: await toDbMetadata(fullMessage),
+    poll: toDbPoll(fullMessage),
+    snapshot: toDBSnapshot(fullMessage),
   };
   return convertedMessage;
 }
@@ -285,5 +279,52 @@ export function getEmojiData(emoji: Emoji) {
     id: emoji.id,
     name: emoji.name,
     animated: emoji.animated ?? false,
+  };
+}
+
+function toDbEmbeds(message: Message | MessageSnapshot) {
+  return message.embeds.flatMap((e) => {
+    const result = embedSchema.safeParse(e.data);
+    if (!result.success) {
+      console.error('Invalid embed:', e.data, result.data, result.error);
+      return [];
+    }
+    return [result.data];
+  })
+}
+
+function toDbAttachments(message: Message | MessageSnapshot) {
+  return message.attachments.map((attachment) => {
+    return {
+      id: attachment.id,
+      url: attachment.url,
+      messageId: message.id!,
+      proxyURL: attachment.proxyURL,
+      name: attachment.name ?? '',
+      size: attachment.size,
+      height: attachment.height,
+      width: attachment.width,
+      contentType: attachment.contentType,
+      description: attachment.description,
+      ephemeral: attachment.ephemeral ?? false,
+    };
+  });
+}
+
+export function toDBSnapshot(
+  message: Message
+) {
+  if (!message.flags?.has(MessageFlags.HasSnapshot)) return null;
+  const snapshot = message.messageSnapshots.first();
+  if (!snapshot) return null;
+
+  const { success, data, error } = snapShotSchema.safeParse(snapshot);
+  if (!success) {
+    console.error('Failed to parse snapshot:', error);
+    return null;
+  }
+  return {
+    ...data,
+    forwardedInMessageId: message.id,
   };
 }

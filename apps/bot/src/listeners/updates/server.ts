@@ -34,7 +34,6 @@ export class JoinedGuild extends Listener {
       // TODO: handle blacklisted servers and leave if necessary;
       // TODO: handle invite code;
       const converted = toDbServer(guild);
-      console.log({ convertedServer: converted });
       await upsertServer({
         ...converted,
         invitedBy: invitedBy?.userId,

@@ -82,7 +82,6 @@ export async function indexRootChannel(channel: IndexableChannels) {
       activeThreads.threads.size,
       channel
     );
-
     // archived threads are sorted by archive timestamp from newest to oldest  so we reverse them
     const threadsToIndex = [
       ...archivedThreads.reverse(),
@@ -228,6 +227,6 @@ export async function indexTextBasedChannel(
     await storeIndexedData(messages, channel);
     Log('log_indexing_complete', channel);
   } catch (error) {
-    logger.info(`Error indexing channel ${channel.name} ${channel.id}`, { error });
+    logger.error(`Error indexing channel ${channel.name} ${channel.id}`, { error });
   }
 }
