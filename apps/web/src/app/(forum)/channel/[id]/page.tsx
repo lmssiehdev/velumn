@@ -40,7 +40,7 @@ export default async function Page({
 }) {
   const { id: channelId } = await params;
   const data = await getChannelInfoCached(channelId);
-  const searchParamsPage = Number((await searchParams.page) ?? 1);
+  const searchParamsPage = Number((await searchParams).page ?? 1);
 
   if (!data) {
     return <div>Channel doesn't exist</div>;
