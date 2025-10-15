@@ -1,6 +1,6 @@
 import { upsertChannel } from '@repo/db/helpers/channels';
 import { upsertManyMessages } from '@repo/db/helpers/messages';
-import { upsertManyDiscordAccounts } from '@repo/db/helpers/user';
+import { findManyDiscordAccountsById, upsertManyDiscordAccounts } from '@repo/db/helpers/user';
 import {
   ChannelType,
   type GuildTextBasedChannel,
@@ -50,8 +50,8 @@ export async function storeIndexedData(
     return;
   }
 
-  // Filter out messages from the system
-  const filteredMessages = messages.filter((m) => !m.system);
+  // Filter out system messages and ignored users
+  const filteredMessages = await filterMessages(messages);
 
   const convertedUsers = extractUsersSetFromMessages(filteredMessages);
   const convertedMessages = await messagesToDBMessagesSet(filteredMessages);
@@ -71,6 +71,17 @@ export async function storeIndexedData(
 
   logger.info(`Upserting ${convertedMessages.length} messages`);
 
-  const _upserted = await upsertManyMessages(convertedMessages);
-  // await Search.indexMessageForSearch(upserted);
+  await upsertManyMessages(convertedMessages);
+  return true;
+}
+
+async function filterMessages(messages: Message[]) {
+  const filteredMessages = messages.filter((m) => !m.system);
+
+  const userIds = [...new Set(filteredMessages.map((m) => m.author.id))];
+  const usersData = await findManyDiscordAccountsById(userIds);
+
+  const userLookup = new Map(usersData.map((x) => [x.id, x.isIgnored]));
+
+  return filteredMessages.filter((m) => !userLookup.get(m.author.id));
 }

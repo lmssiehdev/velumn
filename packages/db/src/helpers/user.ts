@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '..';
-import { type AuthUser, type DBUser, dbDiscordUser, user } from '../schema';
+import { type AuthUser, type DBUser, dbAttachments, dbDiscordUser, dbMessage, user } from '../schema';
 
 export async function updateAuthUser(
   userId: string,
@@ -30,6 +30,41 @@ export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {
     });
 }
 
+export async function ignoreDiscordUser(user: DBUser) {
+  try {
+    await db.insert(dbDiscordUser).values({
+      ...user,
+      anonymizeName: true,
+      isIgnored: true,
+    }).onConflictDoUpdate({
+      target: dbDiscordUser.id,
+      set: {
+        anonymizeName: true,
+        isIgnored: true,
+      },
+    })
+    await db.delete(dbAttachments)
+      .where(inArray(
+        dbAttachments.messageId,
+        db.select({ id: dbMessage.id })
+          .from(dbMessage)
+          .where(eq(dbMessage.authorId, user.id))
+      ));
+    await db.update(dbMessage)
+      .set({
+        content: "",
+        cleanContent: "",
+        embeds: null,
+        reactions: null,
+        snapshot: null,
+        poll: null,
+      })
+      .where(eq(dbMessage.authorId, user.id));
+  } catch (error) {
+    console.log("failed_to_ignore_user", { error, user: user.id });
+  }
+}
+
 export async function upsertUser(userId: string) {
   await db
     .insert(dbDiscordUser)
@@ -39,7 +74,7 @@ export async function upsertUser(userId: string) {
       avatar: null,
       isBot: false,
       anonymizeName: false,
-      canPubliclyDisplayMessages: false,
+      isIgnored: false,
     })
     .onConflictDoNothing();
   return userId;
@@ -50,11 +85,9 @@ export async function findUserByAccountId(accountId: string) {
     where: eq(dbDiscordUser.id, accountId),
   });
 }
-export function findManyDiscordAccountsById(ids: string[]) {
-  if (ids.length === 0) {
-    return Promise.resolve([]);
-  }
-  return db.query.dbDiscordUser.findMany({
+export async function findManyDiscordAccountsById(ids: string[]) {
+  if (ids.length === 0) { return [] }
+  return await db.query.dbDiscordUser.findMany({
     where: inArray(dbDiscordUser.id, ids),
   });
 }

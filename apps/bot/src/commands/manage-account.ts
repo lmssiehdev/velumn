@@ -1,4 +1,4 @@
-import { anonymizeUser } from '@repo/db/helpers/user';
+import { anonymizeUser, ignoreDiscordUser } from '@repo/db/helpers/user';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import {
@@ -20,11 +20,13 @@ const MESSAGES = {
   },
   BUTTONS: {
     ANONYMIZE_LABEL: 'Enable Anonymization',
+    DELETE_ALL_LABEL: 'Delete All Data',
   },
   RESPONSES: {
     INITIAL: 'Configure your account privacy settings below:',
     ANONYMIZED:
       'Your account has been anonymized. All your public messages will now display a randomized name instead of your username.',
+    DELETE_ALL: 'All your data has been deleted.',
     UNAUTHORIZED:
       'You are not authorized to use this command. Please create your own instance.',
     TIMEOUT:
@@ -34,7 +36,8 @@ const MESSAGES = {
 } as const;
 
 const BUTTON_IDS = {
-  ANONYMIZE: 'anonymize username',
+  ANONYMIZE: "ANONYMIZED",
+  DELETE_ALL: "DELETE_ALL",
 } as const;
 
 const idHints = ['1421588952359370843'];
@@ -75,7 +78,11 @@ export class ManageAccount extends Command {
       new ButtonBuilder()
         .setCustomId(BUTTON_IDS.ANONYMIZE)
         .setLabel('Anonymize')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(BUTTON_IDS.DELETE_ALL)
+        .setLabel('Delete all')
+        .setStyle(ButtonStyle.Danger),
     );
 
     const reply = await interaction.reply({
@@ -94,11 +101,21 @@ export class ManageAccount extends Command {
     collector.on('collect', async (i) => {
       const dbUser = toDbUser(interaction.user);
       const shouldAnonymize = i.customId === BUTTON_IDS.ANONYMIZE;
+      let response = "";
 
-      await anonymizeUser(dbUser, shouldAnonymize);
+      switch (i.customId) {
+        case BUTTON_IDS.ANONYMIZE:
+          await anonymizeUser(dbUser, shouldAnonymize);
+          response = MESSAGES.RESPONSES.ANONYMIZED;
+          break;
+        case BUTTON_IDS.DELETE_ALL:
+          await ignoreDiscordUser(dbUser);
+          response = MESSAGES.RESPONSES.DELETE_ALL;
+          break;
+      };
 
       interaction.editReply({
-        content: MESSAGES.RESPONSES.ANONYMIZED,
+        content: response,
         components: [],
         embeds: [],
       });

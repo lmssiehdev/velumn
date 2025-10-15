@@ -341,7 +341,12 @@ function MessagePost({
             </div>
           </div>
           <div>
-            <DiscordMessageWithMetadata message={message} />
+            {
+              message.user?.isIgnored
+                ? (<div>
+                  <p>User prefers to remain anonymous, join the server to see this message.</p>
+                </div>) : <DiscordMessageWithMetadata message={message} />
+            }
           </div>
         </div>
       </div>
@@ -441,7 +446,7 @@ function ContinueDiscussion({ url }: { url: string }) {
 }
 
 export function anonymizeName(user: DBUser) {
-  if (!user.anonymizeName) {
+  if (!user.anonymizeName && !user.isIgnored) {
     return user.displayName;
   }
   return uniqueUsernameGenerator({

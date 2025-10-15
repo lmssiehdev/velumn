@@ -42,7 +42,7 @@ export const dbDiscordUser = pgTable('db_user', {
   avatar: varchar('avatar'),
   isBot: boolean('is_bot').notNull().default(false),
   anonymizeName: boolean('anonymize_name').notNull().default(false),
-  canPubliclyDisplayMessages: boolean('can_publicly_display_messages'),
+  isIgnored: boolean('can_publicly_display_messages'),
 });
 
 export const discordUserRelations = relations(dbDiscordUser, ({ many }) => ({
@@ -153,13 +153,14 @@ export const dbMessage = pgTable(
     webhookId: snowflake('webhook_id'),
     referenceId: snowflake('reference_id'),
     applicationId: snowflake('application_id'),
-    reactions: json('reactions').$type<DBMessageReaction[]>(),
-    embeds: json('embeds').$type<EmbedSchema[]>().default([]),
+    reactions: json('reactions').$type<DBMessageReaction[] | null>().default(null),
+    embeds: json('embeds').$type<EmbedSchema[] | null>().default(null),
     poll: json('poll').$type<PollSchema | null>().default(null),
     metadata: json('metadata').$type<MessageMetadataSchema>(),
     snapshot: json('snapshot').$type<DBSnapshotSchema | null>().default(null),
   },
   (t) => [
+    index('message_author_id_idx').on(t.authorId),
     index('message_channel_id_idx').on(t.channelId),
     index('message_parent_channel_id_idx').on(t.parentChannelId),
   ]

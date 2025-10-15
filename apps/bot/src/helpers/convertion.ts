@@ -70,7 +70,7 @@ export function toDbUser(user: User) {
     avatar: user.avatar,
     isBot: user.bot,
     anonymizeName: false,
-    canPubliclyDisplayMessages: false,
+    isIgnored: false,
   } satisfies DBUser;
 }
 
