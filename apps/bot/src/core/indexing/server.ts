@@ -1,4 +1,4 @@
-import { getBulkServersPlan, upsertServer } from '@repo/db/helpers/servers';
+import { getBulkServers, updateServer, upsertServer } from '@repo/db/helpers/servers';
 import {
   ChannelType,
   type Client,
@@ -10,6 +10,7 @@ import { logger, safeStringify } from '../../helpers/lib/log';
 import { shuffle } from '../../helpers/utils';
 import { indexRootChannel } from './channel';
 import { Log } from './logger';
+import { createServerInvite } from '../../helpers/create-invite';
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
@@ -51,8 +52,8 @@ async function randomizeServers(allGuilds: Guild[]) {
       : allGuilds.filter((x) => x.id === '1385955477912948806');
 
   try {
-    const serversPlans = await getBulkServersPlan(guilds.map((x) => x.id));
-    const serverPlanLookup = new Map(serversPlans.map((x) => [x.id, x.plan]));
+    const serversPlans = await getBulkServers(guilds.map((x) => x.id));
+    const serverPlanLookup = new Map(serversPlans.map(({ id, plan, serverInvite }) => [id, { plan, serverInvite }]));
 
     const result: Record<'FREE' | 'OPEN_SOURCE' | 'PAID', Guild[]> = {
       FREE: [],
@@ -60,14 +61,14 @@ async function randomizeServers(allGuilds: Guild[]) {
       OPEN_SOURCE: [],
     };
 
-    for (const curr of guilds) {
-      if (!curr.id) {
+    for (const guild of guilds) {
+      if (!guild.id) {
         continue;
       }
-      let plan = serverPlanLookup.get(curr.id)!;
+      let { plan, serverInvite } = serverPlanLookup.get(guild.id)! ?? {};
 
       if (process.env.NODE_END === 'development') {
-        const converted = toDbServer(curr);
+        const converted = toDbServer(guild);
         await upsertServer({
           ...converted,
           plan: 'FREE',
@@ -76,12 +77,22 @@ async function randomizeServers(allGuilds: Guild[]) {
         plan = 'FREE';
       }
 
+      if (!serverInvite) {
+        await updateServer({
+          id: guild.id,
+          serverInvite: await createServerInvite(guild),
+        });
+      }
+
       if (!plan) {
-        logger.info("Server doesn't exist in the db");
+        logger.error("Server doesn't exist in the db", {
+          guildId: guild.id,
+          guildName: guild.name,
+        });
         continue;
       }
 
-      result[plan].push(curr);
+      result[plan].push(guild);
     }
 
     const { FREE, PAID, OPEN_SOURCE } = result;

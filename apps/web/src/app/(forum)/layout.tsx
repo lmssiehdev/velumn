@@ -3,7 +3,7 @@ import { getTopicsInServer } from '@repo/db/helpers/servers';
 import type { DBServer } from '@repo/db/schema/index';
 import { ChannelType } from 'discord-api-types/v10';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -54,9 +54,11 @@ export function ServerInfo({ server }: { server?: DBServer }) {
         {server.memberCount} members
       </div>
       <p className="my-3">{server.description}</p>
-      <Button className="pointer cursor-pointer bg-purple-100 text-purple-600 transition-all hover:bg-purple-200">
+      <a href={`https://discord.gg/${server.serverInvite!}`} target='_blank' rel="noopener noreferrer" className={buttonVariants({
+        className: "pointer cursor-pointer bg-purple-100 text-purple-600 transition-all hover:bg-purple-200"
+      })}>
         Join Server
-      </Button>
+      </a>
     </div>
   );
 }

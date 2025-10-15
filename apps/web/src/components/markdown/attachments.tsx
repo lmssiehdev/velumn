@@ -1,5 +1,4 @@
 import { ArrowUpRightIcon, FileIcon } from '@phosphor-icons/react/dist/ssr';
-import type { DBAttachments } from '@repo/db/schema/index';
 import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
 // @ts-expect-error no types - used once;
 import bytes from 'bytes';
@@ -11,18 +10,21 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { DBAttachments } from '@repo/db/helpers/validation';
 
 const isCode = (a: DBAttachments) =>
   !a.contentType?.startsWith('image/') || a.proxyURL?.endsWith('.svg');
-export function Attachments({ attachments }: { attachments: DBAttachments[] }) {
+
+export function Attachments({ isSnapshot, attachments }: { isSnapshot?: boolean, attachments: DBAttachments[] }) {
   if (!attachments.length) {
     return null;
   }
+  const filterBasedOnSnapshot = attachments.filter(a => isSnapshot === a.isSnapshot);
 
   return (
     <div className="flex flex-col gap-2">
-      <ImageGallery images={attachments.filter(isEmbeddableAttachment)} />
-      {attachments.filter(isCode).map((attachment) => (
+      <ImageGallery images={filterBasedOnSnapshot.filter(isEmbeddableAttachment)} />
+      {filterBasedOnSnapshot.filter(isCode).map((attachment) => (
         <FileShowcase attachment={attachment} key={attachment.id} />
       ))}
     </div>

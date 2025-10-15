@@ -7,12 +7,9 @@ import {
   ImageIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import type { getAllMessagesInThreads } from '@repo/db/helpers/channels';
-import { DBMessage, type DBUser } from '@repo/db/schema/discord';
+import type { DBUser } from '@repo/db/schema/discord';
 import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
-import {
-  getDateFromSnowflake,
-  isSnowflakeLargerAsInt,
-} from '@repo/utils/helpers/snowflake';
+import { getDateFromSnowflake } from '@repo/utils/helpers/snowflake';
 import { snowflakeToReadableDate } from '@repo/utils/helpers/time';
 import { ChannelType } from 'discord-api-types/v10';
 import Link from 'next/link';
@@ -28,15 +25,12 @@ import { Attachments } from '@/components/markdown/attachments';
 import { Embeds } from '@/components/markdown/embed';
 import { Twemoji } from '@/components/markdown/emoji';
 import { Poll } from '@/components/markdown/poll';
-import { DiscordMarkdown } from '@/components/markdown/renderer';
+import { DiscordMarkdown, DiscordMessageWithMetadata } from '@/components/markdown/renderer';
 import { Snapshot } from '@/components/markdown/snapshot';
 import { DiscordIcon } from '@/components/misc';
 import ThreadFeedback from '@/components/thread-feedback';
-import { Button, buttonVariants } from '@/components/ui/button';
-import {
-  RainbowButton,
-  rainbowButtonVariants,
-} from '@/components/ui/rainbow-button';
+import { Button } from '@/components/ui/button';
+import { rainbowButtonVariants } from '@/components/ui/rainbow-button';
 import {
   Tooltip,
   TooltipContent,
@@ -201,10 +195,10 @@ export default async function Page({
             {thread.channelName}
           </h1>
           <Link
-            className="flex w-fit items-center gap-1 border-1 border-purple-700 px-2 py-0.5 text-purple-700 text-sm transition-all hover:bg-purple-700 hover:text-white"
+            className="flex w-fit items-center gap-1 border-1 border-purple-600 px-2 py-0.5 text-purple-600 text-sm transition-all hover:bg-purple-600 hover:text-white"
             href={`/channel/${thread.parentId}`}
           >
-            {thread.type === ChannelType.GuildForum ? (
+            {thread.parent.type === ChannelType.GuildForum ? (
               <ChatsCircleIcon className="size-3.5" />
             ) : (
               <HashIcon className="size-3.5" weight="bold" />
@@ -269,7 +263,9 @@ function ConstructDiscordLink({
 }) {
   const parts = [serverId, threadId];
 
-  if (messageId) parts.push(messageId);
+  if (messageId) {
+    parts.push(messageId);
+  }
 
   return `https://discord.com/channels/${parts.join('/')}`;
 }
@@ -345,13 +341,7 @@ function MessagePost({
             </div>
           </div>
           <div>
-            <DiscordMarkdown message={message}>
-              {message.content}
-            </DiscordMarkdown>
-            <Attachments attachments={message.attachments!} />
-            <Embeds embeds={message.embeds} />
-            <Poll poll={message.poll} />
-            <Snapshot snapshot={message.snapshot} />
+            <DiscordMessageWithMetadata message={message} />
           </div>
         </div>
       </div>

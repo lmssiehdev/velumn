@@ -10,9 +10,6 @@ export function Poll({ poll }: { poll: DBMessage['poll'] }) {
       (acc, curr) => acc + curr.voteCount,
       0
     ) ?? 0;
-  if (totalVotes > 0) {
-    console.log(poll);
-  }
   return (
     <div className="mt-2 space-y-3 border border-neutral-200 p-4">
       <div className="flex flex-col gap-1">

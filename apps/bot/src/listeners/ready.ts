@@ -3,7 +3,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
 import { ChannelType, type Client } from 'discord.js';
 import { indexServers } from '../core/indexing';
-import { toDBSnapshot } from '../helpers/convertion';
+import { toDBMessage, toDBSnapshot } from '../helpers/convertion';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -46,10 +46,13 @@ async function testing(client: Client) {
     return;
   }
 
-  const message = await channel.messages.fetch('1427109258025238568');
-  // console.log(await toDBMessage(await message.fetchReference()))
-  console.log({ att: message.attachments });
-  console.log(toDBSnapshot(message));
+  const message = await channel.messages.fetch('1427832156385972355');
+  if (!message) {
+    return;
+  }
+
+  const snapshot = await toDBSnapshot(message);
+  console.log({ snapshot });
 }
 
 //

@@ -1,13 +1,13 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '..';
 import {
-  type DBAttachments as DBAttachment,
   type DBMessage,
   type DBMessageWithRelations,
   dbAttachments,
   dbMessage,
 } from '../schema';
 import { uploadFileFromUrl } from './upload';
+import { DBAttachments } from './validation';
 
 export async function deleteMesasgeById(messageId: string) {
   return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
@@ -54,7 +54,7 @@ export async function upsertManyMessages(data: DBMessageWithRelations[]) {
 
 async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
   const messages = new Map<string, DBMessage>();
-  const attachments = new Map<string, DBAttachment>();
+  const attachments = new Map<string, DBAttachments>();
 
   for (const msg of msgs) {
     messages.set(msg.id, msg);
@@ -64,6 +64,12 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
 
     for (const attachment of msg.attachments) {
       attachments.set(attachment.id, attachment);
+    }
+
+    if (msg.snapshot?.attachments.length) {
+      for (const attachment of msg.snapshot?.attachments) {
+        attachments.set(attachment.id, attachment);
+      }
     }
   }
 
@@ -79,14 +85,14 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
   }
 }
 
-export async function upsertAttachement(attachment: DBAttachment) {
+export async function upsertAttachement(attachment: DBAttachments) {
   return await db
     .insert(dbAttachments)
     .values(attachment)
     .onConflictDoNothing();
 }
 
-async function processAttachments(attachments: DBAttachment[]) {
+async function processAttachments(attachments: DBAttachments[]) {
   const shouldUpload = (ct: string) =>
     ct.startsWith('text/') || ct.startsWith('image/');
 

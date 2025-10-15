@@ -1,12 +1,11 @@
 import { ArrowBendUpRightIcon } from '@phosphor-icons/react/dist/ssr';
 import type { DBSnapshotSchema } from '@repo/db/helpers/validation';
-import { Attachments } from './attachments';
+import { DiscordSnapshotMessageWithMetadata } from './renderer';
 
 export function Snapshot({ snapshot }: { snapshot: DBSnapshotSchema | null }) {
   if (!snapshot) {
     return null;
   }
-  console.log(snapshot.attachments);
   return (
     <div className="prose">
       <blockquote className="quote">
@@ -15,8 +14,7 @@ export function Snapshot({ snapshot }: { snapshot: DBSnapshotSchema | null }) {
           <span className="text-neutral-700 text-sm">Forwarded</span>
         </div>
         <div className="[&_img]:my-0">
-          {snapshot.content}
-          <Attachments attachments={snapshot.attachments} />
+          <DiscordSnapshotMessageWithMetadata message={snapshot} />
         </div>
       </blockquote>
     </div>

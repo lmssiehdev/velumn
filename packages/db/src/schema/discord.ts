@@ -13,9 +13,8 @@ import {
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { createSelectSchema } from 'drizzle-zod';
-import type { z } from 'zod';
 import type {
+  DBAttachments,
   DBSnapshotSchema,
   EmbedSchema,
   MessageMetadataSchema,
@@ -66,6 +65,7 @@ export const dbServer = pgTable('db_server', {
   memberCount: integer('member_count').notNull(),
   kickedAt: timestamp('kicked_at', { mode: 'date' }),
   plan: planEnum('plan').notNull().default('FREE'),
+  serverInvite: text('server_invite'),
   invitedBy: text('invitedBy'),
   anonymizeUsers: boolean('anonymize_users').default(false).notNull(),
 });
@@ -194,6 +194,7 @@ export const dbAttachments = pgTable(
     size: integer('size'),
     height: integer('height'),
     width: integer('width'),
+    isSnapshot: boolean('isSnapshot').notNull().default(false),
   },
   (t) => [index('attachment_message_id_idx').on(t.messageId)]
 );
@@ -205,9 +206,6 @@ export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
   }),
 }));
 
-// export type DBAttachments = typeof dbAttachments.$inferSelect;
-export type DBAttachments = z.infer<typeof dbAttachmentsSchema>;
-export const dbAttachmentsSchema = createSelectSchema(dbAttachments);
 
 export type DBMessageWithRelations = DBMessage & {
   attachments?: DBAttachments[];

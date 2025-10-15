@@ -1,4 +1,7 @@
 import {
+  collectionToArray,
+  dbAttachmentsSchema,
+  DBSnapshotSchema,
   embedSchema,
   internalLinksSchema,
   type MessageMetadataSchema,
@@ -6,12 +9,12 @@ import {
   pollSchema,
   snapShotSchema,
 } from '@repo/db/helpers/validation';
-import type {
-  DBChannel,
-  DBMessage,
-  DBMessageWithRelations,
-  DBServerInsert,
-  DBUser,
+import {
+  type DBChannel,
+  type DBMessage,
+  type DBMessageWithRelations,
+  type DBServerInsert,
+  type DBUser,
 } from '@repo/db/schema/index';
 import {
   ChannelFlags,
@@ -27,6 +30,7 @@ import {
 } from 'discord.js';
 import z from 'zod';
 import { MessageLinkRegex } from './regex';
+import { is } from 'zod/v4/locales';
 
 export async function toDbChannel(
   channel: GuildChannel | GuildBasedChannel | ThreadChannel
@@ -90,7 +94,8 @@ function toDbPoll(message: Message) {
   return data;
 }
 
-async function toDbInternalLink(message: Message) {
+async function toDbInternalLink(message: Message | MessageSnapshot
+) {
   if (!message.content) {
     return [];
   }
@@ -161,7 +166,7 @@ async function toDbInternalLink(message: Message) {
 /**
  * used to extract somehelpful metadata required by the UI to render messages.
  */
-export async function toDbMetadata(message: Message) {
+export async function toDbMetadata(message: Message | MessageSnapshot) {
   const { users, channels, roles } = message.mentions;
   const internalLinks = await toDbInternalLink(message);
 
@@ -240,9 +245,10 @@ export async function toDBMessage(
     serverId: fullMessage.guildId,
     // questionId: null,
     childThreadId: fullMessage.thread?.id ?? null,
-    metadata: await toDbMetadata(fullMessage),
     poll: toDbPoll(fullMessage),
-    snapshot: toDBSnapshot(fullMessage),
+    // TODO: promise all?
+    metadata: await toDbMetadata(fullMessage),
+    snapshot: await toDBSnapshot(fullMessage),
   };
   return convertedMessage;
 }
@@ -278,6 +284,7 @@ export function toDbServer(guild: Guild) {
     name: guild.name,
     description: guild.description,
     memberCount: guild.memberCount,
+
   };
   return convertedServer;
 }
@@ -309,6 +316,7 @@ function toDbEmbeds(message: Message | MessageSnapshot) {
 }
 
 function toDbAttachments(message: Message | MessageSnapshot) {
+  // !! TODO: use the zod schema
   return message.attachments.map((attachment) => {
     return {
       id: attachment.id,
@@ -322,11 +330,12 @@ function toDbAttachments(message: Message | MessageSnapshot) {
       contentType: attachment.contentType,
       description: attachment.description,
       ephemeral: attachment.ephemeral ?? false,
+      isSnapshot: false,
     };
   });
 }
 
-export function toDBSnapshot(message: Message) {
+export async function toDBSnapshot(message: Message): Promise<DBSnapshotSchema | null> {
   if (!message.flags?.has(MessageFlags.HasSnapshot)) {
     return null;
   }
@@ -335,13 +344,20 @@ export function toDBSnapshot(message: Message) {
     return null;
   }
 
-  const { success, data, error } = snapShotSchema.safeParse(snapshot);
+  const snapshotWithMetadata = {
+    ...snapshot,
+    attachments: snapshot.attachments.map((x) => ({ ...x, messageId: message.id, isSnapshot: true })),
+  }
+
+  const { success, data, error } = snapShotSchema.safeParse(snapshotWithMetadata);
   if (!success) {
     console.error('Failed to parse snapshot:', error);
     return null;
   }
+
   return {
     ...data,
+    metadata: await toDbMetadata(snapshot),
     forwardedInMessageId: message.id,
   };
 }

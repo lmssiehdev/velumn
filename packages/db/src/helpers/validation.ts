@@ -1,6 +1,5 @@
 import { EmbedType, PollLayoutType } from 'discord-api-types/v10';
 import z from 'zod';
-import { dbAttachmentsSchema } from '../schema';
 
 export const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
   z
@@ -173,11 +172,34 @@ export const embedSchema = z
   })
   .partial();
 
+
 //
-// Snapshot Schema
+// Attachments
 //
 
-export type DBSnapshotSchema = { forwardedInMessageId: string } & z.infer<
+export type DBAttachments = z.infer<typeof dbAttachmentsSchema>;
+export const dbAttachmentsSchema = z.object({
+  id: z.string(),
+  messageId: z.string(), // Snowflake - numeric string
+  name: z.string(),
+  url: z.string(),
+  proxyURL: z.string(),
+  description: z.string().nullable(),
+  contentType: z.string().nullable(),
+  size: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+  width: z.number().int().nullable(),
+  isSnapshot: z.boolean().default(false),
+});
+
+//
+// Snapshots
+//
+
+export type DBSnapshotSchema = {
+  forwardedInMessageId: string,
+  metadata: MessageMetadataSchema,
+} & z.infer<
   typeof snapShotSchema
 >;
 export const snapShotSchema = z.object({
@@ -187,6 +209,14 @@ export const snapShotSchema = z.object({
   createdTimestamp: z.number(),
   editedTimestamp: z.number().nullable(),
   attachments: collectionToArray(dbAttachmentsSchema),
-  embeds: z.array(embedSchema),
+  embeds: z.array(z.object(
+    {
+      data: embedSchema,
+    }
+  ).transform((x) => x.data)
+  ).catch((ctx) => {
+    console.log(z.prettifyError(ctx.error));
+    return []
+  }),
   flags: z.number().or(z.any().transform((x) => x.bitfield ?? 0)),
 });

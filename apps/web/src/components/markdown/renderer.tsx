@@ -1,17 +1,22 @@
 import type { SingleASTNode } from '@khanacademy/simple-markdown';
-import type { DBMessage } from '@repo/db/schema/discord';
+import type { DBMessage, DBMessageWithRelations } from '@repo/db/schema/discord';
 import dayjs from 'dayjs';
 import { parse } from 'discord-markdown-parser';
 import type React from 'react';
+import { Attachments } from './attachments';
 import { Code } from './code';
+import { Embeds } from './embed';
 import { CustomEmoji, getEmojiSize, Twemoji } from './emoji';
 import { Link } from './link';
 import { Mention } from './mention';
+import { Poll } from './poll';
+import { Snapshot } from './snapshot';
 import { Spoiler } from './spoiler';
+import { DBSnapshotSchema } from '@repo/db/helpers/validation';
 
 function renderASTNode(
   node: SingleASTNode | SingleASTNode[],
-  index,
+  index: number,
   parent: SingleASTNode | SingleASTNode[] | null,
   isReferenceReply = false,
   message?: DBMessage
@@ -142,7 +147,7 @@ export const DiscordMarkdown = ({
 }: {
   children: string | null;
   isReferenceReply?: boolean;
-  message: DBMessage;
+  message: DBMessage | DBSnapshotSchema;
 }) => {
   if (!children) {
     return null;
@@ -150,10 +155,35 @@ export const DiscordMarkdown = ({
   const parsed = parse(children, 'normal');
   return (
     <div className="prose">
-      {renderASTNode(parsed, 0, null, isReferenceReply, message)}
+      {/* !! update the types to accept snapshot too */}
+      {renderASTNode(parsed, 0, null, isReferenceReply, message as DBMessage)}
     </div>
   );
 };
+
+export function DiscordMessageWithMetadata({ message }: { message: DBMessageWithRelations }) {
+  if (message.snapshot) {
+    return <Snapshot snapshot={message.snapshot} />
+  }
+  return <>
+    <DiscordMarkdown message={message}>
+      {message.content}
+    </DiscordMarkdown>
+    <Attachments attachments={message.attachments!} />
+    <Embeds embeds={message.embeds} />
+    <Poll poll={message.poll} />
+  </>
+}
+
+export function DiscordSnapshotMessageWithMetadata({ message }: { message: DBSnapshotSchema }) {
+  return <>
+    <DiscordMarkdown message={message}>
+      {message.content}
+    </DiscordMarkdown>
+    <Attachments attachments={message.attachments!} isSnapshot={true} />
+    <Embeds embeds={message.embeds} />
+  </>
+}
 
 function List({
   items,
