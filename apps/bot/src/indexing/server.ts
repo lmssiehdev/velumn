@@ -16,6 +16,7 @@ import { logger, safeStringify } from '../helpers/lib/log';
 import { shuffle } from '../helpers/utils';
 import { indexChannel } from './channel';
 import { Log } from './logger';
+
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
   const randomizedServers = await randomizeServers(allGuilds);

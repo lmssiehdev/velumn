@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
-import { ChannelType, MessageType, type Client } from 'discord.js';
+import { ChannelType, Message, MessageType, type Client } from 'discord.js';
 import {
   toDBMessage,
   toDBSnapshot,
@@ -11,6 +11,8 @@ import {
 import { indexServers } from '../indexing';
 import { fetchAllMessages } from '../indexing/helpers';
 import { TEST_GUILDS } from '../constants';
+import { db } from '@repo/db/index';
+import { dbMessage } from '@repo/db/schema/discord';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -50,8 +52,6 @@ async function testing(client: Client) {
 
   const messages = await fetchAllMessages(channel);
   for (const msg of messages) {
-
-    const message = await toDBMessage(msg);
-    console.log(MessageType[message.type], message.content);
+    console.log(await toDBMessage(msg));
   }
 }
