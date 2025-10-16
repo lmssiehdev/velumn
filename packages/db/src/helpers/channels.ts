@@ -57,12 +57,12 @@ export async function getChannelInfo(channelId: string) {
 
 export async function getAllMessagesInThreads(channelId: string): Promise<
   | (DBChannel & {
-    parent: DBChannel;
-    messages: (DBMessage & {
-      user: DBUser | null;
-      attachments: DBAttachments[];
-    })[];
-  })
+      parent: DBChannel;
+      messages: (DBMessage & {
+        user: DBUser | null;
+        attachments: DBAttachments[];
+      })[];
+    })
   | null
 > {
   const parent = alias(dbChannel, 'parent');
@@ -85,25 +85,30 @@ export async function getAllMessagesInThreads(channelId: string): Promise<
   const messages = await db
     .select()
     .from(dbMessage)
-    .where(or(eq(dbMessage.channelId, channelId), eq(dbMessage.childThreadId, channelId)))
+    .where(
+      or(
+        eq(dbMessage.channelId, channelId),
+        eq(dbMessage.childThreadId, channelId)
+      )
+    )
     .orderBy(asc(dbMessage.id));
 
   const userIds = [...new Set(messages.map((m) => m.authorId).filter(Boolean))];
   const users =
     userIds.length > 0
       ? await db
-        .select()
-        .from(dbDiscordUser)
-        .where(inArray(dbDiscordUser.id, userIds))
+          .select()
+          .from(dbDiscordUser)
+          .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-        .select()
-        .from(dbAttachments)
-        .where(inArray(dbAttachments.messageId, messageIds))
+          .select()
+          .from(dbAttachments)
+          .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));

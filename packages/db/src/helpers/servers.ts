@@ -186,16 +186,22 @@ export async function getAllThreads(
       parentChannel,
     })
     .from(dbChannel)
-    .innerJoin(dbMessage, or(eq(dbChannel.id, dbMessage.channelId), eq(dbChannel.id, dbMessage.childThreadId)))
+    .innerJoin(
+      dbMessage,
+      or(
+        eq(dbChannel.id, dbMessage.channelId),
+        eq(dbChannel.id, dbMessage.childThreadId)
+      )
+    )
     .innerJoin(dbDiscordUser, eq(dbChannel.authorId, dbDiscordUser.id))
     .leftJoin(parentChannel, eq(dbChannel.parentId, parentChannel.id))
     .where(
       getBy === 'server'
         ? and(
-          eq(dbChannel.serverId, id),
-          isNotNull(dbChannel.parentId),
-          eq(dbChannel.pinned, pinned)
-        )
+            eq(dbChannel.serverId, id),
+            isNotNull(dbChannel.parentId),
+            eq(dbChannel.pinned, pinned)
+          )
         : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)

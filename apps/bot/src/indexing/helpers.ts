@@ -1,7 +1,7 @@
 import {
-  MessageType,
   type ForumChannel,
   type Message,
+  MessageType,
   type NewsChannel,
   type PublicThreadChannel,
   type TextBasedChannel,
@@ -52,14 +52,15 @@ export async function fetchAllMessages(
 
   const messages: Message[] = [];
   const fetchMessagesRecursively = async (after?: string) => {
-    const messagePage = await channel.messages.fetch({ limit: 100, after })
+    const messagePage = await channel.messages.fetch({ limit: 100, after });
     const sortedMessages = sortMessagesById([...messagePage.values()]);
 
     messages.push(...sortedMessages);
 
-    const lastMessage = sortedMessages.length > 0
-      ? sortedMessages[sortedMessages.length - 1]
-      : undefined;
+    const lastMessage =
+      sortedMessages.length > 0
+        ? sortedMessages[sortedMessages.length - 1]
+        : undefined;
 
     for (const message of sortedMessages) {
       if (message.type !== MessageType.ThreadStarterMessage) continue;
@@ -71,7 +72,6 @@ export async function fetchAllMessages(
     if (shouldContinue) {
       await fetchMessagesRecursively(lastMessage.id);
     }
-
   };
 
   await fetchMessagesRecursively(start);

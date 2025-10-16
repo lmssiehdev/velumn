@@ -1,7 +1,10 @@
 import { parseArgs } from 'node:util';
+import { db } from '@repo/db/index';
+import { dbMessage } from '@repo/db/schema/discord';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
-import { ChannelType, Message, MessageType, type Client } from 'discord.js';
+import { ChannelType, type Client, Message, MessageType } from 'discord.js';
+import { TEST_GUILDS } from '../constants';
 import {
   toDBMessage,
   toDBSnapshot,
@@ -10,9 +13,6 @@ import {
 } from '../helpers/convertion';
 import { indexServers } from '../indexing';
 import { fetchAllMessages } from '../indexing/helpers';
-import { TEST_GUILDS } from '../constants';
-import { db } from '@repo/db/index';
-import { dbMessage } from '@repo/db/schema/discord';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
