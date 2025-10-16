@@ -2,6 +2,7 @@ import {
   bulkFindLatestMessageInChannel,
   findChannelById,
   findLatestMessageInChannel,
+  upsertChannel,
 } from '@repo/db/helpers/channels';
 import {
   type AnyThreadChannel,
@@ -14,6 +15,7 @@ import { logger } from '../helpers/lib/log';
 import { fetchAllMessages, type IndexableChannels } from './helpers';
 import { Log } from './logger';
 import { storeIndexedData } from './store';
+import { toDbChannel } from '../helpers/convertion';
 
 const MAX_NUMBER_OF_THREADS_TO_COLLECT = 3000;
 
@@ -49,6 +51,16 @@ export async function indexChannel(channel: IndexableChannels) {
   }
 
   Log('attempting_to_index_channel', channel);
+
+  // save non thread channels
+  await upsertChannel({
+    create: {
+      ...(await toDbChannel(channel)),
+    },
+    update: {
+      channelName: channel.name,
+    },
+  })
 
   const archivedThreads = await fetchAllArchivedThreads(channel);
 
