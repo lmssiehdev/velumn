@@ -1,4 +1,5 @@
 import { ArrowUpRightIcon, FileIcon } from '@phosphor-icons/react/dist/ssr';
+import type { DBAttachments } from '@repo/db/helpers/validation';
 import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
 // @ts-expect-error no types - used once;
 import bytes from 'bytes';
@@ -10,12 +11,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { DBAttachments } from '@repo/db/helpers/validation';
 
 const isCode = (a: DBAttachments) =>
   !a.contentType?.startsWith('image/') || a.proxyURL?.endsWith('.svg');
 
-export function Attachments({ attachments }: { isSnapshot?: boolean, attachments: DBAttachments[] }) {
+export function Attachments({
+  attachments,
+}: {
+  isSnapshot?: boolean;
+  attachments: DBAttachments[];
+}) {
   if (!attachments.length) {
     return null;
   }

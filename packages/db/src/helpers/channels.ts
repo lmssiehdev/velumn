@@ -11,7 +11,7 @@ import {
   dbMessage,
   dbServer,
 } from '../schema';
-import { DBAttachments } from './validation';
+import type { DBAttachments } from './validation';
 
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
@@ -57,12 +57,12 @@ export async function getChannelInfo(channelId: string) {
 
 export async function getAllMessagesInThreads(channelId: string): Promise<
   | (DBChannel & {
-    parent: DBChannel;
-    messages: (DBMessage & {
-      user: DBUser | null;
-      attachments: DBAttachments[];
-    })[];
-  })
+      parent: DBChannel;
+      messages: (DBMessage & {
+        user: DBUser | null;
+        attachments: DBAttachments[];
+      })[];
+    })
   | null
 > {
   const parent = alias(dbChannel, 'parent');
@@ -92,18 +92,18 @@ export async function getAllMessagesInThreads(channelId: string): Promise<
   const users =
     userIds.length > 0
       ? await db
-        .select()
-        .from(dbDiscordUser)
-        .where(inArray(dbDiscordUser.id, userIds))
+          .select()
+          .from(dbDiscordUser)
+          .where(inArray(dbDiscordUser.id, userIds))
       : [];
 
   const messageIds = messages.map((m) => m.id);
   const attachments =
     messageIds.length > 0
       ? await db
-        .select()
-        .from(dbAttachments)
-        .where(inArray(dbAttachments.messageId, messageIds))
+          .select()
+          .from(dbAttachments)
+          .where(inArray(dbAttachments.messageId, messageIds))
       : [];
 
   const usersMap = new Map(users.map((u) => [u.id, u]));

@@ -8,8 +8,8 @@ import { resetUserServerIdLink } from '@repo/db/helpers/user';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import { Events, type Guild } from 'discord.js';
-import { isChannelIndexable } from '../../indexing/server';
 import { toDbChannel, toDbServer } from '../../helpers/convertion';
+import { isChannelIndexable } from '../../indexing/server';
 
 @ApplyOptions<Listener.Options>({
   event: Events.GuildCreate,

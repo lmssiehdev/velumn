@@ -2,8 +2,8 @@ import { parseArgs } from 'node:util';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
 import { ChannelType, type Client } from 'discord.js';
+import { toDBMessage, toDBSnapshot, toDbChannel } from '../helpers/convertion';
 import { indexServers } from '../indexing';
-import { toDbChannel, toDBMessage, toDBSnapshot } from '../helpers/convertion';
 import { fetchAllMessages } from '../indexing/helpers';
 
 const { values } = parseArgs({

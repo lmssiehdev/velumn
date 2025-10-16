@@ -7,7 +7,7 @@ import {
   dbMessage,
 } from '../schema';
 import { uploadFileFromUrl } from './upload';
-import { DBAttachments } from './validation';
+import type { DBAttachments } from './validation';
 
 export async function deleteMesasgeById(messageId: string) {
   return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));

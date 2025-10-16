@@ -1,6 +1,9 @@
 import { upsertChannel } from '@repo/db/helpers/channels';
 import { upsertManyMessages } from '@repo/db/helpers/messages';
-import { findManyDiscordAccountsById, upsertManyDiscordAccounts } from '@repo/db/helpers/user';
+import {
+  findManyDiscordAccountsById,
+  upsertManyDiscordAccounts,
+} from '@repo/db/helpers/user';
 import {
   ChannelType,
   type GuildTextBasedChannel,

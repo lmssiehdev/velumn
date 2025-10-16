@@ -1,5 +1,9 @@
 import type { SingleASTNode } from '@khanacademy/simple-markdown';
-import type { DBMessage, DBMessageWithRelations } from '@repo/db/schema/discord';
+import type { DBSnapshotSchema } from '@repo/db/helpers/validation';
+import type {
+  DBMessage,
+  DBMessageWithRelations,
+} from '@repo/db/schema/discord';
 import dayjs from 'dayjs';
 import { parse } from 'discord-markdown-parser';
 import type React from 'react';
@@ -12,7 +16,6 @@ import { Mention } from './mention';
 import { Poll } from './poll';
 import { Snapshot } from './snapshot';
 import { Spoiler } from './spoiler';
-import { DBSnapshotSchema } from '@repo/db/helpers/validation';
 
 function renderASTNode(
   node: SingleASTNode | SingleASTNode[],
@@ -161,28 +164,36 @@ export const DiscordMarkdown = ({
   );
 };
 
-export function DiscordMessageWithMetadata({ message }: { message: DBMessageWithRelations }) {
+export function DiscordMessageWithMetadata({
+  message,
+}: {
+  message: DBMessageWithRelations;
+}) {
   if (message.snapshot) {
-    return <Snapshot snapshot={message.snapshot} />
+    return <Snapshot snapshot={message.snapshot} />;
   }
-  return <>
-    <DiscordMarkdown message={message}>
-      {message.content}
-    </DiscordMarkdown>
-    <Attachments attachments={message.attachments!} />
-    <Embeds embeds={message.embeds} />
-    <Poll poll={message.poll} />
-  </>
+  return (
+    <>
+      <DiscordMarkdown message={message}>{message.content}</DiscordMarkdown>
+      <Attachments attachments={message.attachments!} />
+      <Embeds embeds={message.embeds} />
+      <Poll poll={message.poll} />
+    </>
+  );
 }
 
-export function DiscordSnapshotMessageWithMetadata({ message }: { message: DBSnapshotSchema }) {
-  return <>
-    <DiscordMarkdown message={message}>
-      {message.content}
-    </DiscordMarkdown>
-    <Attachments attachments={message.attachments!} />
-    <Embeds embeds={message.embeds} />
-  </>
+export function DiscordSnapshotMessageWithMetadata({
+  message,
+}: {
+  message: DBSnapshotSchema;
+}) {
+  return (
+    <>
+      <DiscordMarkdown message={message}>{message.content}</DiscordMarkdown>
+      <Attachments attachments={message.attachments!} />
+      <Embeds embeds={message.embeds} />
+    </>
+  );
 }
 
 function List({

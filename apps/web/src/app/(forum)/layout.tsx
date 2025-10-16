@@ -54,9 +54,15 @@ export function ServerInfo({ server }: { server?: DBServer }) {
         {server.memberCount} members
       </div>
       <p className="my-3">{server.description}</p>
-      <a href={`https://discord.gg/${server.serverInvite!}`} target='_blank' rel="noopener noreferrer" className={buttonVariants({
-        className: "pointer cursor-pointer bg-purple-100 text-purple-600 transition-all hover:bg-purple-200"
-      })}>
+      <a
+        className={buttonVariants({
+          className:
+            'pointer cursor-pointer bg-purple-100 text-purple-600 transition-all hover:bg-purple-200',
+        })}
+        href={`https://discord.gg/${server.serverInvite!}`}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
         Join Server
       </a>
     </div>

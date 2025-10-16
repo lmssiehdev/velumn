@@ -153,7 +153,9 @@ export const dbMessage = pgTable(
     webhookId: snowflake('webhook_id'),
     referenceId: snowflake('reference_id'),
     applicationId: snowflake('application_id'),
-    reactions: json('reactions').$type<DBMessageReaction[] | null>().default(null),
+    reactions: json('reactions')
+      .$type<DBMessageReaction[] | null>()
+      .default(null),
     embeds: json('embeds').$type<EmbedSchema[] | null>().default(null),
     poll: json('poll').$type<PollSchema | null>().default(null),
     metadata: json('metadata').$type<MessageMetadataSchema>(),
@@ -212,7 +214,6 @@ export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
     references: [dbMessage.id],
   }),
 }));
-
 
 export type DBMessageWithRelations = DBMessage & {
   attachments?: DBAttachments[];

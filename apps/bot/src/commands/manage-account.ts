@@ -36,8 +36,8 @@ const MESSAGES = {
 } as const;
 
 const BUTTON_IDS = {
-  ANONYMIZE: "ANONYMIZED",
-  DELETE_ALL: "DELETE_ALL",
+  ANONYMIZE: 'ANONYMIZED',
+  DELETE_ALL: 'DELETE_ALL',
 } as const;
 
 const idHints = ['1421588952359370843'];
@@ -82,7 +82,7 @@ export class ManageAccount extends Command {
       new ButtonBuilder()
         .setCustomId(BUTTON_IDS.DELETE_ALL)
         .setLabel('Delete all')
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Danger)
     );
 
     const reply = await interaction.reply({
@@ -101,7 +101,7 @@ export class ManageAccount extends Command {
     collector.on('collect', async (i) => {
       const dbUser = toDbUser(interaction.user);
       const shouldAnonymize = i.customId === BUTTON_IDS.ANONYMIZE;
-      let response = "";
+      let response = '';
 
       switch (i.customId) {
         case BUTTON_IDS.ANONYMIZE:
@@ -112,7 +112,7 @@ export class ManageAccount extends Command {
           await ignoreDiscordUser(dbUser);
           response = MESSAGES.RESPONSES.DELETE_ALL;
           break;
-      };
+      }
 
       interaction.editReply({
         content: response,

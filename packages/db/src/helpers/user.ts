@@ -1,6 +1,13 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '..';
-import { type AuthUser, type DBUser, dbAttachments, dbDiscordUser, dbMessage, user } from '../schema';
+import {
+  type AuthUser,
+  type DBUser,
+  dbAttachments,
+  dbDiscordUser,
+  dbMessage,
+  user,
+} from '../schema';
 
 export async function updateAuthUser(
   userId: string,
@@ -32,28 +39,36 @@ export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {
 
 export async function ignoreDiscordUser(user: DBUser) {
   try {
-    await db.insert(dbDiscordUser).values({
-      ...user,
-      anonymizeName: true,
-      isIgnored: true,
-    }).onConflictDoUpdate({
-      target: dbDiscordUser.id,
-      set: {
+    await db
+      .insert(dbDiscordUser)
+      .values({
+        ...user,
         anonymizeName: true,
         isIgnored: true,
-      },
-    })
-    await db.delete(dbAttachments)
-      .where(inArray(
-        dbAttachments.messageId,
-        db.select({ id: dbMessage.id })
-          .from(dbMessage)
-          .where(eq(dbMessage.authorId, user.id))
-      ));
-    await db.update(dbMessage)
+      })
+      .onConflictDoUpdate({
+        target: dbDiscordUser.id,
+        set: {
+          anonymizeName: true,
+          isIgnored: true,
+        },
+      });
+    await db
+      .delete(dbAttachments)
+      .where(
+        inArray(
+          dbAttachments.messageId,
+          db
+            .select({ id: dbMessage.id })
+            .from(dbMessage)
+            .where(eq(dbMessage.authorId, user.id))
+        )
+      );
+    await db
+      .update(dbMessage)
       .set({
-        content: "",
-        cleanContent: "",
+        content: '',
+        cleanContent: '',
         embeds: null,
         reactions: null,
         snapshot: null,
@@ -62,7 +77,7 @@ export async function ignoreDiscordUser(user: DBUser) {
       })
       .where(eq(dbMessage.authorId, user.id));
   } catch (error) {
-    console.log("failed_to_ignore_user", { error, user: user.id });
+    console.log('failed_to_ignore_user', { error, user: user.id });
   }
 }
 
@@ -87,7 +102,9 @@ export async function findUserByAccountId(accountId: string) {
   });
 }
 export async function findManyDiscordAccountsById(ids: string[]) {
-  if (ids.length === 0) { return [] }
+  if (ids.length === 0) {
+    return [];
+  }
   return await db.query.dbDiscordUser.findMany({
     where: inArray(dbDiscordUser.id, ids),
   });

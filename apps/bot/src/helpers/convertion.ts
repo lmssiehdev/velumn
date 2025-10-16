@@ -1,7 +1,7 @@
 import {
   collectionToArray,
+  type DBSnapshotSchema,
   dbAttachmentsSchema,
-  DBSnapshotSchema,
   embedSchema,
   internalLinksSchema,
   type MessageMetadataSchema,
@@ -9,12 +9,12 @@ import {
   pollSchema,
   snapShotSchema,
 } from '@repo/db/helpers/validation';
-import {
-  type DBChannel,
-  type DBMessage,
-  type DBMessageWithRelations,
-  type DBServerInsert,
-  type DBUser,
+import type {
+  DBChannel,
+  DBMessage,
+  DBMessageWithRelations,
+  DBServerInsert,
+  DBUser,
 } from '@repo/db/schema/index';
 import {
   ChannelFlags,
@@ -29,8 +29,8 @@ import {
   type User,
 } from 'discord.js';
 import z from 'zod';
-import { MessageLinkRegex } from './regex';
 import { is } from 'zod/v4/locales';
+import { MessageLinkRegex } from './regex';
 
 export async function toDbChannel(
   channel: GuildChannel | GuildBasedChannel | ThreadChannel
@@ -94,8 +94,7 @@ function toDbPoll(message: Message) {
   return data;
 }
 
-async function toDbInternalLink(message: Message | MessageSnapshot
-) {
+async function toDbInternalLink(message: Message | MessageSnapshot) {
   if (!message.content) {
     return [];
   }
@@ -284,7 +283,6 @@ export function toDbServer(guild: Guild) {
     name: guild.name,
     description: guild.description,
     memberCount: guild.memberCount,
-
   };
   return convertedServer;
 }
@@ -335,7 +333,9 @@ function toDbAttachments(message: Message | MessageSnapshot) {
   });
 }
 
-export async function toDBSnapshot(message: Message): Promise<DBSnapshotSchema | null> {
+export async function toDBSnapshot(
+  message: Message
+): Promise<DBSnapshotSchema | null> {
   if (!message.flags?.has(MessageFlags.HasSnapshot)) {
     return null;
   }
@@ -346,10 +346,15 @@ export async function toDBSnapshot(message: Message): Promise<DBSnapshotSchema |
 
   const snapshotWithMetadata = {
     ...snapshot,
-    attachments: snapshot.attachments.map((x) => ({ ...x, messageId: message.id, isSnapshot: true })),
-  }
+    attachments: snapshot.attachments.map((x) => ({
+      ...x,
+      messageId: message.id,
+      isSnapshot: true,
+    })),
+  };
 
-  const { success, data, error } = snapShotSchema.safeParse(snapshotWithMetadata);
+  const { success, data, error } =
+    snapShotSchema.safeParse(snapshotWithMetadata);
   if (!success) {
     console.error('Failed to parse snapshot:', error);
     return null;

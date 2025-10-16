@@ -172,7 +172,6 @@ export const embedSchema = z
   })
   .partial();
 
-
 //
 // Attachments
 //
@@ -197,11 +196,9 @@ export const dbAttachmentsSchema = z.object({
 //
 
 export type DBSnapshotSchema = {
-  forwardedInMessageId: string,
-  metadata: MessageMetadataSchema,
-} & z.infer<
-  typeof snapShotSchema
->;
+  forwardedInMessageId: string;
+  metadata: MessageMetadataSchema;
+} & z.infer<typeof snapShotSchema>;
 export const snapShotSchema = z.object({
   id: z.string().nullable(),
   content: z.string(),
@@ -209,14 +206,17 @@ export const snapShotSchema = z.object({
   createdTimestamp: z.number(),
   editedTimestamp: z.number().nullable(),
   attachments: collectionToArray(dbAttachmentsSchema),
-  embeds: z.array(z.object(
-    {
-      data: embedSchema,
-    }
-  ).transform((x) => x.data)
-  ).catch((ctx) => {
-    console.log(z.prettifyError(ctx.error));
-    return []
-  }),
+  embeds: z
+    .array(
+      z
+        .object({
+          data: embedSchema,
+        })
+        .transform((x) => x.data)
+    )
+    .catch((ctx) => {
+      console.log(z.prettifyError(ctx.error));
+      return [];
+    }),
   flags: z.number().or(z.any().transform((x) => x.bitfield ?? 0)),
 });

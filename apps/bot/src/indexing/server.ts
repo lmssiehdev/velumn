@@ -1,4 +1,8 @@
-import { getBulkServers, updateServer, upsertServer } from '@repo/db/helpers/servers';
+import {
+  getBulkServers,
+  updateServer,
+  upsertServer,
+} from '@repo/db/helpers/servers';
 import {
   ChannelType,
   type Client,
@@ -6,11 +10,11 @@ import {
   type GuildBasedChannel,
 } from 'discord.js';
 import { toDbServer } from '../helpers/convertion';
+import { createServerInvite } from '../helpers/create-invite';
 import { logger, safeStringify } from '../helpers/lib/log';
 import { shuffle } from '../helpers/utils';
 import { indexChannel } from './channel';
 import { Log } from './logger';
-import { createServerInvite } from '../helpers/create-invite';
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
@@ -53,7 +57,12 @@ async function randomizeServers(allGuilds: Guild[]) {
 
   try {
     const serversPlans = await getBulkServers(guilds.map((x) => x.id));
-    const serverPlanLookup = new Map(serversPlans.map(({ id, plan, serverInvite }) => [id, { plan, serverInvite }]));
+    const serverPlanLookup = new Map(
+      serversPlans.map(({ id, plan, serverInvite }) => [
+        id,
+        { plan, serverInvite },
+      ])
+    );
 
     const result: Record<'FREE' | 'OPEN_SOURCE' | 'PAID', Guild[]> = {
       FREE: [],

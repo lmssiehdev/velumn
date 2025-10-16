@@ -1,21 +1,3 @@
-import { Twemoji } from '@/components/markdown/emoji';
-import { DiscordMarkdown, DiscordMessageWithMetadata } from '@/components/markdown/renderer';
-import { DiscordIcon } from '@/components/misc';
-import ThreadFeedback from '@/components/thread-feedback';
-import { Button } from '@/components/ui/button';
-import { rainbowButtonVariants } from '@/components/ui/rainbow-button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { getSlugFromTitle, slugifyThreadUrl } from '@/lib/slugify';
-import { cn } from '@/lib/utils';
-import {
-  getAllMessagesInThreadsCache,
-  getServerInfoByChannelIdCache,
-} from '@/utils/cache';
-import { sanitizeJsonLd } from '@/utils/sanitize';
 import {
   CaretRightIcon,
   ChatIcon,
@@ -39,6 +21,27 @@ import {
   nouns,
   uniqueUsernameGenerator,
 } from 'unique-username-generator';
+import { Twemoji } from '@/components/markdown/emoji';
+import {
+  DiscordMarkdown,
+  DiscordMessageWithMetadata,
+} from '@/components/markdown/renderer';
+import { DiscordIcon } from '@/components/misc';
+import ThreadFeedback from '@/components/thread-feedback';
+import { Button } from '@/components/ui/button';
+import { rainbowButtonVariants } from '@/components/ui/rainbow-button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { getSlugFromTitle, slugifyThreadUrl } from '@/lib/slugify';
+import { cn } from '@/lib/utils';
+import {
+  getAllMessagesInThreadsCache,
+  getServerInfoByChannelIdCache,
+} from '@/utils/cache';
+import { sanitizeJsonLd } from '@/utils/sanitize';
 import { ServerInfo } from '../../layout';
 
 export async function generateMetadata({
@@ -337,12 +340,16 @@ function MessagePost({
             </div>
           </div>
           <div>
-            {
-              message.user?.isIgnored || message.isIgnored
-                ? (<div>
-                  <p>User prefers to remain anonymous, join the server to see this message.</p>
-                </div>) : <DiscordMessageWithMetadata message={message} />
-            }
+            {message.user?.isIgnored || message.isIgnored ? (
+              <div>
+                <p>
+                  User prefers to remain anonymous, join the server to see this
+                  message.
+                </p>
+              </div>
+            ) : (
+              <DiscordMessageWithMetadata message={message} />
+            )}
           </div>
         </div>
       </div>

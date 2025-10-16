@@ -92,14 +92,12 @@ export async function setServerPlanById(serverId: string, plan: ServerPlan) {
     .where(eq(dbServer.id, serverId));
 }
 
-
-export async function updateServer(server: { id: string } & Partial<Omit<DBServerInsert, "id">>) {
+export async function updateServer(
+  server: { id: string } & Partial<Omit<DBServerInsert, 'id'>>
+) {
   const { id, ...updateFields } = server;
 
-  await db
-    .update(dbServer)
-    .set(updateFields)
-    .where(eq(dbServer.id, id));
+  await db.update(dbServer).set(updateFields).where(eq(dbServer.id, id));
 }
 export async function upsertServer(server: Partial<DBServerInsert>) {
   const { id, invitedBy, ...updateFields } = server;
@@ -165,8 +163,7 @@ export async function getServerInfoByChannelId(channelId: string) {
 export async function getBulkServers(serverIds: string[]) {
   return await db.query.dbServer.findMany({
     where: inArray(dbServer.id, serverIds),
-  }
-  );
+  });
 }
 
 export async function getAllThreads(
@@ -194,10 +191,10 @@ export async function getAllThreads(
     .where(
       getBy === 'server'
         ? and(
-          eq(dbChannel.serverId, id),
-          isNotNull(dbChannel.parentId),
-          eq(dbChannel.pinned, pinned)
-        )
+            eq(dbChannel.serverId, id),
+            isNotNull(dbChannel.parentId),
+            eq(dbChannel.pinned, pinned)
+          )
         : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
     )
     .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
