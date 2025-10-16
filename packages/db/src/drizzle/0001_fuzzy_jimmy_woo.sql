@@ -1,1 +1,0 @@
-ALTER TABLE "db_message" ADD COLUMN "snapshot" json DEFAULT 'null'::json;

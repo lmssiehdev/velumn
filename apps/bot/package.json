@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "NODE_END=development bun src/index.ts",
+    "dev": "NODE_ENV=development bun src/index.ts",
     "start": "brun run src/index.ts",
     "test": "bun test"
   },

@@ -54,12 +54,13 @@ CREATE TABLE "attachments" (
 	"message_id" bigint NOT NULL,
 	"file_name" text NOT NULL,
 	"url" text NOT NULL,
-	"proxyUrl" text NOT NULL,
+	"proxyURL" text NOT NULL,
 	"description" text,
 	"content_type" text,
 	"size" integer,
 	"height" integer,
-	"width" integer
+	"width" integer,
+	"isSnapshot" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "db_channel" (
@@ -98,10 +99,12 @@ CREATE TABLE "db_message" (
 	"webhook_id" bigint,
 	"reference_id" bigint,
 	"application_id" bigint,
-	"reactions" json,
-	"embeds" json DEFAULT '[]'::json,
+	"reactions" json DEFAULT 'null'::json,
+	"embeds" json DEFAULT 'null'::json,
 	"poll" json DEFAULT 'null'::json,
-	"metadata" json
+	"metadata" json,
+	"snapshot" json DEFAULT 'null'::json,
+	"is_ignored" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "db_server" (
@@ -111,6 +114,7 @@ CREATE TABLE "db_server" (
 	"member_count" integer NOT NULL,
 	"kicked_at" timestamp,
 	"plan" "plan" DEFAULT 'FREE' NOT NULL,
+	"server_invite" text,
 	"invitedBy" text,
 	"anonymize_users" boolean DEFAULT false NOT NULL
 );
@@ -142,6 +146,7 @@ CREATE INDEX "attachment_message_id_idx" ON "attachments" USING btree ("message_
 CREATE INDEX "channel_pinned_idx" ON "db_channel" USING btree ("pinned");--> statement-breakpoint
 CREATE INDEX "channel_parent_id_idx" ON "db_channel" USING btree ("parent_id");--> statement-breakpoint
 CREATE INDEX "channel_server_id_idx" ON "db_channel" USING btree ("server_id");--> statement-breakpoint
+CREATE INDEX "message_author_id_idx" ON "db_message" USING btree ("author_id");--> statement-breakpoint
 CREATE INDEX "message_channel_id_idx" ON "db_message" USING btree ("channel_id");--> statement-breakpoint
 CREATE INDEX "message_parent_channel_id_idx" ON "db_message" USING btree ("parent_channel_id");--> statement-breakpoint
 CREATE INDEX "backlinks_to_thread_idx" ON "thread_backlink" USING btree ("target_thread_id");

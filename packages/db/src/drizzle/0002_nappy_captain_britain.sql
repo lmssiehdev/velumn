@@ -1,1 +1,0 @@
-ALTER TABLE "attachments" RENAME COLUMN "proxyUrl" TO "proxyURL";

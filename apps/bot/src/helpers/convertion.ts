@@ -176,7 +176,7 @@ export async function toDbMetadata(message: Message | MessageSnapshot) {
     internalLinks,
   });
   if (!success) {
-    console.log('failed_to_parse_message_medata');
+    console.error('failed_to_parse_message_medata');
     return {} as MessageMetadataSchema;
   }
   return data;
@@ -248,6 +248,7 @@ export async function toDBMessage(
     // TODO: promise all?
     metadata: await toDbMetadata(fullMessage),
     snapshot: await toDBSnapshot(fullMessage),
+    isIgnored: false,
   };
   return convertedMessage;
 }

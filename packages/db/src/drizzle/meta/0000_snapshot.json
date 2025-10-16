@@ -1,5 +1,5 @@
 {
-  "id": "ce1f33a2-f9c7-4be8-a3da-1f640623bb9a",
+  "id": "f89889a2-f5e2-42ed-a93a-9e8952e1d93d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -431,8 +431,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "proxyUrl": {
-          "name": "proxyUrl",
+        "proxyURL": {
+          "name": "proxyURL",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -466,6 +466,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        },
+        "isSnapshot": {
+          "name": "isSnapshot",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {
@@ -765,14 +772,15 @@
           "name": "reactions",
           "type": "json",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "'null'::json"
         },
         "embeds": {
           "name": "embeds",
           "type": "json",
           "primaryKey": false,
           "notNull": false,
-          "default": "'[]'::json"
+          "default": "'null'::json"
         },
         "poll": {
           "name": "poll",
@@ -786,9 +794,38 @@
           "type": "json",
           "primaryKey": false,
           "notNull": false
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'null'::json"
+        },
+        "is_ignored": {
+          "name": "is_ignored",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {
+        "message_author_id_idx": {
+          "name": "message_author_id_idx",
+          "columns": [
+            {
+              "expression": "author_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "message_channel_id_idx": {
           "name": "message_channel_id_idx",
           "columns": [
@@ -895,6 +932,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'FREE'"
+        },
+        "server_invite": {
+          "name": "server_invite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "invitedBy": {
           "name": "invitedBy",

@@ -1,1 +1,0 @@
-ALTER TABLE "attachments" ADD COLUMN "isSnapshot" boolean DEFAULT false NOT NULL;

@@ -51,9 +51,9 @@ export const isChannelIndexable = (channel: GuildBasedChannel) =>
 
 async function randomizeServers(allGuilds: Guild[]) {
   const guilds =
-    process.env.NODE_END !== 'development'
+    process.env.NODE_ENV !== 'development'
       ? allGuilds
-      : allGuilds.filter((x) => x.id === '1385955477912948806');
+      : allGuilds.filter((x) => x.id === '1228579842212106302');
 
   try {
     const serversPlans = await getBulkServers(guilds.map((x) => x.id));
@@ -76,7 +76,7 @@ async function randomizeServers(allGuilds: Guild[]) {
       }
       let { plan, serverInvite } = serverPlanLookup.get(guild.id)! ?? {};
 
-      if (process.env.NODE_END === 'development') {
+      if (process.env.NODE_ENV === 'development') {
         const converted = toDbServer(guild);
         await upsertServer({
           ...converted,

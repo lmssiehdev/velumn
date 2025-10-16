@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
 import { ChannelType, type Client } from 'discord.js';
-import { toDBMessage, toDBSnapshot, toDbChannel } from '../helpers/convertion';
+import { toDBMessage, toDBSnapshot, toDbChannel, toDbServer } from '../helpers/convertion';
 import { indexServers } from '../indexing';
 import { fetchAllMessages } from '../indexing/helpers';
 
@@ -37,13 +37,16 @@ const guilds = {
 
 async function testing(client: Client) {
   container.logger.info('TESTING');
-  const guild = client.guilds.cache.get(guilds.testserver);
+  const guild = client.guilds.cache.get(guilds.namerio);
   if (!guild) {
     return;
   }
 
-  const channel = await guild.channels.fetch('1416188980461830256');
-  if (channel?.type !== ChannelType.PublicThread) {
-    return;
-  }
+  // const channel = await guild.channels.fetch('1416188980461830256');
+  // if (channel?.type !== ChannelType.PublicThread) {
+  //   return;
+  // }
+
+  const server = await toDbServer(guild);
+  console.log({ server })
 }
