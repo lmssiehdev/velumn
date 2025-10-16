@@ -2,7 +2,12 @@ import { parseArgs } from 'node:util';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
 import { ChannelType, type Client } from 'discord.js';
-import { toDBMessage, toDBSnapshot, toDbChannel, toDbServer } from '../helpers/convertion';
+import {
+  toDBMessage,
+  toDBSnapshot,
+  toDbChannel,
+  toDbServer,
+} from '../helpers/convertion';
 import { indexServers } from '../indexing';
 import { fetchAllMessages } from '../indexing/helpers';
 
@@ -48,5 +53,5 @@ async function testing(client: Client) {
   // }
 
   const server = await toDbServer(guild);
-  console.log({ server })
+  console.log({ server });
 }

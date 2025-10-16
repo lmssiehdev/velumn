@@ -9,13 +9,13 @@ import {
   type Guild,
   type GuildBasedChannel,
 } from 'discord.js';
+import { TEST_GUILDS } from '../constants';
 import { toDbServer } from '../helpers/convertion';
 import { createServerInvite } from '../helpers/create-invite';
 import { logger, safeStringify } from '../helpers/lib/log';
 import { shuffle } from '../helpers/utils';
 import { indexChannel } from './channel';
 import { Log } from './logger';
-import { TEST_GUILDS } from '../constants';
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
   const randomizedServers = await randomizeServers(allGuilds);

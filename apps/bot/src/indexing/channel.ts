@@ -11,11 +11,11 @@ import {
   type PublicThreadChannel,
   type Snowflake,
 } from 'discord.js';
+import { toDbChannel } from '../helpers/convertion';
 import { logger } from '../helpers/lib/log';
 import { fetchAllMessages, type IndexableChannels } from './helpers';
 import { Log } from './logger';
 import { storeIndexedData } from './store';
-import { toDbChannel } from '../helpers/convertion';
 
 const MAX_NUMBER_OF_THREADS_TO_COLLECT = 3000;
 
@@ -45,7 +45,10 @@ export async function indexChannel(channel: IndexableChannels) {
   }
 
   const channelSettings = await findChannelById(channel.id);
-  if (!channelSettings?.indexingEnabled && process.env.NODE_ENV != "development") {
+  if (
+    !channelSettings?.indexingEnabled &&
+    process.env.NODE_ENV != 'development'
+  ) {
     Log('channel_indexing_disabled', channel);
     return;
   }
@@ -60,7 +63,7 @@ export async function indexChannel(channel: IndexableChannels) {
     update: {
       channelName: channel.name,
     },
-  })
+  });
 
   const archivedThreads = await fetchAllArchivedThreads(channel);
 
