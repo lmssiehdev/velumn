@@ -43,7 +43,7 @@ export async function indexChannel(channel: IndexableChannels) {
   }
 
   const channelSettings = await findChannelById(channel.id);
-  if (!channelSettings?.indexingEnabled) {
+  if (!channelSettings?.indexingEnabled && process.env.NODE_ENV != "development") {
     Log('channel_indexing_disabled', channel);
     return;
   }
