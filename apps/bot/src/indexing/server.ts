@@ -5,12 +5,12 @@ import {
   type Guild,
   type GuildBasedChannel,
 } from 'discord.js';
-import { toDbServer } from '../../helpers/convertion';
-import { logger, safeStringify } from '../../helpers/lib/log';
-import { shuffle } from '../../helpers/utils';
-import { indexRootChannel } from './channel';
+import { toDbServer } from '../helpers/convertion';
+import { logger, safeStringify } from '../helpers/lib/log';
+import { shuffle } from '../helpers/utils';
+import { indexChannel } from './channel';
 import { Log } from './logger';
-import { createServerInvite } from '../../helpers/create-invite';
+import { createServerInvite } from '../helpers/create-invite';
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
@@ -31,7 +31,7 @@ export async function indexServers(client: Client) {
         if (!isChannelIndexable(channel) || channel.nsfw) {
           continue;
         }
-        await indexRootChannel(channel);
+        await indexChannel(channel);
       }
       console.log('Done indexing server', guild.name, guild.id);
     } catch (error) {

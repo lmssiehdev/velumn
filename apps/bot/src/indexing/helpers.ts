@@ -5,7 +5,7 @@ import type {
   TextBasedChannel,
   TextChannel,
 } from 'discord.js';
-import { isSnowflakeLargerAsInt } from '../../helpers/snowflake';
+import { isSnowflakeLargerAsInt } from '../helpers/snowflake';
 
 export type IndexableChannels = NewsChannel | TextChannel | ForumChannel;
 

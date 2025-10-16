@@ -3,7 +3,7 @@ import type {
   Guild,
   GuildTextBasedChannel,
 } from 'discord.js';
-import { logger } from '../../helpers/lib/log';
+import { logger } from '../helpers/lib/log';
 import type { IndexableChannels } from './helpers';
 
 /**
@@ -20,8 +20,8 @@ export function Log<T extends keyof typeof errToLogStringMap>(
 }
 
 const errToLogStringMap = {
-  channel_indexing_disabled: (channel: GuildTextBasedChannel) => {
-    logger.info('Indexing disabled forchannel', {
+  channel_indexing_disabled: (channel: IndexableChannels) => {
+    logger.info('Indexing disabled for channel', {
       ...getChannelInfo(channel),
       event: 'channel_indexing_disabled',
     });

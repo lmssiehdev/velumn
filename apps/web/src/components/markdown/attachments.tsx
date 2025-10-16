@@ -15,16 +15,15 @@ import { DBAttachments } from '@repo/db/helpers/validation';
 const isCode = (a: DBAttachments) =>
   !a.contentType?.startsWith('image/') || a.proxyURL?.endsWith('.svg');
 
-export function Attachments({ isSnapshot, attachments }: { isSnapshot?: boolean, attachments: DBAttachments[] }) {
+export function Attachments({ attachments }: { isSnapshot?: boolean, attachments: DBAttachments[] }) {
   if (!attachments.length) {
     return null;
   }
-  const filterBasedOnSnapshot = attachments.filter(a => isSnapshot === a.isSnapshot);
 
   return (
     <div className="flex flex-col gap-2">
-      <ImageGallery images={filterBasedOnSnapshot.filter(isEmbeddableAttachment)} />
-      {filterBasedOnSnapshot.filter(isCode).map((attachment) => (
+      <ImageGallery images={attachments.filter(isEmbeddableAttachment)} />
+      {attachments.filter(isCode).map((attachment) => (
         <FileShowcase attachment={attachment} key={attachment.id} />
       ))}
     </div>

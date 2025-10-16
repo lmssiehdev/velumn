@@ -8,7 +8,7 @@ import { resetUserServerIdLink } from '@repo/db/helpers/user';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import { Events, type Guild } from 'discord.js';
-import { isChannelIndexable } from '../../core/indexing/server';
+import { isChannelIndexable } from '../../indexing/server';
 import { toDbChannel, toDbServer } from '../../helpers/convertion';
 
 @ApplyOptions<Listener.Options>({
@@ -79,7 +79,7 @@ export class LeftGuild extends Listener {
   name: 'guild-update',
 })
 export class SyncOnUpdate extends Listener {
-  async run(_, newGuild: Guild) {
+  async run(_: Guild, newGuild: Guild) {
     try {
       console.log('Update channel', newGuild);
       const converted = toDbServer(newGuild);

@@ -11,8 +11,8 @@ import {
   messagesToDBMessagesSet,
   toDbChannel,
   toDbUser,
-} from '../../helpers/convertion';
-import { logger } from '../../helpers/lib/log';
+} from '../helpers/convertion';
+import { logger } from '../helpers/lib/log';
 import { getTheOldestSnowflakeId } from './helpers';
 
 export async function storeIndexedData(
@@ -28,9 +28,7 @@ export async function storeIndexedData(
       `No messages to index for channel ${channel.name} ${channel.id}`
     );
   }
-  if (channel.type !== ChannelType.PublicThread) {
-    return;
-  }
+
   logger.info(`Upserting channel: ${channel.name} ${channel.id}`);
   const lastIndexedMessageId = getTheOldestSnowflakeId(messages);
 

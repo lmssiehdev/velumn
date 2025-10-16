@@ -158,6 +158,12 @@ export const dbMessage = pgTable(
     poll: json('poll').$type<PollSchema | null>().default(null),
     metadata: json('metadata').$type<MessageMetadataSchema>(),
     snapshot: json('snapshot').$type<DBSnapshotSchema | null>().default(null),
+    /**
+     * this is set to true when the user has opted out of indexing
+     * in case they want to opt back in, we can still show a proper message
+     * for the messages that were deleted before.
+     */
+    isIgnored: boolean('is_ignored').notNull().default(false),
   },
   (t) => [
     index('message_author_id_idx').on(t.authorId),

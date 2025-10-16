@@ -58,6 +58,7 @@ export async function ignoreDiscordUser(user: DBUser) {
         reactions: null,
         snapshot: null,
         poll: null,
+        isIgnored: true,
       })
       .where(eq(dbMessage.authorId, user.id));
   } catch (error) {

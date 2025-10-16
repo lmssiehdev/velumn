@@ -180,7 +180,7 @@ export function DiscordSnapshotMessageWithMetadata({ message }: { message: DBSna
     <DiscordMarkdown message={message}>
       {message.content}
     </DiscordMarkdown>
-    <Attachments attachments={message.attachments!} isSnapshot={true} />
+    <Attachments attachments={message.attachments!} />
     <Embeds embeds={message.embeds} />
   </>
 }

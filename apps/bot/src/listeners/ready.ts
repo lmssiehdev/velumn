@@ -2,8 +2,9 @@ import { parseArgs } from 'node:util';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
 import { ChannelType, type Client } from 'discord.js';
-import { indexServers } from '../core/indexing';
-import { toDBMessage, toDBSnapshot } from '../helpers/convertion';
+import { indexServers } from '../indexing';
+import { toDbChannel, toDBMessage, toDBSnapshot } from '../helpers/convertion';
+import { fetchAllMessages } from '../indexing/helpers';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -41,64 +42,8 @@ async function testing(client: Client) {
     return;
   }
 
-  const channel = await guild.channels.fetch('1427089455797239811');
+  const channel = await guild.channels.fetch('1416188980461830256');
   if (channel?.type !== ChannelType.PublicThread) {
     return;
   }
-
-  const message = await channel.messages.fetch('1427832156385972355');
-  if (!message) {
-    return;
-  }
-
-  const snapshot = await toDBSnapshot(message);
-  console.log({ snapshot });
 }
-
-//
-// for (const channel of guild.channels.cache.values()) {
-//   if (
-//     channel?.type !== ChannelType.GuildText
-//   ) {
-//     continue;
-//   }
-
-//   if (!channel.viewable) continue;
-//   const threadCutoffId = await findLatestMessageInChannel(channel.id);
-//   const archivedThreads: AnyThreadChannel[] = [];
-//   const fetchAllArchivedThreads = async (before?: number | string) => {
-//     const fetched = await channel.threads.fetchArchived({
-//       type: 'public',
-//       before,
-//     });
-
-//     const last = fetched.threads.last();
-//     const isLastThreadOlderThanCutoff =
-//       last && threadCutoffId && BigInt(last.id) < BigInt(threadCutoffId);
-
-//     archivedThreads.push(...fetched.threads.values());
-
-//     if (
-//       !fetched.hasMore ||
-//       !last ||
-//       fetched.threads.size === 0 ||
-//       isLastThreadOlderThanCutoff
-//     ) {
-//       return;
-//     }
-//     await fetchAllArchivedThreads(last.id);
-//   };
-
-//   await fetchAllArchivedThreads();
-//   const activeThreads = await channel.threads.fetchActive();
-//   const threads = [
-//     ...archivedThreads.values(),
-//     ...activeThreads.threads.values(),
-//   ];
-
-//   for (const thread of threads) {
-//     console.log({ threadName: thread.name, threadId: thread.id });
-//   }
-// }
-// console.log("Done indexing server", guild.name, guild.id);
-// return;
