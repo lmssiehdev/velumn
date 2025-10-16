@@ -15,7 +15,7 @@ import { logger, safeStringify } from '../helpers/lib/log';
 import { shuffle } from '../helpers/utils';
 import { indexChannel } from './channel';
 import { Log } from './logger';
-
+import { TEST_GUILDS } from '../constants';
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];
   const randomizedServers = await randomizeServers(allGuilds);
@@ -53,7 +53,7 @@ async function randomizeServers(allGuilds: Guild[]) {
   const guilds =
     process.env.NODE_ENV !== 'development'
       ? allGuilds
-      : allGuilds.filter((x) => x.id === '1228579842212106302');
+      : allGuilds.filter((x) => x.id === TEST_GUILDS.N);
 
   try {
     const serversPlans = await getBulkServers(guilds.map((x) => x.id));
