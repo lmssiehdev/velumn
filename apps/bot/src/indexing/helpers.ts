@@ -2,6 +2,7 @@ import type {
   ForumChannel,
   Message,
   NewsChannel,
+  PublicThreadChannel,
   TextBasedChannel,
   TextChannel,
 } from 'discord.js';
@@ -33,47 +34,40 @@ export function getTheOldestSnowflakeId<T extends { id: string }>(
   return sortedMessages[0].id;
 }
 
+const MAX_NUMBER_OF_MESSAGES_TO_COLLECT = 20_000;
+
 export async function fetchAllMessages(
-  channel: TextBasedChannel,
+  channel: PublicThreadChannel,
   opts: {
     start?: string;
-    limit?: string;
   } = {}
 ) {
-  if (channel.isDMBased()) {
-    throw new Error('Cannot fetch messages from a DM channel');
-  }
-  const MAX_NUMBER_OF_MESSAGES_TO_COLLECT = 20_000;
-  const { start, limit = MAX_NUMBER_OF_MESSAGES_TO_COLLECT } = opts;
-  if (channel.lastMessageId && start === channel.lastMessageId) {
+  const limit = MAX_NUMBER_OF_MESSAGES_TO_COLLECT;
+  const { start } = opts;
+
+  if (start === channel?.lastMessageId) {
     return [];
   }
 
   const messages: Message[] = [];
-  let lastMessage: Message | undefined;
-  let approximateThreadMessageCount = 0;
-  const asyncMessageFetch = async (after: string) => {
-    await channel.messages.fetch({ limit: 100, after }).then((messagePage) => {
-      const sortedMessagesById = sortMessagesById([...messagePage.values()]);
-      messages.push(...sortedMessagesById.values());
-      // Update our message pointer to be last message in page of messages
-      lastMessage =
-        sortedMessagesById.length > 0 ? sortedMessagesById.at(-1) : undefined;
-      for (const msg of sortedMessagesById) {
-        if (msg.thread) {
-          approximateThreadMessageCount += msg.thread.messageCount ?? 0;
-        }
-      }
-    });
-    if (
-      lastMessage &&
-      (limit === undefined ||
-        messages.length + approximateThreadMessageCount < Number(limit))
-    ) {
-      await asyncMessageFetch(lastMessage.id);
+  const fetchMessagesRecursively = async (after?: string) => {
+    const messagePage = await channel.messages.fetch({ limit: 100, after })
+    const sortedMessages = sortMessagesById([...messagePage.values()]);
+
+    messages.push(...sortedMessages);
+
+    const lastMessage = sortedMessages.length > 0
+      ? sortedMessages[sortedMessages.length - 1]
+      : undefined;
+
+    // Continue if we have a last message and haven't hit the limit
+    const shouldContinue = lastMessage && messages.length < limit;
+    if (shouldContinue) {
+      await fetchMessagesRecursively(lastMessage.id);
     }
+
   };
 
-  await asyncMessageFetch(start ?? '0');
-  return messages.slice(0, Number(limit));
+  await fetchMessagesRecursively(start);
+  return messages.slice(0, limit);
 }

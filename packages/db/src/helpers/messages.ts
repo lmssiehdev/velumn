@@ -45,8 +45,8 @@ export async function upsertManyMessages(data: DBMessageWithRelations[]) {
   for (let i = 0; i < data.length; i += chunkSize) {
     chunks.push(data.slice(i, i + chunkSize));
   }
-  for await (const chunk of chunks) {
-    fastUpsertManyMessages(chunk);
+  for (const chunk of chunks) {
+    await fastUpsertManyMessages(chunk);
   }
 
   return data;
