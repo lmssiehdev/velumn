@@ -1,7 +1,7 @@
 import type { Guild } from 'discord.js';
 import { logger } from './lib/log';
 
-export async function createServerInvite(guild: Guild): Promise<string> {
+export async function createServerInvite(guild: Guild) {
   const vanityURLCode = guild.vanityURLCode;
   if (vanityURLCode) {
     return vanityURLCode;
@@ -42,13 +42,13 @@ export async function createServerInvite(guild: Guild): Promise<string> {
     if (permanentInvite) {
       return permanentInvite.url;
     }
-    return 'invalid_invite';
+    return;
   } catch (error) {
     logger.error('Failed to create invite', {
       error,
       guildId: guild.id,
       guildName: guild.name,
     });
-    return 'invalid_invite';
+    return;
   }
 }

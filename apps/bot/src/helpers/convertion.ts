@@ -1,13 +1,11 @@
 import {
-  collectionToArray,
   type DBSnapshotSchema,
-  dbAttachmentsSchema,
   embedSchema,
   internalLinksSchema,
   type MessageMetadataSchema,
   messageMetadataSchema,
   pollSchema,
-  snapShotSchema,
+  snapShotSchema
 } from '@repo/db/helpers/validation';
 import type {
   DBChannel,
@@ -30,7 +28,6 @@ import {
   type User,
 } from 'discord.js';
 import z from 'zod';
-import { is } from 'zod/v4/locales';
 import { MessageLinkRegex } from './regex';
 
 export async function toDbChannel(
@@ -225,6 +222,11 @@ export async function toDBMessage(
     throw new Error('Message is not in a guild');
   }
 
+  const [metadata, snapshot] = await Promise.all([
+    toDbMetadata(fullMessage),
+    toDBSnapshot(fullMessage)
+  ]);
+
   const convertedMessage: DBMessageWithRelations = {
     id: fullMessage.id,
     cleanContent: fullMessage.cleanContent,
@@ -247,9 +249,8 @@ export async function toDBMessage(
     // questionId: null,
     childThreadId: fullMessage.thread?.id ?? null,
     poll: toDbPoll(fullMessage),
-    // TODO: promise all?
-    metadata: await toDbMetadata(fullMessage),
-    snapshot: await toDBSnapshot(fullMessage),
+    metadata,
+    snapshot,
     isIgnored: false,
     primaryChannelId: message.channelId,
   };
