@@ -3,69 +3,89 @@ import type { DBMessage } from '@repo/db/schema/discord';
 import { ChannelType } from 'discord-api-types/v10';
 import { cn } from '@/lib/utils';
 
-type Type = 'user' | 'channel' | 'role';
-
-export function Mention({
-  type,
-  message,
-  children,
-}: {
-  type?: Type;
+type MentionType = 'channel' | 'role' | 'user';
+interface MentionProps {
+  type?: MentionType;
   message?: DBMessage;
   children: string;
-}) {
-  const className =
-    'inline-block mx-[0.5px] text-purple-800 bg-purple-100 rounded align-baseline';
-  const key = `${type}s` as keyof NonNullable<DBMessage['metadata']>;
+}
+
+const baseClassName =
+  'inline-block mx-[0.5px] text-purple-800 bg-purple-100 rounded align-baseline';
+
+export function Mention({ type, message, children }: MentionProps) {
+  if (!type || !message?.metadata) {
+    return <FallbackMention type={type}>{children}</FallbackMention>;
+  }
+
+  switch (type) {
+    case 'channel':
+      return <ChannelMention message={message}>{children}</ChannelMention>;
+    case 'role':
+      return <RoleMention message={message}>{children}</RoleMention>;
+    case 'user':
+      return <UserMention message={message}>{children}</UserMention>;
+    default:
+      return <FallbackMention type={type}>{children}</FallbackMention>;
+  }
+}
+
+function ChannelMention({ message, children }: { message: DBMessage; children: string }) {
+  const channelData = message.metadata?.channels?.[children];
+
+  if (!channelData) {
+    return <FallbackMention type="channel">{children}</FallbackMention>;
+  }
+
+  return (
+    <span className={cn(baseClassName, 'align-bottom')}>
+      <span className="flex items-center space-x-0.5">
+        <span className="inline-block">
+          <ChannelIcon type={channelData.type} />
+        </span>
+        <span>{channelData.name ?? children}</span>
+      </span>
+    </span>
+  );
+}
+
+function RoleMention({ message, children }: { message: DBMessage; children: string }) {
+  const roleData = message.metadata?.roles?.[children];
+
+  if (!roleData) {
+    return <FallbackMention type="role">{children}</FallbackMention>;
+  }
+
+  return (
+    <span className={baseClassName}>
+      @{roleData.name ?? children}
+    </span>
+  );
+}
+
+function UserMention({ message, children }: { message: DBMessage; children: string }) {
+  const userData = message.metadata?.users?.[children];
+
+  if (!userData) {
+    return <FallbackMention type="user">{children}</FallbackMention>;
+  }
+
+  return (
+    <span className={baseClassName}>
+      @{userData.username ?? children}
+    </span>
+  );
+}
+
+function FallbackMention({ type, children }: { type?: MentionType; children: string }) {
   const prefix = type === 'channel' ? '#' : '@';
 
-  if (
-    !type ||
-    !message?.metadata ||
-    !(key in message?.metadata) ||
-    !(children in message?.metadata[key])
-  ) {
-    return (
-      <span className={className}>
-        {prefix}
-        {children}
-      </span>
-    );
-  }
-
-  const metadata = message.metadata;
-
-  if (key === 'channels') {
-    return (
-      <span className={cn(className, 'align-bottom')}>
-        <span className="flex items-center space-x-0.5">
-          <span className="inline-block">
-            <ChannelIcon type={metadata[key]?.[children]?.type!} />
-          </span>
-          <span>{metadata[key][children]?.name ?? children}</span>
-        </span>
-      </span>
-    );
-  }
-
-  if (key === 'roles') {
-    return (
-      <span className={className}>
-        {prefix}
-        {metadata[key][children]?.name ?? children}
-      </span>
-    );
-  }
-
-  if (key === 'users') {
-    return (
-      <span className={className}>
-        {prefix}
-        {metadata[key][children]?.username ?? children}
-      </span>
-    );
-  }
-  return null;
+  return (
+    <span className={baseClassName}>
+      {prefix}
+      {children}
+    </span>
+  );
 }
 
 export function ChannelIcon({ type }: { type: number }) {

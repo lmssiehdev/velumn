@@ -15,7 +15,7 @@ export function Link({
   content: string;
   message: DBMessage;
 }) {
-  const isInternalLink = message?.metadata?.internalLinks.find(
+  const isInternalLink = message?.metadata?.internalLinks?.find(
     (x) => x.original === target
   );
 
