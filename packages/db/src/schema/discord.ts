@@ -1,4 +1,3 @@
-import { relations } from 'drizzle-orm';
 import {
   bigint,
   boolean,
@@ -45,10 +44,6 @@ export const dbDiscordUser = pgTable('db_user', {
   isIgnored: boolean('can_publicly_display_messages'),
 });
 
-export const discordUserRelations = relations(dbDiscordUser, ({ many }) => ({
-  messages: many(dbMessage),
-}));
-
 export type DBUser = typeof dbDiscordUser.$inferSelect;
 
 //
@@ -70,13 +65,6 @@ export const dbServer = pgTable('db_server', {
   anonymizeUsers: boolean('anonymize_users').default(false).notNull(),
 });
 
-export const serverRelations = relations(dbServer, ({ one, many }) => ({
-  channels: many(dbChannel),
-  user: one(user, {
-    fields: [dbServer.id],
-    references: [user.id],
-  }),
-}));
 
 export type DBServerInsert = typeof dbServer.$inferInsert;
 export type DBServer = typeof dbServer.$inferSelect;
@@ -108,14 +96,6 @@ export const dbChannel = pgTable(
     index('channel_server_id_idx').on(table.serverId),
   ]
 );
-
-export const channelRelations = relations(dbChannel, ({ one, many }) => ({
-  messages: many(dbMessage),
-  server: one(dbServer, {
-    fields: [dbChannel.serverId], // Foreign key in THIS table
-    references: [dbServer.id], // Primary key in the OTHER table
-  }),
-}));
 
 export type DBChannel = typeof dbChannel.$inferSelect;
 
@@ -158,8 +138,18 @@ export const dbMessage = pgTable(
       .default(null),
     embeds: json('embeds').$type<EmbedSchema[] | null>().default(null),
     poll: json('poll').$type<PollSchema | null>().default(null),
-    metadata: json('metadata').$type<MessageMetadataSchema>(),
+    metadata: json('metadata').$type<MessageMetadataSchema | null>().default(null),
     snapshot: json('snapshot').$type<DBSnapshotSchema | null>().default(null),
+    /**
+     * The primary channel ID for querying all messages in the thread.
+     * 
+     * This works around a Discord quirk where starter messages for threads 
+     * created from text channels point to the parent channel instead of the thread.
+     * 
+     * - For regular messages: equals `Message.id`
+     * - For thread starter messages: equals `Message.thread.id`
+     */
+    primaryChannelId: snowflake('primary_channel_id'),
     /**
      * this is set to true when the user has opted out of indexing
      * in case they want to opt back in, we can still show a proper message
@@ -170,21 +160,10 @@ export const dbMessage = pgTable(
   (t) => [
     index('message_author_id_idx').on(t.authorId),
     index('message_channel_id_idx').on(t.channelId),
+    index('message_primary_channel_id_idx').on(t.primaryChannelId),
     index('message_parent_channel_id_idx').on(t.parentChannelId),
   ]
 );
-
-export const messageRelations = relations(dbMessage, ({ one, many }) => ({
-  user: one(dbDiscordUser, {
-    fields: [dbMessage.authorId],
-    references: [dbDiscordUser.id],
-  }),
-  channel: one(dbChannel, {
-    fields: [dbMessage.channelId],
-    references: [dbChannel.id],
-  }),
-  attachments: many(dbAttachments),
-}));
 
 export type DBMessage = typeof dbMessage.$inferSelect;
 
@@ -207,13 +186,6 @@ export const dbAttachments = pgTable(
   },
   (t) => [index('attachment_message_id_idx').on(t.messageId)]
 );
-
-export const attachmentRelations = relations(dbAttachments, ({ one }) => ({
-  messages: one(dbMessage, {
-    fields: [dbAttachments.messageId],
-    references: [dbMessage.id],
-  }),
-}));
 
 export type DBMessageWithRelations = DBMessage & {
   attachments?: DBAttachments[];

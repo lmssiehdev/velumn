@@ -25,6 +25,7 @@ import {
   type Message,
   MessageFlags,
   type MessageSnapshot,
+  MessageType,
   type ThreadChannel,
   type User,
 } from 'discord.js';
@@ -165,7 +166,7 @@ async function toDbInternalLink(message: Message | MessageSnapshot) {
 /**
  * used to extract somehelpful metadata required by the UI to render messages.
  */
-export async function toDbMetadata(message: Message | MessageSnapshot) {
+export async function toDbMetadata(message: Message | MessageSnapshot): Promise<MessageMetadataSchema | null> {
   const { users, channels, roles } = message.mentions;
   const internalLinks = await toDbInternalLink(message);
 
@@ -177,7 +178,7 @@ export async function toDbMetadata(message: Message | MessageSnapshot) {
   });
   if (!success) {
     console.error('failed_to_parse_message_medata');
-    return {} as MessageMetadataSchema;
+    return null;
   }
   return data;
 }
@@ -216,13 +217,14 @@ function toDbReactions(message: Message): DBMessage['reactions'] {
 export async function toDBMessage(
   message: Message
 ): Promise<DBMessageWithRelations> {
-  let fullMessage = message;
+  let fullMessage = message.type === MessageType.ThreadStarterMessage ? await message.fetchReference() : message;
   if (fullMessage.partial) {
     fullMessage = await fullMessage.fetch();
   }
   if (!fullMessage.guildId) {
     throw new Error('Message is not in a guild');
   }
+
   const convertedMessage: DBMessageWithRelations = {
     id: fullMessage.id,
     cleanContent: fullMessage.cleanContent,
@@ -249,6 +251,7 @@ export async function toDBMessage(
     metadata: await toDbMetadata(fullMessage),
     snapshot: await toDBSnapshot(fullMessage),
     isIgnored: false,
+    primaryChannelId: message.channelId,
   };
   return convertedMessage;
 }
@@ -356,6 +359,7 @@ export async function toDBSnapshot(
 
   const { success, data, error } =
     snapShotSchema.safeParse(snapshotWithMetadata);
+
   if (!success) {
     console.error('Failed to parse snapshot:', error);
     return null;

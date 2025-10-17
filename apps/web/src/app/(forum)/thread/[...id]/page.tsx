@@ -197,12 +197,12 @@ export default async function Page({
             className="flex w-fit items-center gap-1 border-1 border-purple-600 px-2 py-0.5 text-purple-600 text-sm transition-all hover:bg-purple-600 hover:text-white"
             href={`/channel/${thread.parentId}`}
           >
-            {thread.parent.type === ChannelType.GuildForum ? (
+            {thread.parent?.type === ChannelType.GuildForum ? (
               <ChatsCircleIcon className="size-3.5" />
             ) : (
               <HashIcon className="size-3.5" weight="bold" />
             )}
-            {thread.parent.channelName}
+            {thread.parent?.channelName}
           </Link>
         </div>
       </div>

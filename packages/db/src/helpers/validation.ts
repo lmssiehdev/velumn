@@ -1,13 +1,14 @@
 import { EmbedType, PollLayoutType } from 'discord-api-types/v10';
-import z from 'zod';
+import z, { ZodSchema } from 'zod';
 
 export const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
   z
     .any()
     .transform((arr) => arr.map((x: unknown) => x))
     .pipe(z.array(z.object({ id: z.coerce.string() }).and(schema)))
-    .transform((arr) =>
-      arr.reduce(
+    .transform((arr) => {
+      if (arr.length === 0) return undefined;
+      return arr.reduce(
         (acc, { id, ...rest }) => {
           // @ts-expect-error
           acc[id] = rest;
@@ -15,10 +16,12 @@ export const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
         },
         {} as Record<string, z.infer<T>>
       )
+    }
     )
+    .optional()
     .catch((ctx) => {
       console.log('Failed to parse collection:', ctx);
-      return {};
+      return undefined;
     });
 
 export const collectionToArray = <T extends z.ZodObject>(schema: T) =>
@@ -28,15 +31,18 @@ export const collectionToArray = <T extends z.ZodObject>(schema: T) =>
       if (c instanceof Map) {
         return Array.from(c.values());
       }
-      return Array.isArray(c) ? c : [];
+      const arr = Array.isArray(c) ? c : [];
+      if (arr.length === 0) return undefined;
+      return c;
     })
     .pipe(z.array(schema))
+    .optional()
     .catch((ctx) => {
       console.log(
         'collection_to_array_schema_converstion_failed',
         z.prettifyError(ctx.error)
       );
-      return [];
+      return undefined;
     });
 
 //
@@ -71,21 +77,31 @@ export const messageMetadataSchema = z.object({
       name: z.string(),
       type: z.number(),
     })
-  ),
+  ).optional(),
   roles: collectionToRecord(
     z.object({
       name: z.string(),
       color: z.number(),
     })
-  ),
+  ).optional(),
   users: collectionToRecord(
     z.object({
       username: z.string(),
       globalName: z.string().nullable(),
     })
-  ),
-  internalLinks: z.array(internalLinksSchema),
-});
+  ).optional(),
+  internalLinks: collectionToArray(internalLinksSchema).optional(),
+}).transform(removeUndefinedValues);
+
+function removeUndefinedValues<T extends Record<string, any>>(
+  data: T
+): Partial<T> | null {
+  const result = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined)
+  ) as Partial<T>;
+
+  return Object.keys(result).length === 0 ? null : result;
+}
 
 //
 // Poll Schema
@@ -197,7 +213,7 @@ export const dbAttachmentsSchema = z.object({
 
 export type DBSnapshotSchema = {
   forwardedInMessageId: string;
-  metadata: MessageMetadataSchema;
+  metadata: MessageMetadataSchema | null;
 } & z.infer<typeof snapShotSchema>;
 export const snapShotSchema = z.object({
   id: z.string().nullable(),

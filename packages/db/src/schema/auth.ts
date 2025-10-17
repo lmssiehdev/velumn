@@ -1,4 +1,3 @@
-import { relations } from 'drizzle-orm';
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { dbServer, snowflake } from './discord';
 
@@ -22,10 +21,6 @@ export const user = pgTable(
 );
 
 export type AuthUser = typeof user.$inferSelect;
-
-export const userRelations = relations(user, ({ one, many }) => ({
-  server: many(dbServer),
-}));
 
 export const session = pgTable(
   'session',

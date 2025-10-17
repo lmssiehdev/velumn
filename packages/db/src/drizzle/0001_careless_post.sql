@@ -1,0 +1,1 @@
+CREATE INDEX "message_child_thread_id_idx" ON "db_message" USING btree ("child_thread_id");

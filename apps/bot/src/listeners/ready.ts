@@ -45,13 +45,11 @@ async function testing(client: Client) {
     return;
   }
 
-  const channel = await guild.channels.fetch('1426766340273995950');
+  const channel = await guild.channels.fetch('1424601172052021279');
   if (channel?.type !== ChannelType.PublicThread) {
     return;
   }
 
-  const messages = await fetchAllMessages(channel);
-  for (const msg of messages) {
-    console.log(await toDBMessage(msg));
-  }
+  const message = await channel.messages.fetch('1424605852647690240');
+  console.log(await toDBMessage(message));
 }

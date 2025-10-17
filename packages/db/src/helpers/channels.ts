@@ -39,116 +39,34 @@ export async function setBulkIndexingStatus(
 }
 
 export async function getChannelInfo(channelId: string) {
-  const data = await db
-    .select({
-      channel: dbChannel,
-      server: dbServer,
-    })
-    .from(dbChannel)
-    .innerJoin(dbServer, eq(dbChannel.serverId, dbServer.id))
-    .where(eq(dbChannel.id, channelId))
-    .limit(1);
-
-  if (data.length === 0) {
-    return;
-  }
-  return data[0];
+  return await db.query.dbChannel.findFirst({
+    where: { id: channelId },
+    with: {
+      server: true,
+    }
+  })
 }
 
-export async function getAllMessagesInThreads(channelId: string): Promise<
-  | (DBChannel & {
-      parent: DBChannel;
-      messages: (DBMessage & {
-        user: DBUser | null;
-        attachments: DBAttachments[];
-      })[];
-    })
-  | null
-> {
-  const parent = alias(dbChannel, 'parent');
-  const threadWithParent = await db
-    .select({
-      channel: dbChannel,
-      parentChannel: parent,
-    })
-    .from(dbChannel)
-    .innerJoin(parent, eq(dbChannel.parentId, parent.id))
-    .where(eq(dbChannel.id, channelId))
-    .limit(1);
-
-  if (!threadWithParent[0] || !threadWithParent[0].channel) {
-    return null;
-  }
-
-  const { channel, parentChannel } = threadWithParent[0];
-
-  const messages = await db
-    .select()
-    .from(dbMessage)
-    .where(
-      or(
-        eq(dbMessage.channelId, channelId),
-        eq(dbMessage.childThreadId, channelId)
-      )
-    )
-    .orderBy(asc(dbMessage.id));
-
-  const userIds = [...new Set(messages.map((m) => m.authorId).filter(Boolean))];
-  const users =
-    userIds.length > 0
-      ? await db
-          .select()
-          .from(dbDiscordUser)
-          .where(inArray(dbDiscordUser.id, userIds))
-      : [];
-
-  const messageIds = messages.map((m) => m.id);
-  const attachments =
-    messageIds.length > 0
-      ? await db
-          .select()
-          .from(dbAttachments)
-          .where(inArray(dbAttachments.messageId, messageIds))
-      : [];
-
-  const usersMap = new Map(users.map((u) => [u.id, u]));
-  const attachmentsByMessage = attachments.reduce(
-    (acc, att) => {
-      if (!acc[att.messageId]) {
-        acc[att.messageId] = [];
-      }
-      acc[att.messageId]?.push(att);
-      return acc;
-    },
-    {} as Record<string, DBAttachments[]>
-  );
-
-  return {
-    ...channel,
-    parent: parentChannel,
-    messages: messages.map((message) => ({
-      ...message,
-      user: usersMap.get(message.authorId) || null,
-      attachments: attachmentsByMessage[message.id] || [],
-    })),
-  };
-
-  // return await db.query.dbChannel.findFirst({
-  //   where: eq(dbChannel.id, channelId),
-  //   with: {
-  //     messages: {
-  //       with: {
-  //         user: true,
-  //         attachments: true,
-  //       },
-  //       orderBy: [asc(dbChannel.id)],
-  //     },
-  //   },
-  // });
+export async function getAllMessagesInThreads(channelId: string) {
+  return await db.query.dbChannel.findFirst({
+    where: { id: channelId },
+    with: {
+      parent: true,
+      messages: {
+        with: {
+          user: true,
+          attachments: true,
+        },
+        orderBy: {
+          id: "asc"
+        },
+      },
+    }
+  });
 }
 
 export async function findLatestMessageInChannel(channelId: string) {
-  const result = await db.query.dbChannel.findFirst({
+  const result = await db._query.dbChannel.findFirst({
     where: eq(dbChannel.id, channelId),
     columns: {
       lastIndexedMessageId: true,
@@ -173,7 +91,7 @@ export async function bulkFindLatestMessageInChannel(channelIds: string[]) {
 }
 
 export async function findChannelById(channelId: string) {
-  return await db.query.dbChannel.findFirst({
+  return await db._query.dbChannel.findFirst({
     where: eq(dbChannel.id, channelId),
   });
 }
@@ -209,29 +127,4 @@ export async function updateChannel(data: Partial<DBChannel>) {
     throw new Error('Channel ID is required for update');
   }
   await db.update(dbChannel).set(data).where(eq(dbChannel.id, data.id));
-}
-
-export async function getThreadComments(channelId: string) {
-  const result = await db
-    .select({ count: count(dbMessage.id) })
-    .from(dbMessage)
-    .where(eq(dbMessage.channelId, channelId))
-    .groupBy(dbMessage.id)
-    .limit(1);
-
-  return result[0]?.count ?? 0;
-}
-
-export async function getBulkThreadReplies(channelIds: string[]) {
-  if (channelIds.length === 0) {
-    return [];
-  }
-  return await db
-    .select({
-      count: count(dbMessage.id),
-      channelId: dbMessage.channelId,
-    })
-    .from(dbMessage)
-    .where(inArray(dbMessage.channelId, channelIds))
-    .groupBy(dbMessage.channelId);
 }

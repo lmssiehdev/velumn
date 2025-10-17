@@ -21,7 +21,7 @@ export async function deleteManyMessagesById(messageIds: string[]) {
 }
 
 export async function getMessageById(messageId: string) {
-  return await db.query.dbMessage.findFirst({
+  return await db._query.dbMessage.findFirst({
     where: eq(dbMessage.id, messageId),
   });
 }

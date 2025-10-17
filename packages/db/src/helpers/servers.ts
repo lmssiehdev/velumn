@@ -58,7 +58,7 @@ export async function linkServerToUser(serverId: string, userId: string) {
 }
 
 export async function getUserWhoInvited(serverId: string) {
-  return await db.query.pendingDiscordInvite.findFirst({
+  return await db._query.pendingDiscordInvite.findFirst({
     where: eq(pendingDiscordInvite.serverId, serverId),
     columns: {
       userId: true,
@@ -69,6 +69,17 @@ export async function getUserWhoInvited(serverId: string) {
 export async function getChannelsInServer(
   serverId: string
 ): Promise<DBChannel[] | undefined> {
+  // return await db.query.dbChannel.findMany({
+  //   where: {
+  //     AND: [
+  //       { serverId },
+  //       { server: { kickedAt: { isNull: true } } },
+  //     ]
+  //   },
+  //   with: {
+  //     server: true,
+  //   }
+  // });
   const result = await db
     .select({
       channel: dbChannel,
@@ -133,11 +144,11 @@ export async function createBulkServers(servers: DBServer[]) {
 }
 
 export async function getAllServers() {
-  return await db.query.dbServer.findMany();
+  return await db._query.dbServer.findMany();
 }
 
 export async function getServerInfo(serverId: string) {
-  return await db.query.dbServer.findFirst({
+  return await db._query.dbServer.findFirst({
     where: and(eq(dbServer.id, serverId)),
   });
 }
@@ -162,7 +173,7 @@ export async function getServerInfoByChannelId(channelId: string) {
 }
 
 export async function getBulkServers(serverIds: string[]) {
-  return await db.query.dbServer.findMany({
+  return await db._query.dbServer.findMany({
     where: inArray(dbServer.id, serverIds),
   });
 }
@@ -177,38 +188,30 @@ export async function getAllThreads(
 ) {
   const { id, pinned = false, page = 1 } = config;
   const LIMIT_PER_PAGE = pinned ? 1 : 10;
-  const parentChannel = alias(dbChannel, 'parentChannel');
-  const result = await db
-    .select({
-      channel: dbChannel,
-      user: dbDiscordUser,
-      messagesCount: count(dbMessage.id),
-      parentChannel,
-    })
-    .from(dbChannel)
-    .innerJoin(
-      dbMessage,
-      or(
-        eq(dbChannel.id, dbMessage.channelId),
-        eq(dbChannel.id, dbMessage.childThreadId)
-      )
-    )
-    .innerJoin(dbDiscordUser, eq(dbChannel.authorId, dbDiscordUser.id))
-    .leftJoin(parentChannel, eq(dbChannel.parentId, parentChannel.id))
-    .where(
-      getBy === 'server'
-        ? and(
-            eq(dbChannel.serverId, id),
-            isNotNull(dbChannel.parentId),
-            eq(dbChannel.pinned, pinned)
-          )
-        : and(eq(dbChannel.parentId, id), eq(dbChannel.pinned, pinned))
-    )
-    .groupBy(dbChannel.id, dbDiscordUser.id, parentChannel.id)
-    .limit(LIMIT_PER_PAGE + 1)
-    .offset((page - 1) * LIMIT_PER_PAGE)
-    .orderBy(desc(dbChannel.id));
-
+  const result = await db.query.dbChannel.findMany({
+    where: getBy === "server" ? {
+      serverId: id,
+      pinned,
+      parentId: {
+        isNotNull: true,
+      },
+    } : {
+      parentId: id,
+      pinned,
+    },
+    with: {
+      author: true,
+      parent: true,
+    },
+    extras: {
+      messagesCount: (t) => db.$count(dbMessage, eq(dbMessage.primaryChannelId, t.id))
+    },
+    limit: LIMIT_PER_PAGE + 1,
+    offset: (page - 1) * LIMIT_PER_PAGE,
+    orderBy: {
+      id: "desc"
+    }
+  });
   return {
     hasMore: result.length > LIMIT_PER_PAGE,
     threads: result.splice(0, LIMIT_PER_PAGE),

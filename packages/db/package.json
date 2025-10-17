@@ -22,7 +22,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/pg": "^8.15.5",
     "@types/ws": "^8.18.1",
-    "drizzle-kit": "^0.31.5",
+    "drizzle-kit": "^1.0.0-beta.1-ac4ce44",
     "tsx": "^4.20.6",
     "typescript": "5.9.2"
   },
@@ -34,7 +34,7 @@
     "@t3-oss/env-core": "^0.13.8",
     "discord-api-types": "^0.38.26",
     "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "^1.0.0-beta.1-ac4ce44",
     "drizzle-zod": "^0.8.3",
     "pg": "^8.16.3",
     "zod": "^4.1.11"

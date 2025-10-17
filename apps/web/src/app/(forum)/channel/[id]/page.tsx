@@ -10,9 +10,9 @@ export async function generateMetadata({
 }) {
   const { id } = await params;
 
-  const data = await getChannelInfoCached(id);
+  const channel = await getChannelInfoCached(id);
 
-  if (!data?.channel) {
+  if (!channel) {
     return {
       title: 'Channel Not Found',
       openGraph: {
@@ -21,12 +21,12 @@ export async function generateMetadata({
     };
   }
   return {
-    title: data.channel?.channelName,
+    title: channel?.channelName,
     // TODO: sync description?
-    // describe: data.channel?.description,
+    // describe: channel?.description,
     openGraph: {
-      title: data.channel?.channelName,
-      // description: data.channel?.description,
+      title: channel?.channelName,
+      // description: channel?.description,
     },
   };
 }
@@ -39,15 +39,12 @@ export default async function Page({
   searchParams: { page: string };
 }) {
   const { id: channelId } = await params;
-  const data = await getChannelInfoCached(channelId);
+  const channel = await getChannelInfoCached(channelId);
   const searchParamsPage = Number((await searchParams).page ?? 1);
 
-  if (!data) {
+  if (!channel?.server) {
     return <div>Channel doesn't exist</div>;
   }
-
-  // TODO: is channel needed here?
-  const { channel, server } = data;
 
   const { threads, hasMore, page } = await getAllThreads('channel', {
     id: channelId,
@@ -71,7 +68,7 @@ export default async function Page({
           serverId={channelId}
           threads={threads.concat(pinnedThread)}
         />
-        <FrontPageSidebar activeChannelId={channel.id} server={server} />
+        <FrontPageSidebar activeChannelId={channel.id} server={channel.server} />
       </div>
     </div>
   );

@@ -109,9 +109,10 @@ export async function ThreadList({
     );
   }
 
+
   const { pinnedThread, otherThreads } = threads.reduce(
     (acc, t) => {
-      if (t.channel.pinned) {
+      if (t.pinned) {
         acc.pinnedThread = t;
         return acc;
       }
@@ -128,10 +129,10 @@ export async function ThreadList({
     <div className="flex-1">
       <div>
         {pinnedThread && (
-          <ThreadItem data={pinnedThread} key={pinnedThread.channel.id} />
+          <ThreadItem data={pinnedThread} key={pinnedThread.id} />
         )}
         {otherThreads.map((thread) => {
-          return <ThreadItem data={thread} key={thread.channel.id} />;
+          return <ThreadItem data={thread} key={thread.id} />;
         })}
       </div>
       <div className="mt-6 flex items-center justify-end gap-4">
@@ -163,8 +164,8 @@ export async function ThreadList({
 }
 
 export function ThreadItem({ data }: { data: ThreadsData['threads'][number] }) {
-  const { channel, user, messagesCount, parentChannel } = data;
-  const authorName = anonymizeName(user!);
+  const { author, messagesCount, parent } = data;
+  const authorName = anonymizeName(author!);
 
   return (
     <div className="flex items-center justify-between gap-4 rounded border-neutral-300 border-b py-4">
@@ -173,26 +174,26 @@ export function ThreadItem({ data }: { data: ThreadsData['threads'][number] }) {
           <Link
             className="underline-offset-2 hover:underline"
             href={slugifyThreadUrl({
-              id: channel.id,
-              name: channel.channelName!,
+              id: data.id,
+              name: data.channelName!,
             })}
           >
-            {channel.channelName}
+            {data.channelName}
           </Link>
           <div className="text-neutral-500 text-sm">
             by {authorName} • in{' '}
             <Link
               className="underline-offset-2 hover:underline"
-              href={`/channel/${parentChannel?.id}`}
+              href={`/channel/${parent?.id}`}
             >
-              #{parentChannel?.channelName}
+              #{parent?.channelName}
             </Link>{' '}
-            • {snowflakeToReadableDate(channel.id)}
+            • {snowflakeToReadableDate(data.id)}
           </div>
         </div>
       </div>
       <div className="flex items-center gap-4">
-        {channel.pinned && <PushPinIcon className="size-5" />}
+        {data.pinned && <PushPinIcon className="size-5" />}
         <div className="flex items-center gap-2">
           <ChatIcon className="size-5" />
           <span className="text-sm">{messagesCount - 1}</span>

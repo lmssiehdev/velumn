@@ -62,11 +62,6 @@ export async function fetchAllMessages(
         ? sortedMessages[sortedMessages.length - 1]
         : undefined;
 
-    for (const message of sortedMessages) {
-      if (message.type !== MessageType.ThreadStarterMessage) continue;
-      messages.push(await message.fetchReference());
-    }
-
     // Continue if we have a last message and haven't hit the limit
     const shouldContinue = lastMessage && messages.length < limit;
     if (shouldContinue) {

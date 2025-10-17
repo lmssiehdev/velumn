@@ -97,7 +97,7 @@ export async function upsertUser(userId: string) {
 }
 
 export async function findUserByAccountId(accountId: string) {
-  return await db.query.dbDiscordUser.findFirst({
+  return await db._query.dbDiscordUser.findFirst({
     where: eq(dbDiscordUser.id, accountId),
   });
 }
@@ -105,7 +105,7 @@ export async function findManyDiscordAccountsById(ids: string[]) {
   if (ids.length === 0) {
     return [];
   }
-  return await db.query.dbDiscordUser.findMany({
+  return await db._query.dbDiscordUser.findMany({
     where: inArray(dbDiscordUser.id, ids),
   });
 }
