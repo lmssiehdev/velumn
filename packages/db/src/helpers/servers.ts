@@ -23,7 +23,7 @@ import {
   type ServerPlan,
   user,
 } from '../schema';
-import { buildConflictUpdateColumns } from '../utils';
+import { buildConflictUpdateColumns } from '../utils/drizzle';
 
 export async function createBotInvite({
   userId,
