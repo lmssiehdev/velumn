@@ -260,6 +260,7 @@ export async function toDBMessage(
 export function extractUsersSetFromMessages(messages: Message[]) {
   const users = new Map<string, DBUser>();
   for (const msg of messages) {
+    if (msg.system) continue;
     users.set(msg.author.id, toDbUser(msg.author));
   }
   return Array.from(users.values());
@@ -269,11 +270,8 @@ export async function messagesToDBMessagesSet(messages: Message[]) {
   const reversed = [...messages].reverse();
   const dbMessages = new Map<string, DBMessageWithRelations>();
   for await (const msg of reversed) {
-    if (dbMessages.has(msg.id)) {
-      continue;
-    }
     const converted = await toDBMessage(msg);
-    dbMessages.set(msg.id, converted);
+    dbMessages.set(converted.id, converted);
   }
   return Array.from(dbMessages.values());
 }

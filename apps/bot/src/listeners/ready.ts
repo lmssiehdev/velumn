@@ -29,7 +29,7 @@ const { values } = parseArgs({
 export class Indexing extends Listener {
   async run(client: Client) {
     if (!values.index) {
-      await testing(client);
+      // await testing(client);
       return;
     }
 
@@ -45,7 +45,7 @@ async function testing(client: Client) {
     return;
   }
 
-  const channel = await guild.channels.fetch('1426094620588118067');
+  const channel = await guild.channels.fetch('1426766340273995950');
   if (channel?.type !== ChannelType.PublicThread) {
     return;
   }

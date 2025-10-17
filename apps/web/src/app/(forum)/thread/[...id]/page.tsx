@@ -232,15 +232,13 @@ export default async function Page({
               );
             })}
           </div>
-          {orderedMessages.length === 0 && op.id === authorId && <NoReplies />}
-          {orderedMessages.length !== 0 && (
-            <ContinueDiscussion
-              url={ConstructDiscordLink({
-                serverId: server.id,
-                threadId: thread.id,
-              })}
-            />
-          )}
+          <ContinueDiscussion
+            noReplies={orderedMessages.length === 0}
+            url={ConstructDiscordLink({
+              serverId: server.id,
+              threadId: thread.id,
+            })}
+          />
         </div>
         <div className="hidden w-full max-w-xs space-y-6 md:block">
           <ServerInfo server={server} />
@@ -418,17 +416,30 @@ function NoReplies() {
   );
 }
 
-function ContinueDiscussion({ url }: { url: string }) {
+function ContinueDiscussion({ url, noReplies }: { url: string; noReplies: boolean }) {
+  const icon = noReplies ? "👋" : "💬";
   return (
     <div className="mt-2 rounded-lg border border-neutral-200 p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center">
-            <Twemoji className="size-7" name="💬" />
+            <Twemoji className="size-7" name={icon} />
           </div>
-          <h3 className="font-semibold text-lg text-neutral-900">
-            Continue the Discussion
-          </h3>
+          <div>
+            {
+              noReplies ? (<>
+                <h3 className="font-semibold text-lg text-neutral-900">
+                  Start the conversation!
+                </h3>
+                <span className='text-neutral-700 text-sm'>
+                  Be the first to share what you think!
+                </span>
+              </>
+              ) : <h3 className="font-semibold text-lg text-neutral-900">
+                Continue the Discussion
+              </h3>
+            }
+          </div>
         </div>
 
         <a

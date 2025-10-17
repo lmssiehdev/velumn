@@ -109,7 +109,7 @@ export async function indexChannel(channel: IndexableChannels) {
   const outOfDateThreads = threadsToIndex.filter((x) => {
     const lookup = threadMessageLookup.get(x.id);
     if (!lookup) {
-      return true; // either undefined or null, either way we need to index
+      return true;
     }
     return BigInt(lookup) < BigInt(x.lastMessageId ?? x.id);
   });

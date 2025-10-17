@@ -1,27 +1,21 @@
 import {
   and,
-  count,
-  desc,
   eq,
   exists,
   inArray,
-  isNotNull,
-  isNull,
-  or,
+  isNull
 } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../index';
 import {
   type DBChannel,
-  type DBServer,
-  type DBServerInsert,
   dbChannel,
-  dbDiscordUser,
   dbMessage,
+  type DBServer,
   dbServer,
+  type DBServerInsert,
   pendingDiscordInvite,
   type ServerPlan,
-  user,
+  user
 } from '../schema';
 import { buildConflictUpdateColumns } from '../utils/drizzle';
 

@@ -7,12 +7,12 @@ process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });
 
-let client: SapphireClient<boolean> | null = null;
+export let sapphireClient: SapphireClient<boolean> | null = null;
 
-if (client) {
+if (sapphireClient) {
   console.log('Realoding bot;');
 } else {
-  client = new SapphireClient({
+  sapphireClient = new SapphireClient({
     shards: 'auto',
     logger: {
       level: LogLevel.Debug,
@@ -38,5 +38,5 @@ if (client) {
     ],
   });
 
-  client.login(botEnv.DISCORD_BOT_TOKEN);
+  sapphireClient.login(botEnv.DISCORD_BOT_TOKEN);
 }

@@ -51,9 +51,14 @@ export async function storeIndexedData(
     return;
   }
 
-  // Filter out system messages and ignored users
-  const filteredMessages = await filterMessages(messages);
+  if (messages.length === 0) {
+    return;
+  }
 
+  // Filter out ignored users
+  const filteredMessages = await removeIgnoredUsers(messages);
+
+  // we filter for system messages here
   const convertedUsers = extractUsersSetFromMessages(filteredMessages);
   const convertedMessages = await messagesToDBMessagesSet(filteredMessages);
 
@@ -76,13 +81,11 @@ export async function storeIndexedData(
   return true;
 }
 
-async function filterMessages(messages: Message[]) {
-  const filteredMessages = messages.filter((m) => !m.system);
-
-  const userIds = [...new Set(filteredMessages.map((m) => m.author.id))];
+async function removeIgnoredUsers(messages: Message[]) {
+  const userIds = [...new Set(messages.map((m) => m.author.id))];
   const usersData = await findManyDiscordAccountsById(userIds);
 
   const userLookup = new Map(usersData.map((x) => [x.id, x.isIgnored]));
 
-  return filteredMessages.filter((m) => !userLookup.get(m.author.id));
+  return messages.filter((m) => !userLookup.get(m.author.id));
 }

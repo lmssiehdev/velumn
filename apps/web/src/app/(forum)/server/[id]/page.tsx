@@ -196,7 +196,7 @@ export function ThreadItem({ data }: { data: ThreadsData['threads'][number] }) {
         {data.pinned && <PushPinIcon className="size-5" />}
         <div className="flex items-center gap-2">
           <ChatIcon className="size-5" />
-          <span className="text-sm">{messagesCount - 1}</span>
+          <span className="text-sm">{Math.max(0, messagesCount - 1)}</span>
         </div>
       </div>
     </div>

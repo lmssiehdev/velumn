@@ -66,8 +66,10 @@ export async function getAllMessagesInThreads(channelId: string) {
 }
 
 export async function findLatestMessageInChannel(channelId: string) {
-  const result = await db._query.dbChannel.findFirst({
-    where: eq(dbChannel.id, channelId),
+  const result = await db.query.dbChannel.findFirst({
+    where: {
+      id: channelId,
+    },
     columns: {
       lastIndexedMessageId: true,
     },
