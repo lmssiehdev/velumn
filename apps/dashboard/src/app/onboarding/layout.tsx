@@ -22,8 +22,8 @@ export default async function OnboardingLayout({
     return <div>Error: {guilds.error}</div>;
   }
 
-  const initialChannels = (await getChannelsInServer(user.serverId!)) ?? [];
-
+  const channels = (await getChannelsInServer(user.serverId!)) ?? [];
+  const initialChannels = channels.map((c) => ({ ...c, enabled: false }));
   return (
     <div>
       <AuthProvider user={user}>
@@ -32,9 +32,7 @@ export default async function OnboardingLayout({
             guilds={guilds}
             initialChannels={initialChannels}
             initialGuildId={user.serverId ?? null}
-          >
-            {children}
-          </OnboardingProvider>
+          />
         </Providers>
       </AuthProvider>
     </div>

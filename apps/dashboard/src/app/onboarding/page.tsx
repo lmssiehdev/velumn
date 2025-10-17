@@ -69,7 +69,6 @@ export function OnboardingProvider({
   initialGuildId: string | null;
 }) {
   const { user } = useAuth();
-  console.log({ user });
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [step, setStep] = useState<Step>(
     user.serverId ? 'SELECT_CHANNELS' : 'INVITING_SERVER'

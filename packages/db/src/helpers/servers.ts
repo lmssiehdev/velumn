@@ -63,30 +63,19 @@ export async function getUserWhoInvited(serverId: string) {
 export async function getChannelsInServer(
   serverId: string
 ): Promise<DBChannel[] | undefined> {
-  // return await db.query.dbChannel.findMany({
-  //   where: {
-  //     AND: [
-  //       { serverId },
-  //       { server: { kickedAt: { isNull: true } } },
-  //     ]
-  //   },
-  //   with: {
-  //     server: true,
-  //   }
-  // });
-  const result = await db
-    .select({
-      channel: dbChannel,
-    })
-    .from(dbChannel)
-    .leftJoin(dbServer, eq(dbServer.id, dbChannel.serverId))
-    .where(and(eq(dbChannel.serverId, serverId), isNull(dbServer.kickedAt)));
-
-  if (!result) {
-    return;
-  }
-
-  return result.map(({ channel }) => channel);
+  return await db.query.dbChannel.findMany({
+    where: {
+      AND: [{
+        serverId,
+        parentId: {
+          isNull: true
+        }
+      }]
+    },
+    with: {
+      server: true
+    }
+  });
 }
 
 export async function setServerPlanById(serverId: string, plan: ServerPlan) {

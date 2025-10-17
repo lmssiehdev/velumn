@@ -4,12 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "next build --turbopack",
+    "build": "bun run type-check && next build --turbopack",
     "with-env": "bun run --env-file=../../.env --",
     "start": "next start",
     "lint": "biome check",
-    "typecheck": "tsc --noEmit",
-    "format": "biome format --write"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
