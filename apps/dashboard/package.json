@@ -19,7 +19,6 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@repo/db": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@sentry/nextjs": "^10",
     "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-query": "^5.89.0",
     "@tanstack/react-query-devtools": "^5.89.0",
