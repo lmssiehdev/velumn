@@ -66,8 +66,8 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
       attachments.set(attachment.id, attachment);
     }
 
-    if (msg.snapshot?.attachments.length) {
-      for (const attachment of msg.snapshot?.attachments) {
+    if (msg.snapshot?.attachments?.length) {
+      for (const attachment of msg.snapshot.attachments) {
         attachments.set(attachment.id, attachment);
       }
     }
