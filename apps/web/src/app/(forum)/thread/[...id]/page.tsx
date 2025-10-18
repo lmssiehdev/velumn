@@ -428,16 +428,16 @@ function ContinueDiscussion({ url, noReplies }: { url: string; noReplies: boolea
           <div>
             {
               noReplies ? (<>
-                <h3 className="font-semibold text-lg text-neutral-900">
+                <div className="font-semibold text-lg text-neutral-900">
                   Start the conversation!
-                </h3>
+                </div>
                 <span className='text-neutral-700 text-sm'>
                   Be the first to share what you think!
                 </span>
               </>
-              ) : <h3 className="font-semibold text-lg text-neutral-900">
+              ) : <div className="font-semibold text-lg text-neutral-900">
                 Continue the Discussion
-              </h3>
+              </div>
             }
           </div>
         </div>
