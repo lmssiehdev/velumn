@@ -267,13 +267,19 @@ export function extractUsersSetFromMessages(messages: Message[]) {
 }
 
 export async function messagesToDBMessagesSet(messages: Message[]) {
-  const reversed = [...messages].reverse();
-  const dbMessages = new Map<string, DBMessageWithRelations>();
-  for await (const msg of reversed) {
-    const converted = await toDBMessage(msg);
-    dbMessages.set(converted.id, converted);
+  const systemMessageIds = new Set(
+    messages.filter((x) => x.system).map((x) => x.id)
+  );
+
+  const uniqueMessages = new Map<string, Message>();
+  for (const msg of messages) {
+    uniqueMessages.set(msg.id, msg);
   }
-  return Array.from(dbMessages.values());
+
+  const dbMessages = await Promise.all(
+    Array.from(uniqueMessages.values()).map(toDBMessage)
+  );
+  return dbMessages.filter((x) => !systemMessageIds.has(x.id));
 }
 
 //
