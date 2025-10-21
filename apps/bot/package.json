@@ -5,7 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "NODE_ENV=development bun src/index.ts",
-    "start": "brun run src/index.ts",
+    "start": "bun run src/index.ts",
     "test": "bun test"
   },
   "devDependencies": {
