@@ -9,6 +9,7 @@ import {
 import { uploadFileFromUrl } from './upload';
 import type { DBAttachments } from './validation';
 import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
+import { logger } from '@repo/logger';
 
 export async function deleteMesasgeById(messageId: string) {
   return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
@@ -154,13 +155,13 @@ async function processAttachments(attachments: DBAttachments[]) {
         })
         .onConflictDoNothing();
     } catch (error) {
-      console.error(`Error uploading attachment ${attachment.id}:`, error);
+      logger.error(`Error uploading attachment ${attachment.id}:`, { error });
       return;
     }
   });
 
   // Don't await, we run this in the background
   Promise.allSettled(uploadPromises).catch(error => {
-    console.error('Unexpected error in upload promises:', error);
+    logger.error('Unexpected error in upload promises:', { error });
   });
 }

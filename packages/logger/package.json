@@ -1,0 +1,19 @@
+{
+  "name": "@repo/logger",
+  "module": "index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@axiomhq/js": "^1.3.1",
+    "@axiomhq/logging": "^0.1.5"
+  }
+}

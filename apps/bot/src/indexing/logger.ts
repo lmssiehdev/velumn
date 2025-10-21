@@ -3,7 +3,7 @@ import type {
   Guild,
   GuildTextBasedChannel,
 } from 'discord.js';
-import { logger } from '../helpers/lib/log';
+import { logger } from '@repo/logger';
 import type { IndexableChannels } from './helpers';
 
 /**
