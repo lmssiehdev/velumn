@@ -1,1 +1,0 @@
-ALTER TABLE "db_message" ALTER COLUMN "metadata" SET DEFAULT 'null'::json;

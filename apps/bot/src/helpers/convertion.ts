@@ -12,10 +12,12 @@ import type {
   DBMessage,
   DBMessageWithRelations,
   DBServerInsert,
-  DBUser,
+  DBThreadBacklink,
+  DBUser
 } from '@repo/db/schema/index';
 import {
   ChannelFlags,
+  ChannelType,
   type Emoji,
   type Guild,
   type GuildBasedChannel,
@@ -296,10 +298,27 @@ export function toDbServer(guild: Guild) {
   return convertedServer;
 }
 
+
+//
+// Backlinks
+//
+export function toDbBacklink(messages: DBMessage[]): DBThreadBacklink[] {
+  return messages.flatMap(msg => {
+    const internalLinks = msg.metadata?.internalLinks ?? [];
+
+    return internalLinks
+      .filter(link => link.channel.type === ChannelType.PublicThread && link.channel.id !== msg.channelId)
+      .map(link => ({
+        fromMessageId: msg.id,
+        fromThreadId: msg.channelId,
+        toThreadId: link.channel.id,
+      }));
+  });
+}
+
 //
 // Helpers
 //
-
 export function getEmojiData(emoji: Emoji) {
   if (!emoji) {
     return null;

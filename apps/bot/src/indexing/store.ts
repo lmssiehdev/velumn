@@ -1,5 +1,5 @@
 import { upsertChannel } from '@repo/db/helpers/channels';
-import { upsertManyMessages } from '@repo/db/helpers/messages';
+import { upsertManyBacklinks, upsertManyMessages } from '@repo/db/helpers/messages';
 import {
   findManyDiscordAccountsById,
   upsertManyDiscordAccounts,
@@ -12,11 +12,12 @@ import {
 import {
   extractUsersSetFromMessages,
   messagesToDBMessagesSet,
+  toDbBacklink,
   toDbChannel,
   toDbUser,
 } from '../helpers/convertion';
-import { logger } from '../helpers/lib/log';
 import { getTheOldestSnowflakeId } from './helpers';
+import { logger } from '@repo/logger';
 
 export async function storeIndexedData(
   messages: Message[],
@@ -76,8 +77,10 @@ export async function storeIndexedData(
   }
 
   logger.info(`Upserting ${convertedMessages.length} messages`);
-
   await upsertManyMessages(convertedMessages);
+
+  const backlinks = toDbBacklink(convertedMessages);
+  await upsertManyBacklinks(backlinks);
   return true;
 }
 
@@ -89,3 +92,4 @@ async function removeIgnoredUsers(messages: Message[]) {
 
   return messages.filter((m) => !userLookup.get(m.author.id));
 }
+

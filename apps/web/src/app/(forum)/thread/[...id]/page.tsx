@@ -10,7 +10,6 @@ import type { getAllMessagesInThreads } from '@repo/db/helpers/channels';
 import type { DBUser } from '@repo/db/schema/discord';
 import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
 import { getDateFromSnowflake } from '@repo/utils/helpers/snowflake';
-import { snowflakeToReadableDate } from '@repo/utils/helpers/time';
 import { ChannelType } from 'discord-api-types/v10';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -43,6 +42,8 @@ import {
 } from '@/utils/cache';
 import { sanitizeJsonLd } from '@/utils/sanitize';
 import { ServerInfo } from '../../layout';
+import { ThreadIcon } from '@/components/markdown/mention';
+import { snowflakeToReadableDate } from '@repo/utils/helpers/time';
 
 export async function generateMetadata({
   params,
@@ -110,7 +111,9 @@ export default async function Page({
 
   const thread = await getAllMessagesInThreadsCache(threadId);
 
-  if (!thread) {
+  console.log({ thread });
+
+  if (!thread || !thread.server) {
     return <div>Thread doesn't exist</div>;
   }
 
@@ -118,16 +121,24 @@ export default async function Page({
     redirect(slugifyThreadUrl({ id: threadId, name: thread.channelName! }));
   }
 
+  const server = thread.server
+
   const [originalPost, ...orderedMessages] = thread.messages;
+
+
+  const items = [
+    ...orderedMessages.map(msg => ({ type: 'message' as const, data: msg })),
+    ...thread.backlinks.map(backlink => ({
+      type: 'backlink' as const,
+      data: {
+        id: backlink.fromMessageId,
+        ...backlink,
+      }
+    }))
+  ].sort((a, b) => a.data.id.localeCompare(b.data.id));
 
   if (!originalPost) {
     return <div>Thread doesn't exist</div>;
-  }
-
-  const server = await getServerInfoByChannelIdCache(threadId);
-
-  if (!server) {
-    return <div>Server doesn't exist</div>;
   }
 
   const op = originalPost.user!;
@@ -221,15 +232,26 @@ export default async function Page({
             <span className="text-sm">{orderedMessages.length} Replies</span>
           </div>
           <div className="space-y-2">
-            {orderedMessages.map((message) => {
-              return (
-                <MessagePost
-                  authorId={authorId!}
-                  key={message.id}
-                  message={message}
-                  referenceMessage={messagesLookup.get(message.referenceId!)}
-                />
-              );
+            {items.map((item) => {
+              if (item.type === 'message') {
+                return (
+                  <MessagePost
+                    authorId={authorId!}
+                    key={item.data.id}
+                    message={item.data}
+                    referenceMessage={messagesLookup.get(item.data.referenceId!)}
+                  />
+                );
+              }
+              return <a href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`} key={item.data.id} className='block px-3 space-x-1.5 text-sm align-baseline  text-neutral-700 '>
+                <div className='space-x-1 inline-block'>
+                  <ThreadIcon className='size-4 inline-block' />
+                  <div className='inline-block space-x-1 align-baseline'>
+                    <span className='font-semibold'>@{anonymizeName(item.data.fromThread?.author!)}</span>
+                    <span>{item.data.fromThread?.channelName}</span>
+                  </div>
+                </div>
+              </a>
             })}
           </div>
           <ContinueDiscussion
@@ -459,7 +481,9 @@ function ContinueDiscussion({ url, noReplies }: { url: string; noReplies: boolea
   );
 }
 
-export function anonymizeName(user: DBUser) {
+export function anonymizeName(user: Pick<DBUser, "id" | "displayName" | "anonymizeName" | "isIgnored">) {
+  if (!user) return "Unknown";
+
   if (!user.anonymizeName && !user.isIgnored) {
     return user.displayName;
   }

@@ -12,10 +12,10 @@ import {
   type Snowflake,
 } from 'discord.js';
 import { toDbChannel } from '../helpers/convertion';
-import { logger } from '../helpers/lib/log';
 import { fetchAllMessages, type IndexableChannels } from './helpers';
 import { Log } from './logger';
 import { storeIndexedData } from './store';
+import { logger } from '@repo/logger';
 
 const MAX_NUMBER_OF_THREADS_TO_COLLECT = 3000;
 

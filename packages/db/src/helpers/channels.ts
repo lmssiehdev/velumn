@@ -1,17 +1,9 @@
-import { asc, count, eq, inArray, or, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
 import {
   type DBChannel,
-  type DBMessage,
-  type DBUser,
-  dbAttachments,
-  dbChannel,
-  dbDiscordUser,
-  dbMessage,
-  dbServer,
+  dbChannel
 } from '../schema';
-import type { DBAttachments } from './validation';
 
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
@@ -51,6 +43,27 @@ export async function getAllMessagesInThreads(channelId: string) {
   return await db.query.dbChannel.findFirst({
     where: { id: channelId },
     with: {
+      server: true,
+      backlinks: {
+        with: {
+          fromThread: {
+            with: {
+              author: {
+                columns: {
+                  id: true,
+                  displayName: true,
+                  anonymizeName: true,
+                  isIgnored: true,
+                }
+              }
+            },
+            columns: {
+              channelName: true,
+            }
+          },
+        },
+        limit: 10,
+      },
       parent: true,
       messages: {
         with: {

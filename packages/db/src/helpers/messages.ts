@@ -1,15 +1,17 @@
+import { logger } from '@repo/logger';
+import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '..';
 import {
   type DBMessage,
   type DBMessageWithRelations,
+  DBThreadBacklink,
   dbAttachments,
   dbMessage,
+  dbThreadBacklink
 } from '../schema';
 import { uploadFileFromUrl } from './upload';
 import type { DBAttachments } from './validation';
-import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
-import { logger } from '@repo/logger';
 
 export async function deleteMesasgeById(messageId: string) {
   return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
@@ -37,6 +39,11 @@ export async function updateMessage(msg: DBMessage) {
     .where(eq(dbMessage.id, msg.id));
 }
 
+export async function upsertManyBacklinks(data: DBThreadBacklink[]) {
+  if (data.length === 0) { return; }
+  await db.insert(dbThreadBacklink).values(data).onConflictDoNothing();
+}
+
 export async function upsertManyMessages(data: DBMessageWithRelations[]) {
   if (data.length === 0) {
     return [];
@@ -55,6 +62,7 @@ export async function upsertManyMessages(data: DBMessageWithRelations[]) {
 }
 
 async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
+  if (msgs.length === 0) { return; }
   const messages = new Map<string, DBMessage>();
   const attachments = new Map<string, DBAttachments>();
 
@@ -88,6 +96,7 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
 }
 
 export async function upsertAttachement(attachment: DBAttachments) {
+  if (!attachment.id) { return; }
   return await db
     .insert(dbAttachments)
     .values(attachment)
@@ -95,6 +104,7 @@ export async function upsertAttachement(attachment: DBAttachments) {
 }
 
 async function processAttachments(attachments: DBAttachments[]) {
+  if (attachments.length === 0) { return; }
   const nonUploadableAttachments = attachments.filter(
     ({ contentType, proxyURL }) => !isEmbeddableAttachment({ contentType, proxyURL })
   );
@@ -135,8 +145,8 @@ async function processAttachments(attachments: DBAttachments[]) {
   if (newAttachments.length === 0) return;
 
   const uploadPromises = newAttachments.map(async (attachment) => {
+    const { id, name, contentType, url } = attachment;
     try {
-      const { id, name, contentType, url } = attachment;
       const file = await uploadFileFromUrl({
         id,
         name,
@@ -155,13 +165,11 @@ async function processAttachments(attachments: DBAttachments[]) {
         })
         .onConflictDoNothing();
     } catch (error) {
-      logger.error(`Error uploading attachment ${attachment.id}:`, { error });
+      logger.error(`failed_to_save_attachment_to_db`, { error, id, name, contentType, url });
       return;
     }
   });
 
   // Don't await, we run this in the background
-  Promise.allSettled(uploadPromises).catch(error => {
-    logger.error('Unexpected error in upload promises:', { error });
-  });
+  Promise.allSettled(uploadPromises);
 }

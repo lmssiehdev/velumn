@@ -12,10 +12,11 @@ import {
 import { TEST_GUILDS } from '../constants';
 import { toDbServer } from '../helpers/convertion';
 import { createServerInvite } from '../helpers/create-invite';
-import { logger, safeStringify } from '../helpers/lib/log';
+import { safeStringify } from '../helpers/lib/log';
 import { shuffle } from '../helpers/utils';
 import { indexChannel } from './channel';
 import { Log } from './logger';
+import { logger } from '@repo/logger';
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];

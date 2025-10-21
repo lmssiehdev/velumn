@@ -22,6 +22,10 @@ export const relations = defineRelations(schema, (r) => ({
         channels: r.many.dbChannel(),
     },
     dbChannel: {
+        backlinks: r.many.dbThreadBacklink({
+            from: r.dbChannel.id,
+            to: r.dbThreadBacklink.toThreadId,
+        }),
         parent: r.one.dbChannel({
             from: r.dbChannel.parentId,
             to: r.dbChannel.id,
@@ -53,4 +57,14 @@ export const relations = defineRelations(schema, (r) => ({
             to: r.dbMessage.id,
         }),
     },
+    dbThreadBacklink: {
+        toThread: r.one.dbChannel({
+            from: r.dbThreadBacklink.toThreadId,
+            to: r.dbChannel.id,
+        }),
+        fromThread: r.one.dbChannel({
+            from: r.dbThreadBacklink.fromThreadId,
+            to: r.dbChannel.id,
+        }),
+    }
 }))

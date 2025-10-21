@@ -194,18 +194,21 @@ export type DBMessageWithRelations = DBMessage & {
 //
 // backlinks: Tracks thread referencing for bidirectional linking.
 //
-export const threadBacklink = pgTable(
+export const dbThreadBacklink = pgTable(
   'thread_backlink',
   {
-    fromMessageId: text('source_message_id').notNull(),
-    toThreadId: text('target_thread_id').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    fromMessageId: snowflake('from_message_id').notNull(),
+    toThreadId: snowflake('to_thread_id').notNull(),
+    fromThreadId: snowflake('from_thread_id').notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.fromMessageId, table.toThreadId] }),
     index('backlinks_to_thread_idx').on(table.toThreadId),
+    index('backlinks_from_thread_idx').on(table.fromThreadId),
   ]
 );
+export type DBThreadBacklink = typeof dbThreadBacklink.$inferSelect;
+
 
 // Pending invites
 // used to link the user with the bot, surely there is a better way

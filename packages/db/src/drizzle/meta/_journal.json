@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1760588332300,
-      "tag": "0000_military_moondragon",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1760648015319,
-      "tag": "0001_careless_post",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1760658106276,
-      "tag": "0002_flaky_master_chief",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1760658407630,
-      "tag": "0003_famous_typhoid_mary",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1760735073288,
-      "tag": "0004_sour_robbie_robertson",
+      "when": 1761075441418,
+      "tag": "0000_polite_pretty_boy",
       "breakpoints": true
     }
   ]
