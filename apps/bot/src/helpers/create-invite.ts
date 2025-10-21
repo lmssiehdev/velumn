@@ -1,5 +1,5 @@
+import { logger } from '@repo/logger';
 import type { Guild } from 'discord.js';
-import { logger } from './lib/log';
 
 export async function createServerInvite(guild: Guild) {
   const vanityURLCode = guild.vanityURLCode;

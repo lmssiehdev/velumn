@@ -1,5 +1,3 @@
-
-
 export function safeStringify(obj: unknown) {
   try {
     if (obj instanceof Error) {

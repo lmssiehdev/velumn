@@ -3,7 +3,6 @@ import { sapphireClient } from "../..";
 import { TEST_GUILDS } from "../../constants";
 import { indexThread } from "../channel";
 
-
 sapphireClient?.addListener('clientReady', async () => {
     await indexSpecificThread();
 });
@@ -23,5 +22,4 @@ async function indexSpecificThread() {
     const r = await indexThread(channel, {
         skipIndexingEnabledCheck: true
     });
-    console.log(r, "Indexing thread complete");
 }

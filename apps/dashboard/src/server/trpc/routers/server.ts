@@ -5,8 +5,8 @@ import { TRPCError } from '@trpc/server';
 import { ChannelType } from 'discord-api-types/v10';
 import { z } from 'zod';
 import { parseError } from '@/lib/error';
-import { log } from '@/lib/log';
 import { privateProcedure, procedure, router } from '@/server/trpc';
+import { log } from '@/lib/log';
 
 export const serverRouter = router({
   public: procedure.query(() => {
