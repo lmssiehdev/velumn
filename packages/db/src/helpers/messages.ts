@@ -8,6 +8,7 @@ import {
 } from '../schema';
 import { uploadFileFromUrl } from './upload';
 import type { DBAttachments } from './validation';
+import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
 
 export async function deleteMesasgeById(messageId: string) {
   return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
@@ -93,11 +94,8 @@ export async function upsertAttachement(attachment: DBAttachments) {
 }
 
 async function processAttachments(attachments: DBAttachments[]) {
-  const shouldUpload = (ct: string) =>
-    ct.startsWith('text/') || ct.startsWith('image/');
-
   const nonUploadableAttachments = attachments.filter(
-    ({ contentType }) => !shouldUpload(contentType ?? '')
+    ({ contentType, proxyURL }) => !isEmbeddableAttachment({ contentType, proxyURL })
   );
 
   if (nonUploadableAttachments.length) {
@@ -107,50 +105,62 @@ async function processAttachments(attachments: DBAttachments[]) {
       .onConflictDoNothing();
   }
 
-  const uploadableAttachments = attachments.filter(({ contentType }) =>
-    shouldUpload(contentType ?? '')
+  const uploadableAttachments = attachments.filter(({ contentType, proxyURL }) =>
+    isEmbeddableAttachment({ contentType, proxyURL })
   );
 
   if (!uploadableAttachments.length) {
     return;
   }
 
-  // we don't await;
-  db.select({ id: dbAttachments.id })
+  const existingAttachments = await db
+    .select({ id: dbAttachments.id })
     .from(dbAttachments)
     .where(
       inArray(
         dbAttachments.id,
         uploadableAttachments.map((a) => a.id)
       )
-    )
-    .then(async (existingAttachments) => {
-      const existingAttachmentIds = new Set(
-        existingAttachments?.map((a) => a.id)
-      );
-      // TODO: promise.all?
-      for await (const attachment of uploadableAttachments) {
-        if (existingAttachmentIds.has(attachment.id)) {
-          continue;
-        }
-        const { id, name, contentType, url } = attachment;
-        await uploadFileFromUrl({
-          id,
-          name,
-          contentType: contentType ?? undefined,
-          url,
-        }).then(async (file) => {
-          if (!file?.Location) {
-            return;
-          }
-          await db
-            .insert(dbAttachments)
-            .values({
-              ...attachment,
-              proxyURL: file.Location,
-            })
-            .onConflictDoNothing();
-        });
+    );
+
+  const existingAttachmentIds = new Set(
+    existingAttachments.map((a) => a.id)
+  );
+
+  const newAttachments = uploadableAttachments.filter(
+    (attachment) => !existingAttachmentIds.has(attachment.id)
+  );
+
+  if (newAttachments.length === 0) return;
+
+  const uploadPromises = newAttachments.map(async (attachment) => {
+    try {
+      const { id, name, contentType, url } = attachment;
+      const file = await uploadFileFromUrl({
+        id,
+        name,
+        contentType: contentType ?? undefined,
+        url,
+      })
+      if (!file?.Location) {
+        return;
       }
-    });
+      const proxyURL = `https://cdn.velumn.com/${id}/${name}`;
+      await db
+        .insert(dbAttachments)
+        .values({
+          ...attachment,
+          proxyURL,
+        })
+        .onConflictDoNothing();
+    } catch (error) {
+      console.error(`Error uploading attachment ${attachment.id}:`, error);
+      return;
+    }
+  });
+
+  // Don't await, we run this in the background
+  Promise.allSettled(uploadPromises).catch(error => {
+    console.error('Unexpected error in upload promises:', error);
+  });
 }

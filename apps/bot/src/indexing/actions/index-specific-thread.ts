@@ -15,11 +15,13 @@ async function indexSpecificThread() {
         return;
     }
 
-    const channel = await guild.channels.fetch('1426766340273995950');
+    const channel = await guild.channels.fetch('1420928866209497168');
     if (channel?.type !== ChannelType.PublicThread) {
         return;
     }
 
-    const r = await indexThread(channel);
+    const r = await indexThread(channel, {
+        skipIndexingEnabledCheck: true
+    });
     console.log(r, "Indexing thread complete");
 }
