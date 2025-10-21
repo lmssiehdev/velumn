@@ -5,10 +5,11 @@ import { Upload } from '@aws-sdk/lib-storage';
 
 const s3bucket = new S3({
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY!,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.R2_ACCESS_KEY!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
-  region: 'us-east-1',
+  endpoint: process.env.R2_ENDPOINT!,
+  region: "auto"
 });
 
 export async function uploadFileFromUrl(file: {
@@ -28,7 +29,7 @@ export async function uploadFileFromUrl(file: {
     return new Upload({
       client: s3bucket,
       params: {
-        Bucket: process.env.S3_BUCKET_NAME!,
+        Bucket: process.env.R2_BUCKET_NAME!,
         Key: `${file.id}/${file.name}`,
         Body: stream,
         ContentDisposition: 'inline',
