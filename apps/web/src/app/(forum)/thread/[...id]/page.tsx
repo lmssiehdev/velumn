@@ -111,8 +111,6 @@ export default async function Page({
 
   const thread = await getAllMessagesInThreadsCache(threadId);
 
-  console.log({ thread });
-
   if (!thread || !thread.server) {
     return <div>Thread doesn't exist</div>;
   }

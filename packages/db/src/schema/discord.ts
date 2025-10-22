@@ -167,6 +167,7 @@ export const dbMessage = pgTable(
 
 export type DBMessage = typeof dbMessage.$inferSelect;
 
+//
 // Attachments
 
 export const dbAttachments = pgTable(
