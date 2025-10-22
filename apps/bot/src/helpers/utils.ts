@@ -28,10 +28,10 @@ export function safeParse<T>(
   if (logError) {
     logger.error(
       'Zod parsing failed.\n' +
-      `1. Schema: ${schema.description || 'UnnamedSchema'}\n` +
-      `2. Input: ${JSON.stringify(value, null, 2)}\n` +
-      `3. Zod Error: ${result.error}\n` +
-      `4. Call Stack: ${errorStack}`
+        `1. Schema: ${schema.description || 'UnnamedSchema'}\n` +
+        `2. Input: ${JSON.stringify(value, null, 2)}\n` +
+        `3. Zod Error: ${result.error}\n` +
+        `4. Call Stack: ${errorStack}`
     );
   }
 

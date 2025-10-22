@@ -19,7 +19,6 @@ import type {
   MessageMetadataSchema,
   PollSchema,
 } from '../helpers/validation';
-import { user } from './auth';
 export const snowflake = customType<{
   data: string;
 }>({
@@ -64,7 +63,6 @@ export const dbServer = pgTable('db_server', {
   invitedBy: text('invitedBy'),
   anonymizeUsers: boolean('anonymize_users').default(false).notNull(),
 });
-
 
 export type DBServerInsert = typeof dbServer.$inferInsert;
 export type DBServer = typeof dbServer.$inferSelect;
@@ -138,14 +136,16 @@ export const dbMessage = pgTable(
       .default(null),
     embeds: json('embeds').$type<EmbedSchema[] | null>().default(null),
     poll: json('poll').$type<PollSchema | null>().default(null),
-    metadata: json('metadata').$type<MessageMetadataSchema | null>().default(null),
+    metadata: json('metadata')
+      .$type<MessageMetadataSchema | null>()
+      .default(null),
     snapshot: json('snapshot').$type<DBSnapshotSchema | null>().default(null),
     /**
      * The primary channel ID for querying all messages in the thread.
-     * 
-     * This works around a Discord quirk where starter messages for threads 
+     *
+     * This works around a Discord quirk where starter messages for threads
      * created from text channels point to the parent channel instead of the thread.
-     * 
+     *
      * - For regular messages: equals `Message.id`
      * - For thread starter messages: equals `Message.thread.id`
      */
@@ -208,7 +208,6 @@ export const dbThreadBacklink = pgTable(
   ]
 );
 export type DBThreadBacklink = typeof dbThreadBacklink.$inferSelect;
-
 
 // Pending invites
 // used to link the user with the bot, surely there is a better way

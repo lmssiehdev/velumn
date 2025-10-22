@@ -1,5 +1,5 @@
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import { dbServer, snowflake } from './discord';
+import { snowflake } from './discord';
 
 export const user = pgTable(
   'user',

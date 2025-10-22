@@ -5,7 +5,7 @@ import {
   type MessageMetadataSchema,
   messageMetadataSchema,
   pollSchema,
-  snapShotSchema
+  snapShotSchema,
 } from '@repo/db/helpers/validation';
 import type {
   DBChannel,
@@ -13,7 +13,7 @@ import type {
   DBMessageWithRelations,
   DBServerInsert,
   DBThreadBacklink,
-  DBUser
+  DBUser,
 } from '@repo/db/schema/index';
 import {
   ChannelFlags,
@@ -165,7 +165,9 @@ async function toDbInternalLink(message: Message | MessageSnapshot) {
 /**
  * used to extract somehelpful metadata required by the UI to render messages.
  */
-export async function toDbMetadata(message: Message | MessageSnapshot): Promise<MessageMetadataSchema | null> {
+export async function toDbMetadata(
+  message: Message | MessageSnapshot
+): Promise<MessageMetadataSchema | null> {
   const { users, channels, roles } = message.mentions;
   const internalLinks = await toDbInternalLink(message);
 
@@ -216,7 +218,10 @@ function toDbReactions(message: Message): DBMessage['reactions'] {
 export async function toDBMessage(
   message: Message
 ): Promise<DBMessageWithRelations> {
-  let fullMessage = message.type === MessageType.ThreadStarterMessage ? await message.fetchReference() : message;
+  let fullMessage =
+    message.type === MessageType.ThreadStarterMessage
+      ? await message.fetchReference()
+      : message;
   if (fullMessage.partial) {
     fullMessage = await fullMessage.fetch();
   }
@@ -226,7 +231,7 @@ export async function toDBMessage(
 
   const [metadata, snapshot] = await Promise.all([
     toDbMetadata(fullMessage),
-    toDBSnapshot(fullMessage)
+    toDBSnapshot(fullMessage),
   ]);
 
   const convertedMessage: DBMessageWithRelations = {
@@ -262,7 +267,9 @@ export async function toDBMessage(
 export function extractUsersSetFromMessages(messages: Message[]) {
   const users = new Map<string, DBUser>();
   for (const msg of messages) {
-    if (msg.system) continue;
+    if (msg.system) {
+      continue;
+    }
     users.set(msg.author.id, toDbUser(msg.author));
   }
   return Array.from(users.values());
@@ -298,17 +305,20 @@ export function toDbServer(guild: Guild) {
   return convertedServer;
 }
 
-
 //
 // Backlinks
 //
 export function toDbBacklink(messages: DBMessage[]): DBThreadBacklink[] {
-  return messages.flatMap(msg => {
+  return messages.flatMap((msg) => {
     const internalLinks = msg.metadata?.internalLinks ?? [];
 
     return internalLinks
-      .filter(link => link.channel.type === ChannelType.PublicThread && link.channel.id !== msg.channelId)
-      .map(link => ({
+      .filter(
+        (link) =>
+          link.channel.type === ChannelType.PublicThread &&
+          link.channel.id !== msg.channelId
+      )
+      .map((link) => ({
         fromMessageId: msg.id,
         fromThreadId: msg.channelId,
         toThreadId: link.channel.id,

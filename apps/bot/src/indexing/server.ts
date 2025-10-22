@@ -3,6 +3,7 @@ import {
   updateServer,
   upsertServer,
 } from '@repo/db/helpers/servers';
+import { logger } from '@repo/logger';
 import {
   ChannelType,
   type Client,
@@ -16,7 +17,6 @@ import { safeStringify } from '../helpers/lib/log';
 import { shuffle } from '../helpers/utils';
 import { indexChannel } from './channel';
 import { Log } from './logger';
-import { logger } from '@repo/logger';
 
 export async function indexServers(client: Client) {
   const allGuilds = [...client.guilds.cache.values()];

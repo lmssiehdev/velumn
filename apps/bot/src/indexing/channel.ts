@@ -4,6 +4,7 @@ import {
   findLatestMessageInChannel,
   upsertChannel,
 } from '@repo/db/helpers/channels';
+import { logger } from '@repo/logger';
 import {
   type AnyThreadChannel,
   ChannelType,
@@ -15,7 +16,6 @@ import { toDbChannel } from '../helpers/convertion';
 import { fetchAllMessages, type IndexableChannels } from './helpers';
 import { Log } from './logger';
 import { storeIndexedData } from './store';
-import { logger } from '@repo/logger';
 
 const MAX_NUMBER_OF_THREADS_TO_COLLECT = 3000;
 
@@ -32,8 +32,9 @@ export async function indexChannel(channel: IndexableChannels) {
     channel.type !== ChannelType.GuildForum &&
     channel.type !== ChannelType.GuildText &&
     channel.type !== ChannelType.GuildAnnouncement
-  )
+  ) {
     return;
+  }
 
   if (!canBotViewChannel(channel)) {
     Log('bot_cannot_view_channel', channel);
@@ -47,7 +48,7 @@ export async function indexChannel(channel: IndexableChannels) {
   const channelSettings = await findChannelById(channel.id);
   if (
     !channelSettings?.indexingEnabled &&
-    process.env.NODE_ENV != 'development'
+    process.env.NODE_ENV !== 'development'
   ) {
     Log('channel_indexing_disabled', channel);
     return;

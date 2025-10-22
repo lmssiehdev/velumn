@@ -1,9 +1,13 @@
 import { upsertChannel } from '@repo/db/helpers/channels';
-import { upsertManyBacklinks, upsertManyMessages } from '@repo/db/helpers/messages';
+import {
+  upsertManyBacklinks,
+  upsertManyMessages,
+} from '@repo/db/helpers/messages';
 import {
   findManyDiscordAccountsById,
   upsertManyDiscordAccounts,
 } from '@repo/db/helpers/user';
+import { logger } from '@repo/logger';
 import {
   ChannelType,
   type GuildTextBasedChannel,
@@ -17,7 +21,6 @@ import {
   toDbUser,
 } from '../helpers/convertion';
 import { getTheOldestSnowflakeId } from './helpers';
-import { logger } from '@repo/logger';
 
 export async function storeIndexedData(
   messages: Message[],
@@ -92,4 +95,3 @@ async function removeIgnoredUsers(messages: Message[]) {
 
   return messages.filter((m) => !userLookup.get(m.author.id));
 }
-

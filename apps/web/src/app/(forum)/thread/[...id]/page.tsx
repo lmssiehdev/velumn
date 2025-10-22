@@ -10,6 +10,7 @@ import type { getAllMessagesInThreads } from '@repo/db/helpers/channels';
 import type { DBUser } from '@repo/db/schema/discord';
 import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
 import { getDateFromSnowflake } from '@repo/utils/helpers/snowflake';
+import { snowflakeToReadableDate } from '@repo/utils/helpers/time';
 import { ChannelType } from 'discord-api-types/v10';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -21,6 +22,7 @@ import {
   uniqueUsernameGenerator,
 } from 'unique-username-generator';
 import { Twemoji } from '@/components/markdown/emoji';
+import { ThreadIcon } from '@/components/markdown/mention';
 import {
   DiscordMarkdown,
   DiscordMessageWithMetadata,
@@ -42,8 +44,6 @@ import {
 } from '@/utils/cache';
 import { sanitizeJsonLd } from '@/utils/sanitize';
 import { ServerInfo } from '../../layout';
-import { ThreadIcon } from '@/components/markdown/mention';
-import { snowflakeToReadableDate } from '@repo/utils/helpers/time';
 
 export async function generateMetadata({
   params,
@@ -121,20 +121,19 @@ export default async function Page({
     redirect(slugifyThreadUrl({ id: threadId, name: thread.channelName! }));
   }
 
-  const server = thread.server
+  const server = thread.server;
 
   const [originalPost, ...orderedMessages] = thread.messages;
 
-
   const items = [
-    ...orderedMessages.map(msg => ({ type: 'message' as const, data: msg })),
-    ...thread.backlinks.map(backlink => ({
+    ...orderedMessages.map((msg) => ({ type: 'message' as const, data: msg })),
+    ...thread.backlinks.map((backlink) => ({
       type: 'backlink' as const,
       data: {
         id: backlink.fromMessageId,
         ...backlink,
-      }
-    }))
+      },
+    })),
   ].sort((a, b) => a.data.id.localeCompare(b.data.id));
 
   if (!originalPost) {
@@ -239,19 +238,29 @@ export default async function Page({
                     authorId={authorId!}
                     key={item.data.id}
                     message={item.data}
-                    referenceMessage={messagesLookup.get(item.data.referenceId!)}
+                    referenceMessage={messagesLookup.get(
+                      item.data.referenceId!
+                    )}
                   />
                 );
               }
-              return <a href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`} key={item.data.id} className='block px-3 space-x-1.5 text-sm align-baseline  text-neutral-700 '>
-                <div className='space-x-1 inline-block'>
-                  <ThreadIcon className='size-4 inline-block' />
-                  <div className='inline-block space-x-1 align-baseline'>
-                    <span className='font-semibold'>@{anonymizeName(item.data.fromThread?.author!)}</span>
-                    <span>{item.data.fromThread?.channelName}</span>
+              return (
+                <a
+                  className="block space-x-1.5 px-3 align-baseline text-neutral-700 text-sm"
+                  href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`}
+                  key={item.data.id}
+                >
+                  <div className="inline-block space-x-1">
+                    <ThreadIcon className="inline-block size-4" />
+                    <div className="inline-block space-x-1 align-baseline">
+                      <span className="font-semibold">
+                        @{anonymizeName(item.data.fromThread?.author!)}
+                      </span>
+                      <span>{item.data.fromThread?.channelName}</span>
+                    </div>
                   </div>
-                </div>
-              </a>
+                </a>
+              );
             })}
           </div>
           <ContinueDiscussion
@@ -438,8 +447,14 @@ function NoReplies() {
   );
 }
 
-function ContinueDiscussion({ url, noReplies }: { url: string; noReplies: boolean }) {
-  const icon = noReplies ? "👋" : "💬";
+function ContinueDiscussion({
+  url,
+  noReplies,
+}: {
+  url: string;
+  noReplies: boolean;
+}) {
+  const icon = noReplies ? '👋' : '💬';
   return (
     <div className="mt-2 rounded-lg border border-neutral-200 p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
@@ -448,19 +463,20 @@ function ContinueDiscussion({ url, noReplies }: { url: string; noReplies: boolea
             <Twemoji className="size-7" name={icon} />
           </div>
           <div>
-            {
-              noReplies ? (<>
+            {noReplies ? (
+              <>
                 <div className="font-semibold text-lg text-neutral-900">
                   Start the conversation!
                 </div>
-                <span className='text-neutral-700 text-sm'>
+                <span className="text-neutral-700 text-sm">
                   Be the first to share what you think!
                 </span>
               </>
-              ) : <div className="font-semibold text-lg text-neutral-900">
+            ) : (
+              <div className="font-semibold text-lg text-neutral-900">
                 Continue the Discussion
               </div>
-            }
+            )}
           </div>
         </div>
 
@@ -481,8 +497,10 @@ function ContinueDiscussion({ url, noReplies }: { url: string; noReplies: boolea
   );
 }
 
-export function anonymizeName(user: Pick<DBUser, "id" | "displayName" | "anonymizeName" | "isIgnored">) {
-  if (!user) return "Unknown";
+export function anonymizeName(
+  user: Pick<DBUser, 'id' | 'displayName' | 'anonymizeName' | 'isIgnored'>
+) {
+  if (!user) return 'Unknown';
 
   if (!user.anonymizeName && !user.isIgnored) {
     return user.displayName;

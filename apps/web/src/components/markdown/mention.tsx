@@ -4,11 +4,11 @@ import { ChannelType } from 'discord-api-types/v10';
 import { cn } from '@/lib/utils';
 
 type MentionType = 'channel' | 'role' | 'user';
-interface MentionProps {
+type MentionProps = {
   type?: MentionType;
   message?: DBMessage;
   children: string;
-}
+};
 
 const baseClassName =
   'inline-block mx-[0.5px] text-purple-800 bg-purple-100 rounded align-baseline';
@@ -30,7 +30,13 @@ export function Mention({ type, message, children }: MentionProps) {
   }
 }
 
-function ChannelMention({ message, children }: { message: DBMessage; children: string }) {
+function ChannelMention({
+  message,
+  children,
+}: {
+  message: DBMessage;
+  children: string;
+}) {
   const channelData = message.metadata?.channels?.[children];
 
   if (!channelData) {
@@ -49,21 +55,29 @@ function ChannelMention({ message, children }: { message: DBMessage; children: s
   );
 }
 
-function RoleMention({ message, children }: { message: DBMessage; children: string }) {
+function RoleMention({
+  message,
+  children,
+}: {
+  message: DBMessage;
+  children: string;
+}) {
   const roleData = message.metadata?.roles?.[children];
 
   if (!roleData) {
     return <FallbackMention type="role">{children}</FallbackMention>;
   }
 
-  return (
-    <span className={baseClassName}>
-      @{roleData.name ?? children}
-    </span>
-  );
+  return <span className={baseClassName}>@{roleData.name ?? children}</span>;
 }
 
-function UserMention({ message, children }: { message: DBMessage; children: string }) {
+function UserMention({
+  message,
+  children,
+}: {
+  message: DBMessage;
+  children: string;
+}) {
   const userData = message.metadata?.users?.[children];
 
   if (!userData) {
@@ -71,13 +85,17 @@ function UserMention({ message, children }: { message: DBMessage; children: stri
   }
 
   return (
-    <span className={baseClassName}>
-      @{userData.username ?? children}
-    </span>
+    <span className={baseClassName}>@{userData.username ?? children}</span>
   );
 }
 
-function FallbackMention({ type, children }: { type?: MentionType; children: string }) {
+function FallbackMention({
+  type,
+  children,
+}: {
+  type?: MentionType;
+  children: string;
+}) {
   const prefix = type === 'channel' ? '#' : '@';
 
   return (

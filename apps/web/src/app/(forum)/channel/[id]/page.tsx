@@ -68,7 +68,10 @@ export default async function Page({
           serverId={channelId}
           threads={threads.concat(pinnedThread)}
         />
-        <FrontPageSidebar activeChannelId={channel.id} server={channel.server} />
+        <FrontPageSidebar
+          activeChannelId={channel.id}
+          server={channel.server}
+        />
       </div>
     </div>
   );

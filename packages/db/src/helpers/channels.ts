@@ -1,9 +1,6 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../index';
-import {
-  type DBChannel,
-  dbChannel
-} from '../schema';
+import { type DBChannel, dbChannel } from '../schema';
 
 export async function setBulkIndexingStatus(
   channels: { channelId: string; status: boolean }[]
@@ -35,8 +32,8 @@ export async function getChannelInfo(channelId: string) {
     where: { id: channelId },
     with: {
       server: true,
-    }
-  })
+    },
+  });
 }
 
 export async function getAllMessagesInThreads(channelId: string) {
@@ -54,12 +51,12 @@ export async function getAllMessagesInThreads(channelId: string) {
                   displayName: true,
                   anonymizeName: true,
                   isIgnored: true,
-                }
-              }
+                },
+              },
             },
             columns: {
               channelName: true,
-            }
+            },
           },
         },
         limit: 10,
@@ -71,10 +68,10 @@ export async function getAllMessagesInThreads(channelId: string) {
           attachments: true,
         },
         orderBy: {
-          id: "asc"
+          id: 'asc',
         },
       },
-    }
+    },
   });
 }
 

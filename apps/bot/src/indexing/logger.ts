@@ -1,9 +1,9 @@
+import { logger } from '@repo/logger';
 import type {
   AnyThreadChannel,
   Guild,
   GuildTextBasedChannel,
 } from 'discord.js';
-import { logger } from '@repo/logger';
 import type { IndexableChannels } from './helpers';
 
 /**

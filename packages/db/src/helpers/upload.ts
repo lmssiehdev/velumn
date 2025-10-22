@@ -10,7 +10,7 @@ const s3bucket = new S3({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
   endpoint: process.env.R2_ENDPOINT!,
-  region: "auto",
+  region: 'auto',
   forcePathStyle: true,
 });
 
@@ -39,8 +39,14 @@ export async function uploadFileFromUrl(file: {
       },
     }).done();
   } catch (error) {
-    const { id, name, contentType, url } = file;;
-    logger.error("failed_to_upload_file", { error, id, name, contentType, url });
+    const { id, name, contentType, url } = file;
+    logger.error('failed_to_upload_file', {
+      error,
+      id,
+      name,
+      contentType,
+      url,
+    });
     return null;
   }
 }

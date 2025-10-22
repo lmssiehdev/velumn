@@ -1,11 +1,9 @@
-import {
-  type ForumChannel,
-  type Message,
-  MessageType,
-  type NewsChannel,
-  type PublicThreadChannel,
-  type TextBasedChannel,
-  type TextChannel,
+import type {
+  ForumChannel,
+  Message,
+  NewsChannel,
+  PublicThreadChannel,
+  TextChannel,
 } from 'discord.js';
 import { isSnowflakeLargerAsInt } from '../helpers/snowflake';
 
@@ -58,9 +56,7 @@ export async function fetchAllMessages(
     messages.push(...sortedMessages);
 
     const lastMessage =
-      sortedMessages.length > 0
-        ? sortedMessages[sortedMessages.length - 1]
-        : undefined;
+      sortedMessages.length > 0 ? sortedMessages.at(-1) : undefined;
 
     // Continue if we have a last message and haven't hit the limit
     const shouldContinue = lastMessage && messages.length < limit;

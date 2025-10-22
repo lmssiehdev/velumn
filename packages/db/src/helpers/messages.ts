@@ -5,10 +5,10 @@ import { db } from '..';
 import {
   type DBMessage,
   type DBMessageWithRelations,
-  DBThreadBacklink,
+  type DBThreadBacklink,
   dbAttachments,
   dbMessage,
-  dbThreadBacklink
+  dbThreadBacklink,
 } from '../schema';
 import { uploadFileFromUrl } from './upload';
 import type { DBAttachments } from './validation';
@@ -40,7 +40,9 @@ export async function updateMessage(msg: DBMessage) {
 }
 
 export async function upsertManyBacklinks(data: DBThreadBacklink[]) {
-  if (data.length === 0) { return; }
+  if (data.length === 0) {
+    return;
+  }
   await db.insert(dbThreadBacklink).values(data).onConflictDoNothing();
 }
 
@@ -62,7 +64,9 @@ export async function upsertManyMessages(data: DBMessageWithRelations[]) {
 }
 
 async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
-  if (msgs.length === 0) { return; }
+  if (msgs.length === 0) {
+    return;
+  }
   const messages = new Map<string, DBMessage>();
   const attachments = new Map<string, DBAttachments>();
 
@@ -96,7 +100,9 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
 }
 
 export async function upsertAttachement(attachment: DBAttachments) {
-  if (!attachment.id) { return; }
+  if (!attachment.id) {
+    return;
+  }
   return await db
     .insert(dbAttachments)
     .values(attachment)
@@ -104,9 +110,12 @@ export async function upsertAttachement(attachment: DBAttachments) {
 }
 
 async function processAttachments(attachments: DBAttachments[]) {
-  if (attachments.length === 0) { return; }
+  if (attachments.length === 0) {
+    return;
+  }
   const nonUploadableAttachments = attachments.filter(
-    ({ contentType, proxyURL }) => !isEmbeddableAttachment({ contentType, proxyURL })
+    ({ contentType, proxyURL }) =>
+      !isEmbeddableAttachment({ contentType, proxyURL })
   );
 
   if (nonUploadableAttachments.length) {
@@ -116,8 +125,9 @@ async function processAttachments(attachments: DBAttachments[]) {
       .onConflictDoNothing();
   }
 
-  const uploadableAttachments = attachments.filter(({ contentType, proxyURL }) =>
-    isEmbeddableAttachment({ contentType, proxyURL })
+  const uploadableAttachments = attachments.filter(
+    ({ contentType, proxyURL }) =>
+      isEmbeddableAttachment({ contentType, proxyURL })
   );
 
   if (!uploadableAttachments.length) {
@@ -134,15 +144,15 @@ async function processAttachments(attachments: DBAttachments[]) {
       )
     );
 
-  const existingAttachmentIds = new Set(
-    existingAttachments.map((a) => a.id)
-  );
+  const existingAttachmentIds = new Set(existingAttachments.map((a) => a.id));
 
   const newAttachments = uploadableAttachments.filter(
     (attachment) => !existingAttachmentIds.has(attachment.id)
   );
 
-  if (newAttachments.length === 0) return;
+  if (newAttachments.length === 0) {
+    return;
+  }
 
   const uploadPromises = newAttachments.map(async (attachment) => {
     const { id, name, contentType, url } = attachment;
@@ -152,7 +162,7 @@ async function processAttachments(attachments: DBAttachments[]) {
         name,
         contentType: contentType ?? undefined,
         url,
-      })
+      });
       if (!file?.Location) {
         return;
       }
@@ -165,7 +175,13 @@ async function processAttachments(attachments: DBAttachments[]) {
         })
         .onConflictDoNothing();
     } catch (error) {
-      logger.error(`failed_to_save_attachment_to_db`, { error, id, name, contentType, url });
+      logger.error('failed_to_save_attachment_to_db', {
+        error,
+        id,
+        name,
+        contentType,
+        url,
+      });
       return;
     }
   });

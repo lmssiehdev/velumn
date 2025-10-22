@@ -1,6 +1,10 @@
 import { EmbedType, PollLayoutType } from 'discord-api-types/v10';
-import z, { ZodSchema } from 'zod';
-import { collectionToArray, collectionToRecord, removeUndefinedValues } from '../utils/zod';
+import z from 'zod';
+import {
+  collectionToArray,
+  collectionToRecord,
+  removeUndefinedValues,
+} from '../utils/zod';
 
 //
 // Metadata Schema
@@ -27,27 +31,29 @@ export const internalLinksSchema = z.object({
 });
 
 export type MessageMetadataSchema = z.infer<typeof messageMetadataSchema>;
-export const messageMetadataSchema = z.object({
-  channels: collectionToRecord(
-    z.object({
-      name: z.string(),
-      type: z.number(),
-    })
-  ),
-  roles: collectionToRecord(
-    z.object({
-      name: z.string(),
-      color: z.number(),
-    })
-  ),
-  users: collectionToRecord(
-    z.object({
-      username: z.string(),
-      globalName: z.string().nullable(),
-    })
-  ),
-  internalLinks: collectionToArray(internalLinksSchema),
-}).transform(removeUndefinedValues);
+export const messageMetadataSchema = z
+  .object({
+    channels: collectionToRecord(
+      z.object({
+        name: z.string(),
+        type: z.number(),
+      })
+    ),
+    roles: collectionToRecord(
+      z.object({
+        name: z.string(),
+        color: z.number(),
+      })
+    ),
+    users: collectionToRecord(
+      z.object({
+        username: z.string(),
+        globalName: z.string().nullable(),
+      })
+    ),
+    internalLinks: collectionToArray(internalLinksSchema),
+  })
+  .transform(removeUndefinedValues);
 //
 // Poll Schema
 //

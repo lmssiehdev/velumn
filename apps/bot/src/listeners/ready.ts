@@ -1,18 +1,10 @@
 import { parseArgs } from 'node:util';
-import { db } from '@repo/db/index';
-import { dbMessage } from '@repo/db/schema/discord';
 import { ApplyOptions } from '@sapphire/decorators';
 import { container, Events, Listener } from '@sapphire/framework';
-import { ChannelType, type Client, Message, MessageType } from 'discord.js';
+import { ChannelType, type Client } from 'discord.js';
 import { TEST_GUILDS } from '../constants';
-import {
-  toDBMessage,
-  toDBSnapshot,
-  toDbChannel,
-  toDbServer,
-} from '../helpers/convertion';
+import { toDBMessage } from '../helpers/convertion';
 import { indexServers } from '../indexing';
-import { fetchAllMessages } from '../indexing/helpers';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -38,7 +30,7 @@ export class Indexing extends Listener {
   }
 }
 
-async function testing(client: Client) {
+async function _testing(client: Client) {
   container.logger.info('TESTING');
   const guild = client.guilds.cache.get(TEST_GUILDS.T);
   if (!guild) {

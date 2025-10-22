@@ -6,4 +6,4 @@ const nextConfig: NextConfig = {
   transpilePackages: ['db', 'utils'],
 };
 
-export default withAxiom(nextConfig)
+export default withAxiom(nextConfig);

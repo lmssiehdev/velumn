@@ -109,7 +109,6 @@ export async function ThreadList({
     );
   }
 
-
   const { pinnedThread, otherThreads } = threads.reduce(
     (acc, t) => {
       if (t.pinned) {

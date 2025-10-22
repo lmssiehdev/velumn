@@ -1,21 +1,15 @@
-import {
-  and,
-  eq,
-  exists,
-  inArray,
-  isNull
-} from 'drizzle-orm';
+import { and, eq, exists, inArray, isNull } from 'drizzle-orm';
 import { db } from '../index';
 import {
   type DBChannel,
+  type DBServer,
+  type DBServerInsert,
   dbChannel,
   dbMessage,
-  type DBServer,
   dbServer,
-  type DBServerInsert,
   pendingDiscordInvite,
   type ServerPlan,
-  user
+  user,
 } from '../schema';
 import { buildConflictUpdateColumns } from '../utils/drizzle';
 
@@ -65,16 +59,18 @@ export async function getChannelsInServer(
 ): Promise<DBChannel[] | undefined> {
   return await db.query.dbChannel.findMany({
     where: {
-      AND: [{
-        serverId,
-        parentId: {
-          isNull: true
-        }
-      }]
+      AND: [
+        {
+          serverId,
+          parentId: {
+            isNull: true,
+          },
+        },
+      ],
     },
     with: {
-      server: true
-    }
+      server: true,
+    },
   });
 }
 
@@ -172,28 +168,32 @@ export async function getAllThreads(
   const { id, pinned = false, page = 1 } = config;
   const LIMIT_PER_PAGE = pinned ? 1 : 10;
   const result = await db.query.dbChannel.findMany({
-    where: getBy === "server" ? {
-      serverId: id,
-      pinned,
-      parentId: {
-        isNotNull: true,
-      },
-    } : {
-      parentId: id,
-      pinned,
-    },
+    where:
+      getBy === 'server'
+        ? {
+            serverId: id,
+            pinned,
+            parentId: {
+              isNotNull: true,
+            },
+          }
+        : {
+            parentId: id,
+            pinned,
+          },
     with: {
       author: true,
       parent: true,
     },
     extras: {
-      messagesCount: (t) => db.$count(dbMessage, eq(dbMessage.primaryChannelId, t.id))
+      messagesCount: (t) =>
+        db.$count(dbMessage, eq(dbMessage.primaryChannelId, t.id)),
     },
     limit: LIMIT_PER_PAGE + 1,
     offset: (page - 1) * LIMIT_PER_PAGE,
     orderBy: {
-      id: "desc"
-    }
+      id: 'desc',
+    },
   });
   return {
     hasMore: result.length > LIMIT_PER_PAGE,
