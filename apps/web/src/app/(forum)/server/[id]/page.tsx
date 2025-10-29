@@ -4,14 +4,14 @@ import {
   ChatIcon,
   PushPinIcon,
 } from '@phosphor-icons/react/ssr';
-import { getAllThreads } from '@repo/db/helpers/servers';
 import { snowflakeToReadableDate } from '@repo/utils/helpers/time';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { slugifyThreadUrl } from '@/lib/slugify';
-import { getServerInfoCached } from '@/utils/cache';
+import { getAllThreadsCached, getServerInfoCached } from '@/utils/cache';
 import { FrontPageSidebar } from '../../layout';
 import { anonymizeName } from '../../thread/[...id]/page';
+import type { getAllThreads } from '@repo/db/helpers/servers';
 
 export async function generateMetadata({
   params,
@@ -57,7 +57,7 @@ export default async function Page({
     return <div>Server doesn't exist</div>;
   }
 
-  const { threads, hasMore, page } = await getAllThreads('server', {
+  const { threads, hasMore, page } = await getAllThreadsCached('server', {
     id,
     page: searchParamsPage,
   });

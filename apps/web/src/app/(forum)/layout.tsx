@@ -1,10 +1,10 @@
 import { ChatsCircleIcon, HashIcon } from '@phosphor-icons/react/dist/ssr';
-import { getTopicsInServer } from '@repo/db/helpers/servers';
 import type { DBServer } from '@repo/db/schema/index';
 import { ChannelType } from 'discord-api-types/v10';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getTopicsInServerCached } from '@/utils/cache';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -77,7 +77,7 @@ async function Boards({
   activeChannelId?: string;
 }) {
   // display forum channels first
-  const topics = (await getTopicsInServer(serverId)).sort((a, b) =>
+  const topics = (await getTopicsInServerCached(serverId)).sort((a, b) =>
     a.type > b.type ? -1 : 1
   );
 

@@ -1,6 +1,5 @@
-import { getAllThreads } from '@repo/db/helpers/servers';
 import { ThreadList } from '@/app/(forum)/server/[id]/page';
-import { getChannelInfoCached } from '@/utils/cache';
+import { getAllThreadsCached, getChannelInfoCached } from '@/utils/cache';
 import { FrontPageSidebar } from '../../layout';
 
 export async function generateMetadata({
@@ -39,6 +38,7 @@ export default async function Page({
   searchParams: { page: string };
 }) {
   const { id: channelId } = await params;
+  // !! TODO: do these in one join
   const channel = await getChannelInfoCached(channelId);
   const searchParamsPage = Number((await searchParams).page ?? 1);
 
@@ -46,15 +46,19 @@ export default async function Page({
     return <div>Channel doesn't exist</div>;
   }
 
-  const { threads, hasMore, page } = await getAllThreads('channel', {
-    id: channelId,
-    page: searchParamsPage,
-  });
+  const [regularResult, pinnedResult] = await Promise.all([
+    getAllThreadsCached('channel', {
+      id: channelId,
+      page: searchParamsPage,
+    }),
+    getAllThreadsCached('channel', {
+      id: channelId,
+      pinned: true,
+    }),
+  ]);
 
-  const { threads: pinnedThread } = await getAllThreads('channel', {
-    id: channelId,
-    pinned: true,
-  });
+  const { threads, hasMore, page } = regularResult;
+  const { threads: pinnedThread } = pinnedResult;
 
   return (
     <div className="mx-auto p-4">
