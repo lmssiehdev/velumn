@@ -171,16 +171,16 @@ export async function getAllThreads(
     where:
       getBy === 'server'
         ? {
-          serverId: id,
-          pinned,
-          parentId: {
-            isNotNull: true,
-          },
-        }
+            serverId: id,
+            pinned,
+            parentId: {
+              isNotNull: true,
+            },
+          }
         : {
-          parentId: id,
-          pinned,
-        },
+            parentId: id,
+            pinned,
+          },
     with: {
       author: true,
       parent: true,

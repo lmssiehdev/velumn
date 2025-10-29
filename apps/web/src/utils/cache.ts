@@ -4,7 +4,6 @@ import {
 } from '@repo/db/helpers/channels';
 import {
   getAllThreads,
-  getPinnedThread,
   getServerInfo,
   getServerInfoByChannelId,
   getTopicsInServer,
@@ -19,7 +18,6 @@ type ValidTags =
   | `clear-server-${string}`
   | 'clear-all-channels'
   | `clear-channel-${string}`;
-
 
 // :P
 export function stable_cache<T extends any[], R>(
@@ -48,42 +46,46 @@ export function stable_cache<T extends any[], R>(
 const THREE_DAYS_IN_SECONDS =
   process.env.NODE_ENV === 'development' ? 2 : 60 * 60 * 24 * 30;
 
-export const getAllMessagesInThreadsCache = stable_cache(getAllMessagesInThreads, {
-  keyParts: (id) => [`messages-thread-${id}`],
-  tags: (id) => [`clear-thread-${id}`, 'clear-all-threads']
-})
+export const getAllMessagesInThreadsCache = stable_cache(
+  getAllMessagesInThreads,
+  {
+    keyParts: (id) => [`messages-thread-${id}`],
+    tags: (id) => [`clear-thread-${id}`, 'clear-all-threads'],
+  }
+);
 
-export const getServerInfoByChannelIdCache = stable_cache(getServerInfoByChannelId, {
-  keyParts: (id) => [`server-info-${id}`],
-  tags: (id) => [`clear-server-${id}`, 'clear-all-servers']
-})
+export const getServerInfoByChannelIdCache = stable_cache(
+  getServerInfoByChannelId,
+  {
+    keyParts: (id) => [`server-info-${id}`],
+    tags: (id) => [`clear-server-${id}`, 'clear-all-servers'],
+  }
+);
 
 export const getServerInfoCached = stable_cache(getServerInfo, {
   keyParts: (id) => [`server-info-${id}`],
-  tags: (id) => [`clear-server-${id}`, 'clear-all-servers']
+  tags: (id) => [`clear-server-${id}`, 'clear-all-servers'],
 });
 
 export const getChannelInfoCached = stable_cache(getChannelInfo, {
   keyParts: (id) => [`server-info-${id}`],
-  tags: (id) => [`clear-channel-info-${id}`, 'clear-all-channels-info']
+  tags: (id) => [`clear-channel-info-${id}`, 'clear-all-channels-info'],
 });
 
 export const getAllThreadsCached = stable_cache(getAllThreads, {
   keyParts: (getBy, config) => [
-    `get-all-threads-${getBy}-${config.id}-${config.pinned ?? 'all'}-${config.page ?? 1}`
+    `get-all-threads-${getBy}-${config.id}-${config.pinned ?? 'all'}-${config.page ?? 1}`,
   ],
   tags: (_, config) => [
     `clear-get-all-threads-${config.id}`,
-    'clear-get-all-threads'
+    'clear-get-all-threads',
   ],
-})
-
-export const getPinnedThreadCached = stable_cache(getPinnedThread, {
-  keyParts: (id) => [`pinned-thread-${id}`],
-  tags: (id) => [`clear-get-pinned-thread-${id}`, `clear-get-pinned-channels`]
-})
+});
 
 export const getTopicsInServerCached = stable_cache(getTopicsInServer, {
   keyParts: (id) => [`topics-in-server-${id}`],
-  tags: (id) => [`clear-get-topics-in-server-${id}`, `clear-all-get-topics-in-server`]
-})
+  tags: (id) => [
+    `clear-get-topics-in-server-${id}`,
+    'clear-all-get-topics-in-server',
+  ],
+});

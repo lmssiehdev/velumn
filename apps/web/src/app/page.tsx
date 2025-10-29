@@ -36,16 +36,16 @@ export default function Home() {
             The community platform <br />
             built for discord
           </h1>
-          <p className="mx-auto w-full text-xl max-w-lg text-wrap text-neutral-600">
+          <p className="mx-auto w-full max-w-lg text-wrap text-neutral-600 text-xl">
             Turn Discord community into an SEO-optimized forum. <br />
             Get discovered on Google, grow your community.
           </p>
-          <div className='flex gap-4 justify-center'>
+          <div className="flex justify-center gap-4">
             <Button className="mt-10" size={'lg'} variant={'default'}>
               Get Started
             </Button>
             <Button className="mt-10" size={'lg'} variant={'outline'}>
-              <ArrowUpRightIcon className="inline-block w-4 h-4" />
+              <ArrowUpRightIcon className="inline-block h-4 w-4" />
               Check the demo
             </Button>
           </div>

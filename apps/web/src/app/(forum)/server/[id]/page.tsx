@@ -4,6 +4,7 @@ import {
   ChatIcon,
   PushPinIcon,
 } from '@phosphor-icons/react/ssr';
+import type { getAllThreads } from '@repo/db/helpers/servers';
 import { snowflakeToReadableDate } from '@repo/utils/helpers/time';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ import { slugifyThreadUrl } from '@/lib/slugify';
 import { getAllThreadsCached, getServerInfoCached } from '@/utils/cache';
 import { FrontPageSidebar } from '../../layout';
 import { anonymizeName } from '../../thread/[...id]/page';
-import type { getAllThreads } from '@repo/db/helpers/servers';
 
 export async function generateMetadata({
   params,
