@@ -1,4 +1,5 @@
 import {
+  ArrowUpRightIcon,
   CaretDownIcon,
   CheckCircleIcon,
   CheckIcon,
@@ -30,17 +31,24 @@ export default function Home() {
         </div>
       </div>
       <div className="mx-auto max-w-screen-xl border-neutral-300 border-x p-1">
-        <header className="my-50 text-center">
+        <header className="my-40 text-center">
           <h1 className="mb-8 font-bold text-7xl leading-tight">
-            From Discord to forum
+            The community platform <br />
+            built for discord
           </h1>
-          <p className="mx-auto w-full max-w-lg text-wrap text-neutral-600">
-            Convert your Discord community into a clean, fast, SEO-optimized
-            forum in under 60 seconds.
+          <p className="mx-auto w-full text-xl max-w-lg text-wrap text-neutral-600">
+            Turn Discord community into an SEO-optimized forum. <br />
+            Get discovered on Google, grow your community.
           </p>
-          <Button className="mt-10" size={'lg'} variant={'default'}>
-            Get Started
-          </Button>
+          <div className='flex gap-4 justify-center'>
+            <Button className="mt-10" size={'lg'} variant={'default'}>
+              Get Started
+            </Button>
+            <Button className="mt-10" size={'lg'} variant={'outline'}>
+              <ArrowUpRightIcon className="inline-block w-4 h-4" />
+              Check the demo
+            </Button>
+          </div>
           {/* // TODO: Join number+ creators, and new-age startups */}
         </header>
         <section className="my-80 border-neutral-300 border-t px-2">

@@ -137,7 +137,7 @@ function renderASTNode(
       return <blockquote key={key}>{renderNodes(node.content)}</blockquote>;
 
     case 'list':
-      return <List items={node.items as SingleASTNode[][]} key={key} />;
+      return <List items={node.items as SingleASTNode[][]} ordered={node.ordered} key={key} />;
     default:
       return null;
   }
