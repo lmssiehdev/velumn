@@ -2,17 +2,20 @@ import {
   ArrowUpRightIcon,
   CaretDownIcon,
   CheckCircleIcon,
+  CheckFatIcon,
   CheckIcon,
+  DotOutlineIcon,
   ListChecksIcon,
   PlusIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Twemoji } from '@/components/markdown/emoji';
 
 export const dynamic = 'force-static';
 
@@ -24,34 +27,105 @@ export default function Home() {
   return (
     <>
       <div className="border-neutral-300 border-x border-b">
-        <div className="mx-auto max-w-screen-xl border-neutral-300 border-x p-2 px-4">
+        <div className="mx-auto max-w-screen-xl border-neutral-300 border-x p-2 px-4 flex items-center justify-between">
           <Link className="text-black text-xl" href="/">
             Velumn
           </Link>
+          <a target="_blank" href="https://github.com/lmssiehdev/velumn" className={buttonVariants({ size: "sm", variant: "outline" })}>
+            <Twemoji name='⭐' className='size-4.5' />
+            <span>Star us on GitHub</span>
+          </a>
         </div>
-      </div>
+      </div >
       <div className="mx-auto max-w-screen-xl border-neutral-300 border-x p-1">
-        <header className="my-40 text-center">
-          <h1 className="mb-8 font-bold text-7xl leading-tight">
-            The community platform <br />
-            built for discord
+        <header className="my-20 md:my-40 px-4 text-center">
+          <h1 className="mb-6 md:mb-8 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+            The community platform{" "}
+            <br className="hidden sm:block" />
+            built for Discord
           </h1>
-          <p className="mx-auto w-full max-w-lg text-wrap text-neutral-600 text-xl">
-            Turn Discord community into an SEO-optimized forum. <br />
+          <p className="mx-auto max-w-lg text-base sm:text-lg text-neutral-600 px-4">
+            Turn Discord community into an SEO-optimized forum.{" "}
+            <br className="hidden sm:block" />
             Get discovered on Google, grow your community.
           </p>
-          <div className="flex justify-center gap-4">
-            <Button className="mt-10" size={'lg'} variant={'default'}>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8 md:mt-10 px-4">
+            <Button size={'lg'} variant={'default'}>
               Get Started
             </Button>
-            <Button className="mt-10" size={'lg'} variant={'outline'}>
+            <Button size={'lg'} variant={'outline'}>
               <ArrowUpRightIcon className="inline-block h-4 w-4" />
               Check the demo
             </Button>
           </div>
           {/* // TODO: Join number+ creators, and new-age startups */}
         </header>
-        <section className="my-80 border-neutral-300 border-t px-2">
+        <section className="my-40 md:my-32 border-neutral-300 border-t px-4">
+          <div className="mx-auto max-w-7xl">
+            <div className="space-y-3 py-24 md:py-30 text-center">
+              <span className="text-lg text-neutral-600">Why choose?</span>
+              <h2 className="font-semibold text-3xl md:text-4xl max-w-3xl mx-auto">
+                All the benefits of Discord, without any of the downsides
+              </h2>
+            </div>
+
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8'>
+              <div className='p-6 md:p-8 bg-neutral-50 rounded border'>
+                <div className='flex gap-3 items-center mb-6'>
+                  <Twemoji name='😫' className='size-8 flex-shrink-0' />
+                  <h3 className='text-2xl md:text-3xl font-bold tracking-tight'>
+                    Traditional Forums
+                  </h3>
+                </div>
+                <ul className='flex flex-col gap-6 text-lg md:text-xl text-neutral-700'>
+                  <li className='flex items-start gap-3'>
+                    <DotOutlineIcon weight='fill' className='size-6 flex-shrink-0 mt-1 text-neutral-400' />
+                    <span>Build a separate community (2x the work!)</span>
+                  </li>
+                  <li className='flex items-start gap-3'>
+                    <DotOutlineIcon weight='fill' className='size-6 flex-shrink-0 mt-1 text-neutral-400' />
+                    <span>Manage logins, moderation, spam... twice</span>
+                  </li>
+                  <li className='flex items-start gap-3'>
+                    <DotOutlineIcon weight='fill' className='size-6 flex-shrink-0 mt-1 text-neutral-400' />
+                    <span>Watch your community split in half</span>
+                  </li>
+                  <li className='flex items-start gap-3'>
+                    <DotOutlineIcon weight='fill' className='size-6 flex-shrink-0 mt-1 text-neutral-400' />
+                    <span>Place bets on which dies first</span>
+                  </li>
+                </ul>
+              </div>
+              <div className='p-6 md:p-8 bg-purple-50 border-4 border-purple-600 shadow-lg rounded'>
+                <div className='flex gap-3 items-center mb-6'>
+                  <Twemoji name='✨' className='size-8 flex-shrink-0' />
+                  <h3 className='text-2xl md:text-3xl font-bold tracking-tight'>
+                    With Velumn
+                  </h3>
+                </div>
+                <ul className='flex flex-col gap-6 text-lg md:text-xl'>
+                  <li className='flex items-start gap-3'>
+                    <CheckFatIcon className='size-6 flex-shrink-0 mt-1 text-purple-600' />
+                    <span>Discord → forum automagically</span>
+                  </li>
+                  <li className='flex items-start gap-3'>
+                    <CheckFatIcon className='size-6 flex-shrink-0 mt-1 text-purple-600' />
+                    <span>Zero extra work (seriously, none)</span>
+                  </li>
+                  <li className='flex items-start gap-3'>
+                    <CheckFatIcon className='size-6 flex-shrink-0 mt-1 text-purple-600' />
+                    <span>One community, everywhere it needs to be</span>
+                  </li>
+                  <li className='flex items-start gap-3'>
+                    <CheckFatIcon className='size-6 flex-shrink-0 mt-1 text-purple-600' />
+                    <span>Live in minutes, not months</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="my-40 border-neutral-300 border-t px-4">
           <div className="mx-auto max-w-screen-lg">
             <div className="space-y-2 py-40 text-center">
               <span className="text-lg">How it works</span>
@@ -60,7 +134,7 @@ export default function Home() {
               </h2>
             </div>
             <div className="grid grid-flow-row grid-rows-3 justify-between gap-14 sm:grid-flow-col sm:grid-cols-3 sm:grid-rows-1 sm:gap-4">
-              <div className="">
+              <div>
                 <div className="mb-4 flex size-14 items-center justify-center rounded bg-blue-100">
                   <PlusIcon className="size-8 text-blue-600" />
                 </div>
@@ -88,7 +162,7 @@ export default function Home() {
                       Choose channels to index
                     </h3>
                     <p className="text-neutral-600">
-                      Select which channelsyou want indexed. We'll crawl them
+                      Select which channels you want indexed. We'll crawl them
                       and index all threads.
                     </p>
                   </div>
@@ -112,126 +186,23 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section className="my-80 border-neutral-300 border-t px-2">
-          <div className="mx-auto max-w-screen-md">
-            <div className="space-y-2 py-40 text-center">
-              <span className="text-lg">All batteries included</span>
-              <h2 className="font-semibold text-4xl">
-                Why use Velumn with Discord for creating your Forum?
-              </h2>
-            </div>
-            <div className="space-y-30">
-              <div className="flex flex-row-reverse gap-20">
-                <div className="flex-1 space-y-6 py-4">
-                  <h3 className="font-bold text-4xl">
-                    Your discussions lives in Discord
-                  </h3>
-                  <div className="space-y-8 text-neutral-600">
-                    <div>
-                      Your users and moderators love Discord, and you don't need
-                      to change that. Velumn seamlessly works alongside Discord
-                      to turn discussions into SEO-friendly, discoverable
-                      content so you can take advantage of the community and
-                      moderation features of Discord without any of the
-                      downsides.
-                    </div>
-                    <ul className="space-y-4">
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>
-                          Zero changes to your Discord server or workflow.
-                        </span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>Thinking of something else to fit here.</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-20">
-                <div className="flex-1 space-y-6 py-4">
-                  <h3 className="font-bold text-4xl">Optimized for SEO</h3>
-                  <div className="space-y-6 text-neutral-600">
-                    <div>
-                      You've poured your heart into building this amazing
-                      Discord community, but Google? It can't see any of it. We
-                      help you selectively index helpful discussions, build
-                      brand awareness, and show potential users how engaged you
-                      are with the community.
-                    </div>
-                    <ul className="space-y-4">
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>
-                          Automatic SEO optimization with proper meta tags and
-                          schema markup
-                        </span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>
-                          Lightning-fast static pages that rank higher and load
-                          instantly
-                        </span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>
-                          Show up in Google's Discussions and Forums section
-                        </span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>
-                          Mobile optimized design that works everywhere
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-row-reverse gap-20">
-                <div className="flex-1 space-y-6 py-4">
-                  <h3 className="font-bold text-4xl">
-                    Reduced Repetitive Questions
-                  </h3>
-                  <div className="space-y-6 text-neutral-600">
-                    <div>
-                      How many times have you watched the same question pop up
-                      across different channels? Discord's search makes it
-                      nearly impossible to find buried answers, so people just
-                      ask again. We make existing solutions actually findable.
-                      Your support team will love us.
-                    </div>
-                    <ul className="space-y-4">
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>
-                          Easily share discussion with non Discord users.
-                        </span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckIcon className="size-6" />
-                        <span>
-                          Beautiful link previews that drive clicks on Twitter,
-                          LinkedIn, and Slack
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
         <FAQ />
         <BottomCTA />
       </div>
       <footer className="border-neutral-300 border-t">
-        <div className="mx-auto max-w-screen-xl border-x px-4 py-2">
-          Footer ":)"
+        <div className="mx-auto max-w-screen-xl border-x px-4 py-6 text-center">
+          <p className="text-neutral-600 text-sm">
+            Built with <Twemoji className='inline size-4.5' name='💜' /> and way too many Discord servers
+            .{" "}
+            <a
+              href="https://github.com/lmssiehdev/velumn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-900 hover:text-neutral-600 underline transition-colors"
+            >
+              Open source on GitHub ↗
+            </a>
+          </p>
         </div>
       </footer>
     </>
