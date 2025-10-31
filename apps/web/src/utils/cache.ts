@@ -11,14 +11,6 @@ import {
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
-type ValidTags =
-  | 'clear-all-threads'
-  | `clear-thread-${string}`
-  | 'clear-all-servers'
-  | `clear-server-${string}`
-  | 'clear-all-channels'
-  | `clear-channel-${string}`;
-
 // :P
 export function stable_cache<T extends any[], R>(
   fn: (...args: T) => Promise<R>,
