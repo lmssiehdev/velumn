@@ -21,7 +21,7 @@ export function Attachments({
   isSnapshot?: boolean;
   attachments: DBAttachments[];
 }) {
-  if (!attachments.length) {
+  if (!attachments?.length) {
     return null;
   }
 

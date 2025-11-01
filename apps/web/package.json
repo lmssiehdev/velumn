@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "build:prod": "next build --turbopack",
     "build": "bun run type-check && next build --turbopack",
     "with-env": "bun run --env-file=../../.env --",
     "start": "next start",
