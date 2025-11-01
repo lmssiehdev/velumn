@@ -1,9 +1,11 @@
 import {
   ArrowUpRightIcon,
   CaretDownIcon,
+  ChatsTeardropIcon,
   CheckCircleIcon,
   CheckFatIcon,
   DotOutlineIcon,
+  DotsThreeVerticalIcon,
   ListChecksIcon,
   PlusIcon,
 } from '@phosphor-icons/react/dist/ssr';
@@ -339,5 +341,97 @@ function BottomCTA() {
         </Button>
       </div>
     </section>
+  );
+}
+
+export function Page() {
+  return (
+    <div className="relative mx-auto my-8 flex max-w-screen-md items-center rounded shadow-xl">
+      <div className="-bottom-[20%] -left-[35%] absolute">
+        <div className="-rotate-50 ml-52 size-20">
+          <img src="/assets/arrow.png" />
+        </div>
+        <div className="w-full max-w-sm overflow-hidden rounded border bg-[#fefcf6] text-black shadow-sm">
+          <div className="flex items-center gap-2 border-neutral-200 border-b-1 px-4 pt-4 pb-2">
+            <DiscordIcon />
+            <span>How do I index discord channels into google?</span>
+          </div>
+          <div className="space-y-4 p-4">
+            <div className="flex gap-3">
+              <div className="size-10 rounded-full bg-[#ced1e4]" />
+              <div className="flex-1">
+                <div className="font-bold text-sm tracking-wider">
+                  lmssiehdev
+                </div>
+                <p>How do I index my discord channels into google?</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="size-10 rounded-full bg-[#ced1e4]" />
+              <div className="flex-1">
+                <div className="mb-2 h-3 w-10 rounded bg-[#ced1e4]" />
+                <div className="h-5 rounded bg-[#ced1e4]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="">
+        <img
+          className="object-cover"
+          src="/assets/landing/ss-demo-preview.png"
+        />
+      </div>
+      <div className="-bottom-[20%] -right-[35%] absolute">
+        <div className="ml-33 size-20 rotate-40">
+          <img src="/assets/arrow.png" />
+        </div>
+        <div className="w-[430px] space-y-1.5 overflow-hidden rounded border bg-[#fefcf6] p-4 text-black shadow-sm">
+          <div className="mb-2 flex items-center gap-4 p-2">
+            <div className="font-bold text-xl">Google</div>
+            <div className="w-full flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-full bg-[#e7e8f0] px-4 py-1.5">
+              How do I index discord channels into google?
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-full bg-white">
+              <ChatsTeardropIcon className="size-6 text-black" />
+            </div>
+            <div className="text-sm">
+              <div>Velumn</div>
+              <div className="align-baseline text-sm">
+                https://velumn.com &gt; thread ...{' '}
+                <DotsThreeVerticalIcon className="inline-block" weight="bold" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 text-lg">
+              How do I index my discord channels into google?
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-sm">Jun 18, 2023 — </div>
+              <div className="h-3 flex-1 rounded bg-[#ced1e4]" />
+            </div>
+            <div className="mb-1 h-3 flex-1 rounded bg-[#ced1e4]" />
+            <div className="mb-1 h-3 flex-1 rounded bg-[#ced1e4]" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function DiscordIcon() {
+  return (
+    <svg
+      className="inline-block size-5"
+      viewBox="0 0 126.644 96"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M81.15 0a74 74 0 0 0-3.36 6.794 97.9 97.9 0 0 0-28.994 0A68 68 0 0 0 45.437 0a105.6 105.6 0 0 0-26.14 8.057C2.779 32.53-1.691 56.373.53 79.887a105 105 0 0 0 32.05 16.088 77 77 0 0 0 6.87-11.063c-3.738-1.389-7.35-3.131-10.81-5.152.91-.657 1.794-1.338 2.653-1.995a75.26 75.26 0 0 0 64.075 0c.86.707 1.743 1.389 2.652 1.995a69 69 0 0 1-10.835 5.178A77 77 0 0 0 94.056 96a105 105 0 0 0 32.051-16.063c2.626-27.277-4.496-50.917-18.817-71.855A104 104 0 0 0 81.175.05zM42.28 65.414c-6.238 0-11.416-5.657-11.416-12.653s4.976-12.679 11.391-12.679 11.517 5.708 11.416 12.679c-.101 6.97-5.026 12.653-11.39 12.653m42.078 0c-6.264 0-11.391-5.657-11.391-12.653s4.975-12.679 11.39-12.679S95.85 45.79 95.749 52.761c-.1 6.97-5.026 12.653-11.39 12.653"
+        fill="currentColors"
+      />
+    </svg>
   );
 }
