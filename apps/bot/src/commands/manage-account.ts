@@ -40,6 +40,7 @@ const BUTTON_IDS = {
   DELETE_ALL: 'DELETE_ALL',
 } as const;
 
+const idHintsProd = ['"1434079887534198855"']
 const idHints = ['1421588952359370843'];
 
 @ApplyOptions<Command.Options>({
