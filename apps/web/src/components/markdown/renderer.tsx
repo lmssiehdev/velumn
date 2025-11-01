@@ -1,4 +1,3 @@
-import type { SingleASTNode } from '@khanacademy/simple-markdown';
 import type { DBSnapshotSchema } from '@repo/db/helpers/validation';
 import type {
   DBMessage,
@@ -16,6 +15,12 @@ import { Mention } from './mention';
 import { Poll } from './poll';
 import { Snapshot } from './snapshot';
 import { Spoiler } from './spoiler';
+
+
+export type SingleASTNode = {
+  type: string;
+  [key: string]: any;
+};
 
 function renderASTNode(
   node: SingleASTNode | SingleASTNode[],
@@ -131,6 +136,7 @@ function renderASTNode(
       return <Code code={node.content} key={key} language={node.lang} />;
 
     case 'spoiler':
+      // @ts-expect-error
       return <Spoiler key={key}>{renderNodes(node.content)}</Spoiler>;
 
     case 'blockQuote':

@@ -1,6 +1,6 @@
-import type { SingleASTNode } from '@khanacademy/simple-markdown';
 import { emojiToTwemoji } from '@repo/utils/helpers/twemoji';
 import { cn } from '@/lib/utils';
+import { SingleASTNode } from './renderer';
 
 function customEmojiUrl(id: string, animated = false) {
   const extension = animated ? 'gif' : 'webp';

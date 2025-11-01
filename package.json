@@ -8,7 +8,8 @@
     "lint": "biome check . --write",
     "with-env": "bun run --env-file=../../.env --",
     "dev:web": "turbo --filter web dev",
-    "build:web": "turbo --filter web build"
+    "build:web": "turbo --filter web build",
+    "nuke": "bunx npkill -D -y && rm bun.lock"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.2",
