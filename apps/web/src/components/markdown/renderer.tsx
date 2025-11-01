@@ -58,7 +58,6 @@ function renderASTNode(
     case 'heading': {
       const Tag = `h${node.level}`;
       return (
-        // @ts-expect-error
         <Tag key={key}>{renderNodes(node.content)}</Tag>
       );
     }
