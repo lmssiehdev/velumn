@@ -167,7 +167,7 @@ function PickAServer() {
       <div className="my-10 flex flex-col items-center justify-center">
         <div className="my-10 flex flex-col items-center justify-center">
           <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-            Welcome to discord!{' '}
+            Welcome to Velumn!{' '}
             <img
               alt="wave"
               className="ml-2 inline-block size-6"
@@ -215,7 +215,7 @@ function WaitingForBotToJoin() {
   );
 
   useEffect(() => {
-    const timeout = setTimeout(() => setTimeoutReached(true), 120_000);
+    const timeout = setTimeout(() => setTimeoutReached(true), 300_000);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -240,19 +240,25 @@ function WaitingForBotToJoin() {
 
   if (timeoutReached) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <div className="mb-2 font-semibold text-lg text-yellow-600">
-          Taking longer than expected
-        </div>
-        <div className="mb-4 text-gray-600">
-          The bot might not have the right permissions, or Discord might be
-          slow.
-        </div>
-        <div className="space-y-2">
-          <Button onClick={() => handleInviteCreation(guildId)}>
-            Re-invite Bot
-          </Button>
-          {/* // TODO: add a join discord for support button here */}
+      <div className="my-10 flex flex-col items-center justify-center">
+        <div className="my-10 flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <div className="mb-2 font-semibold text-xl text-yellow-600">
+              This is taking longer than usual
+            </div>
+            <div className="mb-4">
+              The bot may need additional permissions,
+              or Discord's servers might be experiencing delays.
+            </div>
+            <div className="space-y-2">
+              <Button onClick={() => handleInviteCreation(guildId)}>
+                Re-invite Bot
+              </Button>
+              <a href="/discord" target="_blank" rel="noopener noreferrer" className='underline text-neutral-600 hover:text-neutral-700 block text-sm'>
+                Need assistance? Join our discord server.
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -263,7 +269,7 @@ function WaitingForBotToJoin() {
       <div className="my-10 flex flex-col items-center justify-center">
         <div className="my-10 flex flex-col items-center justify-center">
           <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-            Your move!{' '}
+            Almost there!{' '}
             <img
               alt="wave"
               className="ml-2 inline-block size-6"
@@ -271,7 +277,7 @@ function WaitingForBotToJoin() {
             />
           </div>
           <div className="text-neutral-600">
-            Add our bot and let's get rolling!
+            Add the bot to your server to continue
           </div>
         </div>
       </div>
@@ -281,12 +287,11 @@ function WaitingForBotToJoin() {
         <div className="space-y-2 text-center">
           <div className="text-neutral-600">
             {inviteUrl
-              ? `Waiting for the bot to join your server... you'll get auto redirect
-  once it does`
-              : `Generating invite url... This won't take long`}
+              ? `Waiting for the bot to join your server... You'll be redirected automatically once it does.`
+              : `Generating invitation link...`}
           </div>
-          {userQuery.dataUpdatedAt && (
-            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
+          {userQuery?.dataUpdatedAt > 0 && (
+            <div className="flex items-center justify-center gap-1 text-gray-500 text-sm">
               <span className={userQuery.isFetching ? 'animate-pulse' : ''}>
                 {userQuery.isFetching ? 'Checking...' : 'Last checked'}
               </span>
@@ -294,7 +299,7 @@ function WaitingForBotToJoin() {
                 <span className="font-medium">
                   {Math.max(
                     Math.floor((now - userQuery.dataUpdatedAt) / 1000),
-                    0
+                    1
                   )}{' '}
                   seconds ago
                 </span>
@@ -396,6 +401,55 @@ function SelectChannels() {
   const { guilds, channels, selectedGuildId, finishOnboarding, toggleChannel } =
     useOnboardingContext();
 
+  const guild = guilds.find((g) => g.id === selectedGuildId);
+
+  if (!guild) {
+    return <div>Guild not found?</div>;
+  }
+  return (
+    <>
+      <div className="my-10 flex flex-col items-center justify-center">
+        <div className="my-10 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
+            Select channels to index!{' '}
+            <img
+              alt="wave"
+              className="ml-2 inline-block size-6"
+              src={emojiToTwemoji('✨')}
+            />
+          </div>
+          <div className="text-neutral-600">We'll do the rest for you</div>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-md space-y-8">
+        <GuildListItem guild={guild} key={guild.id} />
+        <div className="my-1 space-y-8">
+          <ChannelsSelector channels={channels} toggleChannel={toggleChannel}/>
+          <div className='flex justify-between items-center'>
+            <div>
+              <div>{channels.length} channels ready to index</div>
+              <div className="text-neutral-500 text-xs">
+                (you can change this later)
+              </div>
+            </div>
+            <Button
+              className="flex items-center gap-2"
+              onClick={() => finishOnboarding(channels.filter((c) => c.enabled).map((c) => c.id))}
+            >
+              Start Indexing
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function ChannelsSelector({ channels, toggleChannel }: {
+  channels: SortChannel[],
+  toggleChannel: (channelId: string, enabled: boolean) => void,
+}) {
   const [searchFilter, setSearchFilter] = useState('');
   const [channelFilterOptions, setChannelFilterOptions] = useState([
     { type: ChannelType.GuildForum, name: 'Forum', enabled: true },
@@ -424,110 +478,70 @@ function SelectChannels() {
       selectedChannels: channels.filter((c) => c.enabled).map((c) => c.id),
     };
   }, [searchFilter, channelFilterOptions, channels]);
-
-  const guild = guilds.find((g) => g.id === selectedGuildId);
-
-  if (!guild) {
-    return <div>Guild not found?</div>;
-  }
-  return (
-    <>
-      <div className="my-10 flex flex-col items-center justify-center">
-        <div className="my-10 flex flex-col items-center justify-center">
-          <div className="flex items-center justify-center whitespace-pre-line font-semibold text-3xl text-gray-800 leading-normal tracking-tight">
-            Select channels to index!{' '}
-            <img
-              alt="wave"
-              className="ml-2 inline-block size-6"
-              src={emojiToTwemoji('✨')}
-            />
-          </div>
-          <div className="text-neutral-600">We'll do the rest for you</div>
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-md space-y-8">
-        <GuildListItem guild={guild} key={guild.id} />
-        <div className="flex items-center justify-between gap-2">
-          <Input
-            className="max-w-sm"
-            onChange={(e) => setSearchFilter(e.target.value)}
-            placeholder="Filter channels..."
-            value={searchFilter}
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="ml-auto" variant="outline">
-                Channels <CaretDownIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {channelFilterOptions.map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    checked={column.enabled}
-                    className="capitalize"
-                    key={column.name}
-                    onCheckedChange={(value) => {
-                      // TODO: unselect the selected channel of the type
-                      setChannelFilterOptions((prevState) => {
-                        const newState = [...prevState];
-                        newState[
-                          prevState.findIndex((c) => c.type === column.type)
-                        ].enabled = value;
-                        return newState;
-                      });
-                    }}
-                  >
-                    {column.name}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="">
-          {channelsToDisplay.map((channel) => {
+  return <>
+    <div className="flex items-center justify-between gap-2">
+      <Input
+        className="max-w-sm"
+        onChange={(e) => setSearchFilter(e.target.value)}
+        placeholder="Filter channels..."
+        value={searchFilter}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button className="ml-auto" variant="outline">
+            Channels <CaretDownIcon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {channelFilterOptions.map((column) => {
             return (
-              <div
-                className="flex items-center gap-4 border-t border-r border-l p-2 last:border-b"
-                key={channel.id}
+              <DropdownMenuCheckboxItem
+                checked={column.enabled}
+                className="capitalize"
+                key={column.name}
+                onCheckedChange={(value) => {
+                  // TODO: unselect the selected channel of the type
+                  setChannelFilterOptions((prevState) => {
+                    const newState = [...prevState];
+                    newState[
+                      prevState.findIndex((c) => c.type === column.type)
+                    ].enabled = value;
+                    return newState;
+                  });
+                }}
               >
-                <Checkbox
-                  checked={channel.enabled}
-                  onCheckedChange={(value) =>
-                    toggleChannel(channel.id, value as boolean)
-                  }
-                />
-                <div className="flex items-center gap-2">
-                  {channel.type === ChannelType.GuildForum ? (
-                    <ChatsCircleIcon className="size-4" />
-                  ) : (
-                    <HashIcon className="size-4" weight="bold" />
-                  )}
-                  {channel.channelName}
-                </div>
-              </div>
+                {column.name}
+              </DropdownMenuCheckboxItem>
             );
           })}
-        </div>
-        <div className="my-1 flex items-center justify-between">
-          <div>
-            <div>{selectedChannels.length} channels ready to index</div>
-            <div className="text-neutral-500 text-xs">
-              (you can change this later)
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+    <div className="">
+      {channelsToDisplay.map((channel) => {
+        return (
+          <div
+            className="flex items-center gap-4 border-t border-r border-l p-2 last:border-b"
+            key={channel.id}
+          >
+            <Checkbox
+              checked={channel.enabled}
+              onCheckedChange={(value) =>
+                toggleChannel(channel.id, value as boolean)}
+            />
+            <div className="flex items-center gap-2">
+              {channel.type === ChannelType.GuildForum ? (
+                <ChatsCircleIcon className="size-4" />
+              ) : (
+                <HashIcon className="size-4" weight="bold" />
+              )}
+              {channel.channelName}
             </div>
           </div>
-          <Button
-            className="flex items-center gap-2"
-            onClick={() => finishOnboarding(selectedChannels)}
-          >
-            Start Indexing
-          </Button>
-        </div>
-      </div>
-    </>
-  );
+        );
+      })}
+    </div>
+  </>
 }
 
 function getServerIcon(guild: { icon: string; id: string }) {

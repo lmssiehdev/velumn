@@ -6,9 +6,8 @@
     "dev": "turbo run dev",
     "check-types": "turbo run check-types",
     "lint": "biome check . --write",
-    "with-env": "bun run --env-file=../../.env --",
     "dev:web": "turbo --filter web dev",
-    "build:web": "turbo --filter web build",
+    "dev:dashboard": "turbo --filter dashboard dev",
     "nuke": "bunx npkill -D -y && rm bun.lock"
   },
   "devDependencies": {

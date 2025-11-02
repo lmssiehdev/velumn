@@ -301,6 +301,7 @@ export function toDbServer(guild: Guild) {
     name: guild.name,
     description: guild.description,
     memberCount: guild.memberCount,
+    icon: guild.icon,
   };
   return convertedServer;
 }

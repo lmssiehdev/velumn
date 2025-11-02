@@ -51,9 +51,27 @@ export const serverRouter = router({
         channels: channels.map((c) => ({
           ...c,
           channelName: c.channelName ?? 'Unknown',
-          enabled: c.type === ChannelType.GuildForum,
+          enabled: c.indexingEnabled,
         })),
       };
+    }),
+  updateChannelsIndexingStatus: privateProcedure
+    .input(z.object({ payload: z.array(z.object({ channelId: z.string(), status: z.boolean() })) }))
+    .mutation(async ({ input }) => {
+      try {
+        await setBulkIndexingStatus(input.payload);
+        return { success: true };
+      } catch (err) {
+        log.error('update_channels_indexing_status_failed', {
+          err: parseError(err),
+        });
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update channels indexing status',
+          cause: err,
+        });
+      }
     }),
   createServerInvite: privateProcedure
     .input(z.object({ serverId: z.string() }))

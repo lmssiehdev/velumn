@@ -12,7 +12,6 @@
     "db:wipe": "rm -rf src/drizzle && bun run src/wipe.ts",
     "db:push": "drizzle-kit push --config=drizzle.config.ts",
     "db:clear": "bun run src/clear.ts",
-    "with-env": "bun run --env-file=.env --",
     "type-check": "tsc --noEmit"
   },
   "exports": {

@@ -20,6 +20,7 @@ export const user = pgTable(
   (t) => [index('user_email_idx').on(t.email)]
 );
 
+export type AuthUserInsert = typeof user.$inferInsert
 export type AuthUser = typeof user.$inferSelect;
 
 export const session = pgTable(

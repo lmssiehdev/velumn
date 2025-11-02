@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { funnelSans } from '../styles/fonts';
+import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -16,6 +17,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${funnelSans.variable} font-sans antialiased`}>
         {children}
+        <Toaster className='font-sans font-normal' />
       </body>
     </html>
   );

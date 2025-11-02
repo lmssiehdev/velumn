@@ -1,6 +1,6 @@
-import { db } from '../src/';
+import { db } from '..';
 // biome-ignore lint/performance/noNamespaceImport: <explanation>
-import * as schema from '../src/schema';
+import * as schema from '../schema';
 
 async function clearDbMessages() {
   try {

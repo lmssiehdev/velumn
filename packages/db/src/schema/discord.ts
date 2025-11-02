@@ -62,6 +62,7 @@ export const dbServer = pgTable('db_server', {
   serverInvite: text('server_invite'),
   invitedBy: text('invitedBy'),
   anonymizeUsers: boolean('anonymize_users').default(false).notNull(),
+  icon: text("icon").default(""),
 });
 
 export type DBServerInsert = typeof dbServer.$inferInsert;

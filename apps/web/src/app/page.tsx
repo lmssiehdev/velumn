@@ -55,9 +55,9 @@ export default function Home() {
             Get discovered on Google, grow your community.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-4 px-4 sm:flex-row md:mt-10">
-            <Button size={'lg'} variant={'default'}>
+            <a href='https://dashboard.velumn.com' className={buttonVariants({ size: "lg" })}>
               Get Started
-            </Button>
+            </a>
             <Button size={'lg'} variant={'outline'}>
               <ArrowUpRightIcon className="inline-block h-4 w-4" />
               Check the demo
@@ -65,6 +65,7 @@ export default function Home() {
           </div>
           {/* // TODO: Join number+ creators, and new-age startups */}
         </header>
+        {/* <Preview /> */}
         <section className="my-40 border-neutral-300 border-t px-4 md:my-32">
           <div className="mx-auto max-w-7xl">
             <div className="space-y-3 py-24 text-center md:py-30">
@@ -88,7 +89,7 @@ export default function Home() {
                       className="mt-1 size-6 flex-shrink-0 text-neutral-400"
                       weight="fill"
                     />
-                    <span>Build a separate community (2x the work!)</span>
+                    <span>Build a separate community (double the work!)</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <DotOutlineIcon
@@ -123,7 +124,7 @@ export default function Home() {
                 <ul className="flex flex-col gap-6 text-lg md:text-xl">
                   <li className="flex items-start gap-3">
                     <CheckFatIcon className="mt-1 size-6 flex-shrink-0 text-purple-600" />
-                    <span>Discord → forum automagically</span>
+                    <span>Discord ⇒ forum automagically</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckFatIcon className="mt-1 size-6 flex-shrink-0 text-purple-600" />
@@ -135,7 +136,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckFatIcon className="mt-1 size-6 flex-shrink-0 text-purple-600" />
-                    <span>Live in minutes, not months</span>
+                    <span>Live in minutes, not weeks</span>
                   </li>
                 </ul>
               </div>
@@ -344,14 +345,11 @@ function BottomCTA() {
   );
 }
 
-export function Page() {
+export function Preview() {
   return (
     <div className="relative mx-auto my-8 flex max-w-screen-md items-center rounded shadow-xl">
-      <div className="-bottom-[20%] -left-[35%] absolute">
-        <div className="-rotate-50 ml-52 size-20">
-          <img src="/assets/arrow.png" />
-        </div>
-        <div className="w-full max-w-sm overflow-hidden rounded border bg-[#fefcf6] text-black shadow-sm">
+      <div className="-top-[40%] -left-[35%] absolute">
+        <div className="w-full max-w-sm overflow-hidden rounded border bg-[#fefcf6] text-black shadow">
           <div className="flex items-center gap-2 border-neutral-200 border-b-1 px-4 pt-4 pb-2">
             <DiscordIcon />
             <span>How do I index discord channels into google?</span>
@@ -375,6 +373,9 @@ export function Page() {
             </div>
           </div>
         </div>
+        <div className="ml-52 size-20 -scale-x-[1] -rotate-120">
+          <img src="/assets/arrow.png" />
+        </div>
       </div>
       <div className="">
         <img
@@ -386,7 +387,7 @@ export function Page() {
         <div className="ml-33 size-20 rotate-40">
           <img src="/assets/arrow.png" />
         </div>
-        <div className="w-[430px] space-y-1.5 overflow-hidden rounded border bg-[#fefcf6] p-4 text-black shadow-sm">
+        <div className="w-[430px] space-y-1.5 overflow-hidden rounded border bg-[#fefcf6] p-4 text-black shadow">
           <div className="mb-2 flex items-center gap-4 p-2">
             <div className="font-bold text-xl">Google</div>
             <div className="w-full flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-full bg-[#e7e8f0] px-4 py-1.5">

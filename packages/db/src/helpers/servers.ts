@@ -12,6 +12,7 @@ import {
   user,
 } from '../schema';
 import { buildConflictUpdateColumns } from '../utils/drizzle';
+import { ChannelType } from 'discord-api-types/v10';
 
 export async function createBotInvite({
   userId,
@@ -56,15 +57,14 @@ export async function getUserWhoInvited(serverId: string) {
 
 export async function getChannelsInServer(
   serverId: string
-): Promise<DBChannel[] | undefined> {
+): Promise<DBChannel[]> {
+  if (!serverId) return [];
   return await db.query.dbChannel.findMany({
     where: {
       AND: [
         {
           serverId,
-          parentId: {
-            isNull: true,
-          },
+          type: ChannelType.GuildText
         },
       ],
     },
@@ -123,10 +123,10 @@ export async function createBulkServers(servers: DBServer[]) {
 }
 
 export async function getAllServers() {
-  return await db._query.dbServer.findMany();
+  return await db.query.dbServer.findMany();
 }
 
-export async function getServerInfo(serverId: string) {
+export async function getServerInfo(serverId: string): Promise<DBServer | undefined> {
   return await db._query.dbServer.findFirst({
     where: and(eq(dbServer.id, serverId)),
   });
@@ -157,6 +157,7 @@ export async function getBulkServers(serverIds: string[]) {
   });
 }
 
+export type ThreadWithMetadata = Awaited<ReturnType<typeof getAllThreads>>["threads"][number];
 export async function getAllThreads(
   getBy: 'server' | 'channel',
   config: {
@@ -171,16 +172,16 @@ export async function getAllThreads(
     where:
       getBy === 'server'
         ? {
-            serverId: id,
-            pinned,
-            parentId: {
-              isNotNull: true,
-            },
-          }
-        : {
-            parentId: id,
-            pinned,
+          serverId: id,
+          pinned,
+          parentId: {
+            isNotNull: true,
           },
+        }
+        : {
+          parentId: id,
+          pinned,
+        },
     with: {
       author: true,
       parent: true,

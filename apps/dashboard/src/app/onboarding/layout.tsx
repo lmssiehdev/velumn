@@ -12,7 +12,7 @@ export default async function OnboardingLayout({
 }) {
   const { user } = await getCurrentUserOrRedirect();
 
-  if (user.finishedOnboarding) {
+  if (user?.finishedOnboarding) {
     redirect('/');
   }
 
@@ -22,8 +22,9 @@ export default async function OnboardingLayout({
     return <div>Error: {guilds.error}</div>;
   }
 
-  const channels = (await getChannelsInServer(user.serverId!)) ?? [];
-  const initialChannels = channels.map((c) => ({ ...c, enabled: false }));
+  const channels = await getChannelsInServer(user.serverId!);
+  const initialChannels = channels.map((c) => ({ ...c, enabled: c.indexingEnabled }));
+
   return (
     <div>
       <AuthProvider user={user}>

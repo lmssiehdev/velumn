@@ -1,6 +1,6 @@
 {
-  "id": "9df039cd-71ff-436c-9add-041b21ecf4a8",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "7b4b47e5-3be6-48f4-acbc-b9e09d8bce48",
+  "prevId": "9df039cd-71ff-436c-9add-041b21ecf4a8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -973,6 +973,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "icon": {
+          "name": "icon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
         }
       },
       "indexes": {},

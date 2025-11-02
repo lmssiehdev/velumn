@@ -151,4 +151,5 @@ CREATE INDEX "message_author_id_idx" ON "db_message" USING btree ("author_id");-
 CREATE INDEX "message_channel_id_idx" ON "db_message" USING btree ("channel_id");--> statement-breakpoint
 CREATE INDEX "message_primary_channel_id_idx" ON "db_message" USING btree ("primary_channel_id");--> statement-breakpoint
 CREATE INDEX "message_parent_channel_id_idx" ON "db_message" USING btree ("parent_channel_id");--> statement-breakpoint
-CREATE INDEX "backlinks_to_thread_idx" ON "thread_backlink" USING btree ("to_thread_id");
+CREATE INDEX "backlinks_to_thread_idx" ON "thread_backlink" USING btree ("to_thread_id");--> statement-breakpoint
+CREATE INDEX "backlinks_from_thread_idx" ON "thread_backlink" USING btree ("from_thread_id");

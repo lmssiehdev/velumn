@@ -14,7 +14,6 @@ export const EPOCH = BigInt(1_420_070_400_000);
 
 export function getTimestamp(snowflake: Snowflake) {
   const snowflakeBigInt = BigInt(snowflake);
-  // biome-ignore lint/suspicious/noBitwiseOperators: <explanation>
   const timestampBits = snowflakeBigInt >> 22n;
   const fullTimestamp = timestampBits + EPOCH;
   return Number(fullTimestamp);

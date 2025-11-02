@@ -1,18 +1,15 @@
 import { getSessionCookie } from 'better-auth/cookies';
-import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getSession } from './server/user';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
     return NextResponse.redirect(new URL('auth/sign-in', request.url));
   }
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSession();
   if (!session) {
     return NextResponse.redirect(new URL('auth/sign-in', request.url));
   }
@@ -20,6 +17,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  runtime: 'nodejs',
   matcher: ['/((?!api|auth|trpc|_next/static|_next/image|.*\\.png$).*)'],
 };
