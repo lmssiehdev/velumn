@@ -6,7 +6,6 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 import { parseError } from './error';
-import { process.env } from '@/env';
 
 const polarClient = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN,

@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { parseError } from '@/lib/error';
 import { log } from '@/lib/log';
 import { privateProcedure, procedure, router } from '@/server/trpc';
-import { process.env } from '@/env';
 
 export const serverRouter = router({
   public: procedure.query(() => {
