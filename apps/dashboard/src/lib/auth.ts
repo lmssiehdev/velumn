@@ -6,10 +6,10 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 import { parseError } from './error';
-import { dashEnv } from '@/env';
+import { process.env } from '@/env';
 
 const polarClient = new Polar({
-  accessToken: dashEnv.POLAR_ACCESS_TOKEN,
+  accessToken: process.env.POLAR_ACCESS_TOKEN,
   // Use 'sandbox' if you're using the Polar Sandbox environment
   // Remember that access tokens, products, etc. are completely separated between environments.
   // Access tokens obtained in Production are for instance not usable in the Sandbox environment.
@@ -38,7 +38,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
-  trustedOrigins: [dashEnv.NEXT_PUBLIC_BETTER_AUTH_URL!],
+  trustedOrigins: [process.env.NEXT_PUBLIC_BETTER_AUTH_URL!],
   plugins: [
     polar({
       client: polarClient,
@@ -55,7 +55,7 @@ export const auth = betterAuth({
           authenticatedUsersOnly: true,
         }),
         webhooks({
-          secret: dashEnv.POLAR_WEBHOOK_SECRET!,
+          secret: process.env.POLAR_WEBHOOK_SECRET!,
           onPayload: async (payload) => {
             const { type, data } = payload;
             console.log({
@@ -88,8 +88,8 @@ export const auth = betterAuth({
   ],
   socialProviders: {
     discord: {
-      clientId: dashEnv.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
-      clientSecret: dashEnv.DISCORD_CLIENT_SECRET!,
+      clientId: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       scope: ['identify', 'email', 'guilds'],
       disableDefaultScope: true,
       enabled: true,
