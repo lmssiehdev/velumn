@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { parseError } from '@/lib/error';
 import { log } from '@/lib/log';
 import { privateProcedure, procedure, router } from '@/server/trpc';
+import { dashEnv } from '@/env';
 
 export const serverRouter = router({
   public: procedure.query(() => {
@@ -81,7 +82,7 @@ export const serverRouter = router({
           serverId: input.serverId,
           userId: ctx.user.id,
         });
-        const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&permissions=328565083201&scope=bot+applications.commands&guild_id=${input.serverId}&disable_guild_select=true`;
+        const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${dashEnv.NEXT_PUBLIC_DISCORD_CLIENT_ID}&permissions=328565083201&scope=bot+applications.commands&guild_id=${input.serverId}&disable_guild_select=true`;
 
         return { inviteUrl };
       } catch (err) {
