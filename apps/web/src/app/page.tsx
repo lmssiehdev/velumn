@@ -49,11 +49,8 @@ export default function Home() {
             The community platform <br className="hidden sm:block" />
             built for Discord
           </h1>
-          <p className="mx-auto max-w-lg px-4 text-base text-neutral-600 sm:text-lg">
-            Turn Discord community into an SEO-optimized forum.{' '}
-            <br className="hidden sm:block" />
-            Get discovered on Google, grow your community.
-          </p>
+          <p className="mx-auto px-4 text-base text-neutral-600 sm:text-lg">
+            Transform your Discord channels into a fully indexed, SEO-optimized forum in minutes.<br />Get discovered on Google, grow your community all without leaving Discord.</p>
           <div className="mt-8 flex flex-col justify-center gap-4 px-4 sm:flex-row md:mt-10">
             <a href='https://dashboard.velumn.com' className={buttonVariants({ size: "lg" })}>
               Get Started
@@ -281,9 +278,8 @@ export function FAQ() {
                 To keep spam low while ensuring we maintain high-quality support
                 as we actively develop the product, we currently only offer free
                 tiers for non-commercial open source projects and other
-                non-profit communities. [Contact us here for more info]
+                non-profit communities.
               </p>
-
               <p>In the future, we plan to offer a free tier.</p>
             </CollapsibleContent>
           </Collapsible>
@@ -318,7 +314,7 @@ export function FAQ() {
               <CaretDownIcon className="h-4 w-4 transition-transform duration-200" />
             </CollapsibleTrigger>
             <CollapsibleContent className="px-4 pt-2 pb-4">
-              <p>No. We have a flat fee for servers of all sizes.</p>
+              <p>No. We index servers of all sizes.</p>
             </CollapsibleContent>
           </Collapsible>
         </div>

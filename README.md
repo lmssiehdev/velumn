@@ -3,7 +3,7 @@
 Velumn</h1>
 
 <p align="center">
-    <strong>Transform your Discord community into a discoverable, SEO-optimized forum</strong>
+    <strong>The community platform built for Discord.</strong>
     <br />
     <br />
     <a href="https://velumn.com"><strong>Learn more »</strong></a>
@@ -24,10 +24,6 @@ Velumn turns your Discord server into an SEO-optimized forum. Take advantage of 
 - **[Better Auth](https://www.better-auth.com)** - Authentication
 - **[Sapphire](https://www.sapphirejs.dev)** - Discord bot framework
 - **[Bun](https://bun.sh)** 💜
-
-## Getting Started
-
-[Add installation/setup instructions here]
 
 ## Contributing
 
