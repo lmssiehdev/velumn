@@ -136,7 +136,6 @@ function renderASTNode(
       return <Code code={node.content} key={key} language={node.lang} />;
 
     case 'spoiler':
-      // @ts-expect-error
       return <Spoiler key={key}>{renderNodes(node.content)}</Spoiler>;
 
     case 'blockQuote':
