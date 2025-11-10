@@ -3,14 +3,10 @@ import { PermissionFlagsBits } from 'discord-api-types/v8';
 import { unstable_cache } from 'next/cache';
 
 export const getGuildsCache = (userId: string) => {
-  return unstable_cache(
-    () => getGuilds(userId),
-    ['user-guilds', userId],
-    {
-      tags: ['user-guilds'],
-      revalidate: 10,
-    }
-  )();
+  return unstable_cache(() => getGuilds(userId), ['user-guilds', userId], {
+    tags: ['user-guilds'],
+    revalidate: 10,
+  })();
 };
 export type Guild = {
   id: string;

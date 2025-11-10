@@ -1,8 +1,8 @@
+import { getServerInfo } from '@repo/db/helpers/servers';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
 import { cache } from 'react';
-import { getServerInfo } from '@repo/db/helpers/servers';
+import { auth } from '@/lib/auth';
 
 export const getSession = cache(async () => {
   return await auth.api.getSession({
@@ -23,5 +23,5 @@ export const getCurrentUserOrRedirect = cache(async () => {
 });
 
 export const getUserServer = cache(async (serverId: string) => {
-  return await getServerInfo(serverId)
-})
+  return await getServerInfo(serverId);
+});

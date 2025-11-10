@@ -2,11 +2,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { User } from 'better-auth';
+import type * as React from 'react';
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { AuthUser } from '@/lib/auth';
 import { TRPCProvider } from '@/lib/trpc';
 import type { AppRouter } from '@/server/trpc/root';
-import * as React from 'react';
 
 function makeQueryClient() {
   return new QueryClient({

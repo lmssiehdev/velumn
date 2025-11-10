@@ -1,5 +1,15 @@
 {
   "name": "discord-indexer-monorepo",
+  "devDependencies": {
+    "@biomejs/biome": "2.2.2",
+    "turbo": "^2.6.0",
+    "typescript": "5.9.2",
+    "ultracite": "5.2.11"
+  },
+  "packageManager": "bun@1.3.0",
+  "patchedDependencies": {
+    "discord-markdown-parser@1.2.0": "patches/discord-markdown-parser@1.2.0.patch"
+  },
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -10,19 +20,8 @@
     "dev:dashboard": "turbo --filter dashboard dev",
     "nuke": "bunx npkill -D -y && rm bun.lock"
   },
-  "devDependencies": {
-    "@biomejs/biome": "2.2.2",
-    "lefthook": "^2.0.2",
-    "turbo": "^2.6.0",
-    "typescript": "5.9.2",
-    "ultracite": "5.2.11"
-  },
-  "packageManager": "bun@1.3.0",
   "workspaces": [
     "apps/*",
     "packages/*"
-  ],
-  "patchedDependencies": {
-    "discord-markdown-parser@1.2.0": "patches/discord-markdown-parser@1.2.0.patch"
-  }
+  ]
 }

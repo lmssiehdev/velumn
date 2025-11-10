@@ -247,14 +247,19 @@ function WaitingForBotToJoin() {
               This is taking longer than usual
             </div>
             <div className="mb-4">
-              The bot may need additional permissions,
-              or Discord's servers might be experiencing delays.
+              The bot may need additional permissions, or Discord's servers
+              might be experiencing delays.
             </div>
             <div className="space-y-2">
               <Button onClick={() => handleInviteCreation(guildId)}>
                 Re-invite Bot
               </Button>
-              <a href="/discord" target="_blank" rel="noopener noreferrer" className='underline text-neutral-600 hover:text-neutral-700 block text-sm'>
+              <a
+                className="block text-neutral-600 text-sm underline hover:text-neutral-700"
+                href="/discord"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
                 Need assistance? Join our discord server.
               </a>
             </div>
@@ -288,7 +293,7 @@ function WaitingForBotToJoin() {
           <div className="text-neutral-600">
             {inviteUrl
               ? `Waiting for the bot to join your server... You'll be redirected automatically once it does.`
-              : `Generating invitation link...`}
+              : 'Generating invitation link...'}
           </div>
           {userQuery?.dataUpdatedAt > 0 && (
             <div className="flex items-center justify-center gap-1 text-gray-500 text-sm">
@@ -425,8 +430,8 @@ function SelectChannels() {
       <div className="mx-auto w-full max-w-md space-y-8">
         <GuildListItem guild={guild} key={guild.id} />
         <div className="my-1 space-y-8">
-          <ChannelsSelector channels={channels} toggleChannel={toggleChannel}/>
-          <div className='flex justify-between items-center'>
+          <ChannelsSelector channels={channels} toggleChannel={toggleChannel} />
+          <div className="flex items-center justify-between">
             <div>
               <div>{channels.length} channels ready to index</div>
               <div className="text-neutral-500 text-xs">
@@ -435,7 +440,11 @@ function SelectChannels() {
             </div>
             <Button
               className="flex items-center gap-2"
-              onClick={() => finishOnboarding(channels.filter((c) => c.enabled).map((c) => c.id))}
+              onClick={() =>
+                finishOnboarding(
+                  channels.filter((c) => c.enabled).map((c) => c.id)
+                )
+              }
             >
               Start Indexing
             </Button>
@@ -446,9 +455,12 @@ function SelectChannels() {
   );
 }
 
-export function ChannelsSelector({ channels, toggleChannel }: {
-  channels: SortChannel[],
-  toggleChannel: (channelId: string, enabled: boolean) => void,
+export function ChannelsSelector({
+  channels,
+  toggleChannel,
+}: {
+  channels: SortChannel[];
+  toggleChannel: (channelId: string, enabled: boolean) => void;
 }) {
   const [searchFilter, setSearchFilter] = useState('');
   const [channelFilterOptions, setChannelFilterOptions] = useState([
@@ -478,70 +490,73 @@ export function ChannelsSelector({ channels, toggleChannel }: {
       selectedChannels: channels.filter((c) => c.enabled).map((c) => c.id),
     };
   }, [searchFilter, channelFilterOptions, channels]);
-  return <>
-    <div className="flex items-center justify-between gap-2">
-      <Input
-        className="max-w-sm"
-        onChange={(e) => setSearchFilter(e.target.value)}
-        placeholder="Filter channels..."
-        value={searchFilter}
-      />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="ml-auto" variant="outline">
-            Channels <CaretDownIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {channelFilterOptions.map((column) => {
-            return (
-              <DropdownMenuCheckboxItem
-                checked={column.enabled}
-                className="capitalize"
-                key={column.name}
-                onCheckedChange={(value) => {
-                  // TODO: unselect the selected channel of the type
-                  setChannelFilterOptions((prevState) => {
-                    const newState = [...prevState];
-                    newState[
-                      prevState.findIndex((c) => c.type === column.type)
-                    ].enabled = value;
-                    return newState;
-                  });
-                }}
-              >
-                {column.name}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-    <div className="">
-      {channelsToDisplay.map((channel) => {
-        return (
-          <div
-            className="flex items-center gap-4 border-t border-r border-l p-2 last:border-b"
-            key={channel.id}
-          >
-            <Checkbox
-              checked={channel.enabled}
-              onCheckedChange={(value) =>
-                toggleChannel(channel.id, value as boolean)}
-            />
-            <div className="flex items-center gap-2">
-              {channel.type === ChannelType.GuildForum ? (
-                <ChatsCircleIcon className="size-4" />
-              ) : (
-                <HashIcon className="size-4" weight="bold" />
-              )}
-              {channel.channelName}
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <Input
+          className="max-w-sm"
+          onChange={(e) => setSearchFilter(e.target.value)}
+          placeholder="Filter channels..."
+          value={searchFilter}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="ml-auto" variant="outline">
+              Channels <CaretDownIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {channelFilterOptions.map((column) => {
+              return (
+                <DropdownMenuCheckboxItem
+                  checked={column.enabled}
+                  className="capitalize"
+                  key={column.name}
+                  onCheckedChange={(value) => {
+                    // TODO: unselect the selected channel of the type
+                    setChannelFilterOptions((prevState) => {
+                      const newState = [...prevState];
+                      newState[
+                        prevState.findIndex((c) => c.type === column.type)
+                      ].enabled = value;
+                      return newState;
+                    });
+                  }}
+                >
+                  {column.name}
+                </DropdownMenuCheckboxItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="">
+        {channelsToDisplay.map((channel) => {
+          return (
+            <div
+              className="flex items-center gap-4 border-t border-r border-l p-2 last:border-b"
+              key={channel.id}
+            >
+              <Checkbox
+                checked={channel.enabled}
+                onCheckedChange={(value) =>
+                  toggleChannel(channel.id, value as boolean)
+                }
+              />
+              <div className="flex items-center gap-2">
+                {channel.type === ChannelType.GuildForum ? (
+                  <ChatsCircleIcon className="size-4" />
+                ) : (
+                  <HashIcon className="size-4" weight="bold" />
+                )}
+                {channel.channelName}
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  </>
+          );
+        })}
+      </div>
+    </>
+  );
 }
 
 function getServerIcon(guild: { icon: string; id: string }) {

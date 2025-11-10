@@ -23,7 +23,10 @@ export default async function OnboardingLayout({
   }
 
   const channels = await getChannelsInServer(user.serverId!);
-  const initialChannels = channels.map((c) => ({ ...c, enabled: c.indexingEnabled }));
+  const initialChannels = channels.map((c) => ({
+    ...c,
+    enabled: c.indexingEnabled,
+  }));
 
   return (
     <div>

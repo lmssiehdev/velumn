@@ -2,7 +2,6 @@ import { setBulkIndexingStatus } from '@repo/db/helpers/channels';
 import { createBotInvite, getChannelsInServer } from '@repo/db/helpers/servers';
 import { updateAuthUser } from '@repo/db/helpers/user';
 import { TRPCError } from '@trpc/server';
-import { ChannelType } from 'discord-api-types/v10';
 import { z } from 'zod';
 import { parseError } from '@/lib/error';
 import { log } from '@/lib/log';
@@ -56,7 +55,13 @@ export const serverRouter = router({
       };
     }),
   updateChannelsIndexingStatus: privateProcedure
-    .input(z.object({ payload: z.array(z.object({ channelId: z.string(), status: z.boolean() })) }))
+    .input(
+      z.object({
+        payload: z.array(
+          z.object({ channelId: z.string(), status: z.boolean() })
+        ),
+      })
+    )
     .mutation(async ({ input }) => {
       try {
         await setBulkIndexingStatus(input.payload);

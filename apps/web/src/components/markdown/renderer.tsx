@@ -16,7 +16,6 @@ import { Poll } from './poll';
 import { Snapshot } from './snapshot';
 import { Spoiler } from './spoiler';
 
-
 export type SingleASTNode = {
   type: string;
   [key: string]: any;

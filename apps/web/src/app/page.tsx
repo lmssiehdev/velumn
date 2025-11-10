@@ -50,9 +50,17 @@ export default function Home() {
             built for Discord
           </h1>
           <p className="mx-auto px-4 text-base text-neutral-600 sm:text-lg">
-            Transform your Discord channels into a fully indexed, SEO-optimized forum in minutes.<br />Get discovered on Google, grow your community all without leaving Discord.</p>
+            Transform your Discord channels into a fully indexed, SEO-optimized
+            forum in minutes.
+            <br />
+            Get discovered on Google, grow your community all without leaving
+            Discord.
+          </p>
           <div className="mt-8 flex flex-col justify-center gap-4 px-4 sm:flex-row md:mt-10">
-            <a href='https://dashboard.velumn.com' className={buttonVariants({ size: "lg" })}>
+            <a
+              className={buttonVariants({ size: 'lg' })}
+              href="https://dashboard.velumn.com"
+            >
               Get Started
             </a>
             <Button size={'lg'} variant={'outline'}>
@@ -268,7 +276,7 @@ export function FAQ() {
             </CollapsibleContent>
           </Collapsible>
 
-          <Collapsible>
+          {/* <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left font-medium hover:bg-accent">
               Can I use Velumn for free?
               <CaretDownIcon className="h-4 w-4 transition-transform duration-200" />
@@ -282,7 +290,7 @@ export function FAQ() {
               </p>
               <p>In the future, we plan to offer a free tier.</p>
             </CollapsibleContent>
-          </Collapsible>
+          </Collapsible> */}
 
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left font-medium hover:bg-accent">
@@ -369,7 +377,7 @@ export function Preview() {
             </div>
           </div>
         </div>
-        <div className="ml-52 size-20 -scale-x-[1] -rotate-120">
+        <div className="-scale-x-[1] -rotate-120 ml-52 size-20">
           <img src="/assets/arrow.png" />
         </div>
       </div>

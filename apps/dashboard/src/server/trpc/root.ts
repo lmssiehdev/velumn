@@ -1,7 +1,7 @@
 import { createCallerFactory, router } from '@/server/trpc';
+import { createContext } from './context';
 import { serverRouter } from './routers/server';
 import { userRouter } from './routers/user';
-import { createContext } from './context';
 
 export const appRouter = router({
   user: userRouter,

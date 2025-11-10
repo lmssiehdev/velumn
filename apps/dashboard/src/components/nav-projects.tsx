@@ -1,28 +1,25 @@
-"use client"
+'use client';
 
+import type { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 import {
-    type LucideIcon
-} from "lucide-react"
-
-import {
-    SidebarGroup,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar
-} from "@/components/ui/sidebar"
-import Link from "next/link"
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@/components/ui/sidebar';
 
 export function NavProjects({
   projects,
 }: {
   projects: {
-    name: string
-    url: string
-    icon: LucideIcon
-  }[]
+    name: string;
+    url: string;
+    icon: LucideIcon;
+  }[];
 }) {
-  const { isMobile } = useSidebar()
+  const { isMobile } = useSidebar();
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -40,5 +37,5 @@ export function NavProjects({
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }
