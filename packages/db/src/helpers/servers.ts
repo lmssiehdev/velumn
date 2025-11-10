@@ -64,7 +64,9 @@ export async function getChannelsInServer(
       AND: [
         {
           serverId,
-          type: ChannelType.GuildText
+          type: {
+            OR: [ChannelType.GuildText, ChannelType.GuildForum]
+          }
         },
       ],
     },

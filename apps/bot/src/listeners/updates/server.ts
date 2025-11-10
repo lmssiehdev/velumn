@@ -41,9 +41,11 @@ export class JoinedGuild extends Listener {
 
       // we save channels to display them in the onboarding flow
       const channels = await guild.channels.fetch();
-      const channelsToIndex = channels.filter(
-        (x) => x != null && isChannelIndexable(x)
-      );
+      const channelsToIndex = channels
+        .filter(
+          (c) => c != null && isChannelIndexable(c)
+        )
+        .filter(c => c?.viewable);
 
       // !! should probably be done in a transaction
       await linkServerToUser(guild.id, invitedBy.userId);
