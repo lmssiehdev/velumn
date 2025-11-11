@@ -60,13 +60,17 @@ export default function Home() {
             <a
               className={buttonVariants({ size: 'lg' })}
               href="https://dashboard.velumn.com"
+              target="_blank"
             >
               Get Started
             </a>
-            <Button size={'lg'} variant={'outline'}>
+            <a
+              className={buttonVariants({ size: 'lg', variant: "outline" })}
+              href="/thread/1436230598959300718"
+            >
               <ArrowUpRightIcon className="inline-block h-4 w-4" />
               Check the demo
-            </Button>
+            </a>
           </div>
           {/* // TODO: Join number+ creators, and new-age startups */}
         </header>
@@ -341,9 +345,9 @@ function BottomCTA() {
         <p className="text-neutral-600">
           Try Velumn free for 7 days. No credit card required.
         </p>
-        <Button size={'lg'} variant={'default'}>
-          Start Free Trial
-        </Button>
+        <a href="https://dashboard.velumn.com" target="_blank" className={buttonVariants({ size: "lg", variant: "default" })}>
+          Get Started
+        </a>
       </div>
     </section>
   );
