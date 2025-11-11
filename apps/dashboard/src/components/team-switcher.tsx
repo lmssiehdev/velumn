@@ -18,6 +18,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getServerIcon } from "@repo/utils/helpers/discord";
 
 export function ServersSwitcher({ servers }: { servers: DBServer[] }) {
   const { isMobile } = useSidebar();
@@ -27,9 +28,8 @@ export function ServersSwitcher({ servers }: { servers: DBServer[] }) {
     return null;
   }
 
-  const icon = activeServer.icon
-    ? `https://cdn.discordapp.com/icons/${activeServer.id}/${activeServer.icon}.${activeServer.icon.startsWith('a_') ? 'gif' : 'png'}`
-    : null;
+  const icon = getServerIcon(activeServer);
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
