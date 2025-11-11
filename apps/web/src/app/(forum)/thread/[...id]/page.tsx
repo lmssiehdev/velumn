@@ -25,7 +25,7 @@ import { Twemoji } from '@/components/markdown/emoji';
 import { ThreadIcon } from '@/components/markdown/mention';
 import {
   DiscordMarkdown,
-  DiscordMessageWithMetadata,
+  DiscordUIMessage,
 } from '@/components/markdown/renderer';
 import { DiscordIcon } from '@/components/misc';
 import ThreadFeedback from '@/components/thread-feedback';
@@ -44,6 +44,7 @@ import {
 } from '@/utils/cache';
 import { sanitizeJsonLd } from '@/utils/sanitize';
 import { ServerInfo } from '../../layout';
+import { constructDiscordLink } from "@repo/utils/helpers/discord";
 
 export async function generateMetadata({
   params,
@@ -243,27 +244,36 @@ export default async function Page({
                 );
               }
               return (
-                <a
-                  className="block space-x-1.5 px-3 align-baseline text-neutral-700 text-sm"
-                  href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`}
-                  key={item.data.id}
-                >
-                  <div className="inline-block space-x-1">
-                    <ThreadIcon className="inline-block size-4" />
-                    <div className="inline-block space-x-1 align-baseline">
-                      <span className="font-semibold">
+
+                <div className='flex gap-3 p-4 relative'>
+                  <div className='absolute left-[30px] top-0 bottom-0 w-[2px] bg-neutral-200 -my-2' />
+
+                  <div className='relative z-10 bg-white rounded-full flex items-center justify-center size-8 shrink-0 ring-2 ring-neutral-200'>
+                    <ThreadIcon className="size-4 text-neutral-700" />
+                  </div>
+                  <div className='min-w-0 flex-1'>
+                    <div className='text-sm text-neutral-600'>
+                      <span className="font-semibold text-neutral-700">
                         @{anonymizeName(item.data.fromThread?.author!)}
                       </span>
-                      <span>{item.data.fromThread?.channelName}</span>
+                      {' '}mentioned this thread
+                      {' '}<span className='text-neutral-400'>•</span>{' '}
+                      <span className='text-neutral-500'>2 days ago</span>
                     </div>
+                    <a
+                      href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`}
+                      className='underline underline-offset-2 mt-1 font-medium text-neutral-900 transition-colors inline-block'
+                    >
+                      {item.data.fromThread?.channelName}
+                    </a>
                   </div>
-                </a>
+                </div>
               );
             })}
           </div>
           <ContinueDiscussion
             noReplies={orderedMessages.length === 0}
-            url={ConstructDiscordLink({
+            url={constructDiscordLink({
               serverId: server.id,
               threadId: thread.id,
             })}
@@ -278,27 +288,10 @@ export default async function Page({
   );
 }
 
-function ConstructDiscordLink({
-  serverId,
-  threadId,
-  messageId,
-}: {
-  serverId: string;
-  threadId: string;
-  messageId?: string;
-}) {
-  const parts = [serverId, threadId];
-
-  if (messageId) {
-    parts.push(messageId);
-  }
-
-  return `https://discord.com/channels/${parts.join('/')}`;
-}
-
-type MessageWithMetadata = NonNullable<
+export type MessageWithMetadata = NonNullable<
   Awaited<ReturnType<typeof getAllMessagesInThreads>>
 >['messages'][number];
+
 function MessagePost({
   message,
   authorId,
@@ -367,16 +360,7 @@ function MessagePost({
             </div>
           </div>
           <div>
-            {message.user?.isIgnored || message.isIgnored ? (
-              <div>
-                <p>
-                  User prefers to remain anonymous, join the server to see this
-                  message.
-                </p>
-              </div>
-            ) : (
-              <DiscordMessageWithMetadata message={message} />
-            )}
+            <DiscordUIMessage message={message} />
           </div>
         </div>
       </div>

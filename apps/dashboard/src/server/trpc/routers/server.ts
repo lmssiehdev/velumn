@@ -8,22 +8,17 @@ import { log } from '@/lib/log';
 import { privateProcedure, procedure, router } from '@/server/trpc';
 
 export const serverRouter = router({
-  public: procedure.query(() => {
-    return { message: 'Hello world' };
-  }),
-  private: privateProcedure.query(() => {
-    return { message: "I'm private" };
-  }),
   finishOnboarding: privateProcedure
     .input(
-      z.object({ userId: z.string(), selectedChannels: z.array(z.string()) })
+      z.object({
+        payload: z.array(
+          z.object({ channelId: z.string(), status: z.boolean() })
+        ),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const channels = input.selectedChannels.map((c) => ({
-          channelId: c,
-          status: true,
-        }));
+        const channels = input.payload;
         await updateAuthUser(ctx.user.id, {
           finishedOnboarding: true,
         });

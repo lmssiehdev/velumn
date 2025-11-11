@@ -1,7 +1,6 @@
 import type { DBSnapshotSchema } from '@repo/db/helpers/validation';
 import type {
   DBMessage,
-  DBMessageWithRelations,
 } from '@repo/db/schema/discord';
 import dayjs from 'dayjs';
 import { parse } from 'discord-markdown-parser';
@@ -13,8 +12,9 @@ import { CustomEmoji, getEmojiSize, Twemoji } from './emoji';
 import { Link } from './link';
 import { Mention } from './mention';
 import { Poll } from './poll';
-import { Snapshot } from './snapshot';
 import { Spoiler } from './spoiler';
+import { MessageWithMetadata } from '@/app/(forum)/thread/[...id]/page';
+import { ArrowBendUpRightIcon } from '@phosphor-icons/react/dist/ssr';
 
 export type SingleASTNode = {
   type: string;
@@ -174,36 +174,51 @@ export const DiscordMarkdown = ({
   );
 };
 
-export function DiscordMessageWithMetadata({
+export function DiscordUIMessage({
   message,
 }: {
-  message: DBMessageWithRelations;
+  message: MessageWithMetadata;
 }) {
-  if (message.snapshot) {
-    return <Snapshot snapshot={message.snapshot} />;
+  if (message.user?.isIgnored || message.isIgnored) {
+    return (
+      <div>
+        <p>
+          User prefers to remain anonymous, join the server to see this
+          message.
+        </p>
+      </div>
+    );
   }
-  return (
-    <>
-      <DiscordMarkdown message={message}>{message.content}</DiscordMarkdown>
-      <Attachments attachments={message.attachments!} />
-      <Embeds embeds={message.embeds} />
-      <Poll poll={message.poll} />
-    </>
-  );
-}
+  const { serverId, channelId } = message;
+  const MessageContent = ({ message }: { message: MessageWithMetadata | DBSnapshotSchema }) => {
+    if (!message) return null;
+    return (
+      <>
+        <DiscordMarkdown message={message}>{message.content}</DiscordMarkdown>
+        <Attachments attachments={message.attachments!} metadata={{ serverId, channelId }} />
+        <Embeds embeds={message.embeds} />
+      </>
+    )
+  };
 
-export function DiscordSnapshotMessageWithMetadata({
-  message,
-}: {
-  message: DBSnapshotSchema;
-}) {
-  return (
-    <>
-      <DiscordMarkdown message={message}>{message.content}</DiscordMarkdown>
-      <Attachments attachments={message.attachments!} />
-      <Embeds embeds={message.embeds} />
-    </>
-  );
+  if (!message.snapshot) {
+    return <>
+      <MessageContent message={message} />
+      <Poll poll={message.poll} />
+    </>;
+  }
+
+  return (<div className="prose">
+    <blockquote className="quote">
+      <div className="space-x-1">
+        <ArrowBendUpRightIcon className="inline-flex size-4" />
+        <span className="text-neutral-700 text-sm">Forwarded</span>
+      </div>
+      <div className="[&_img]:my-0">
+        <MessageContent message={message.snapshot} />
+      </div>
+    </blockquote>
+  </div>)
 }
 
 function List({

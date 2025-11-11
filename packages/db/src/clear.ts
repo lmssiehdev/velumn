@@ -1,5 +1,4 @@
 import { db } from '.';
-// biome-ignore lint/performance/noNamespaceImport: <explanation>
 import * as schema from './schema';
 
 async function clearAllTables() {
@@ -19,6 +18,7 @@ async function clearAllTables() {
   for (const table of tables) {
     await db.delete(table);
   }
+  console.log("Cleared DB!")
 }
 
 await clearAllTables();

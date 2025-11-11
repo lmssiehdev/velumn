@@ -1,3 +1,5 @@
+"use client";
+
 import {
   CaretRightIcon,
   ChatTeardropIcon,
@@ -26,11 +28,10 @@ export function Link({
         ? `${channel.name?.slice(0, 40)}...`
         : channel.name;
     return (
-      <a
-        className="not-prose space-x-0.5 rounded bg-purple-100 p-0.5 text-purple-800"
-        href={original}
-        rel="noreferrer"
-        target="_blank"
+      // @HACK work around nested a tags, refactor to an a tag in the future
+      <span
+        onClick={() => window.open(original, "_blank")}
+        className="cursor-pointer not-prose space-x-0.5 rounded bg-purple-100 hover:bg-purple-200 p-0.5 text-purple-800"
       >
         {channel.parent?.type === ChannelType.GuildForum && message && (
           <span className="inline-block space-x-0.5">
@@ -53,7 +54,7 @@ export function Link({
             />
           </span>
         )}
-      </a>
+      </span>
     );
   }
 

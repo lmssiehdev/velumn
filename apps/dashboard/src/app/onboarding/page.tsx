@@ -26,6 +26,7 @@ import {
 } from '../../components/ui/dropdown-menu';
 import { Input } from '../../components/ui/input';
 import type { Guild } from './_fetchUserGuilds';
+import { getServerIcon } from "@repo/utils/helpers/discord";
 
 type SortChannel = DBChannel & { enabled: boolean };
 type Step = 'INVITING_SERVER' | 'WAITING_FOR_BOT_TO_JOIN' | 'SELECT_CHANNELS';
@@ -39,7 +40,7 @@ type OnboardingContextType = {
   setChannels: (channels: SortChannel[]) => void;
   toggleChannel: (channelId: string, enabled: boolean) => void;
   handleInviteCreation: (guildId: string) => void;
-  finishOnboarding: (channelIds: string[]) => void;
+  finishOnboarding: (selectedChannels: Array<{ channelId: string, status: boolean; }>) => void;
   inviteUrl: string | null;
 };
 
@@ -125,11 +126,8 @@ export function OnboardingProvider({
     selectGuild,
     setChannels: setChannelsAndAdvance,
     toggleChannel,
-    finishOnboarding: async (selectedChannels: string[]) =>
-      await finishOnBoardingMutation.mutateAsync({
-        userId: user.id,
-        selectedChannels,
-      }),
+    finishOnboarding: async (selectedChannels: Array<{ channelId: string, status: boolean; }>) =>
+      await finishOnBoardingMutation.mutateAsync({ payload: selectedChannels }),
     handleInviteCreation: async (serverId: string) =>
       await inviteUrlMutation.mutateAsync({ serverId }),
     inviteUrl,
@@ -442,7 +440,7 @@ function SelectChannels() {
               className="flex items-center gap-2"
               onClick={() =>
                 finishOnboarding(
-                  channels.filter((c) => c.enabled).map((c) => c.id)
+                  channels.map((c) => ({ channelId: c.id, status: c.enabled }))
                 )
               }
             >

@@ -11,7 +11,7 @@ type MentionProps = {
 };
 
 const baseClassName =
-  'inline-block mx-[0.5px] text-purple-800 bg-purple-100 rounded align-baseline';
+  'p-0.5 not-prose space-x-0.5 rounded bg-purple-100 text-purple-800 align-baseline';
 
 export function Mention({ type, message, children }: MentionProps) {
   if (!type || !message?.metadata) {
@@ -44,13 +44,9 @@ function ChannelMention({
   }
 
   return (
-    <span className={cn(baseClassName, 'align-bottom')}>
-      <span className="flex items-center space-x-0.5">
-        <span className="inline-block">
-          <ChannelIcon type={channelData.type} />
-        </span>
-        <span>{channelData.name ?? children}</span>
-      </span>
+    <span className={cn(baseClassName)}>
+      <ChannelIcon type={channelData.type} />
+      <span>{channelData.name ?? children}</span>
     </span>
   );
 }

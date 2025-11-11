@@ -1,24 +1,28 @@
 import { ArrowUpRightIcon, FileIcon } from '@phosphor-icons/react/dist/ssr';
 import type { DBAttachments } from '@repo/db/helpers/validation';
 import { isEmbeddableAttachment } from '@repo/utils/helpers/misc';
-// @ts-expect-error no types - used once;
-import bytes from 'bytes';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { constructDiscordLink } from '@repo/utils/helpers/discord';
+// @ts-expect-error no types - used once;
+import bytes from 'bytes';
 
 const isCode = (a: DBAttachments) =>
   !a.contentType?.startsWith('image/') || a.proxyURL?.endsWith('.svg');
 
 export function Attachments({
   attachments,
+  metadata
 }: {
-  isSnapshot?: boolean;
+  metadata: {
+    serverId: string;
+    channelId: string;
+  };
   attachments: DBAttachments[];
 }) {
   if (!attachments?.length) {
@@ -29,14 +33,22 @@ export function Attachments({
     <div className="flex flex-col gap-2">
       <ImageGallery images={attachments.filter(isEmbeddableAttachment)} />
       {attachments.filter(isCode).map((attachment) => (
-        <FileShowcase attachment={attachment} key={attachment.id} />
+        <FileShowcase attachment={attachment} key={attachment.id} metadata={metadata} />
       ))}
     </div>
   );
 }
 
-function FileShowcase({ attachment }: { attachment: DBAttachments }) {
-  const { name, size } = attachment;
+function FileShowcase({ attachment, metadata }: {
+  metadata: {
+    serverId: string;
+    channelId: string;
+  };
+  attachment: DBAttachments
+}) {
+  const { name, size, messageId } = attachment;
+  const attachmentMessageUrl = constructDiscordLink({ serverId: metadata.serverId, threadId: metadata.channelId, messageId })
+
 
   return (
     <div className="group relative mt-2 flex w-full max-w-md gap-2.5 border border-neutral-300 p-4 shadow">
@@ -44,24 +56,25 @@ function FileShowcase({ attachment }: { attachment: DBAttachments }) {
         <FileIcon className="size-10" weight="thin" />
       </div>
       <div className="flex flex-col overflow-hidden">
-        <Link
+        <a
+          target="_blank"
+          href={attachmentMessageUrl}
           className="overflow-hidden text-ellipsis whitespace-nowrap underline-offset-2 hover:underline"
-          href="#"
         >
           {name}
-        </Link>
+        </a>
         <span className="text-neutral-500 text-sm">{bytes(size, 2)} </span>
       </div>
       <div className="group-hover:fade-in-0 group-hover:zoom-in-95 absolute top-0 right-0 translate-x-[50%] translate-y-[-50%] opacity-0 transition-opacity duration-300 group-hover:animate-in group-hover:opacity-100">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              className="cursor-pointer"
-              size={'icon'}
-              variant={'outline'}
+            <a
+              target="_blank"
+              href={attachmentMessageUrl}
+              className={buttonVariants({ size: "icon", variant: "outline" })}
             >
               <ArrowUpRightIcon className="size-6" weight={'bold'} />
-            </Button>
+            </a>
           </TooltipTrigger>
           <TooltipContent>
             <p>Open in discord</p>
