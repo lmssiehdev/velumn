@@ -32,7 +32,13 @@ export async function Code({
   }
   return (
     <div
-      className="not-prose rounded border border-neutral-300"
+      className="not-prose rounded border border-neutral-300 overflow-auto
+      [&::-webkit-scrollbar]:w-2
+      [&::-webkit-scrollbar]:h-2
+    [&::-webkit-scrollbar-track]:bg-gray-100
+    [&::-webkit-scrollbar-thumb]:bg-gray-300
+    dark:[&::-webkit-scrollbar-track]:bg-neutral-700
+    dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500"
       dangerouslySetInnerHTML={{
         __html: highlightedCode,
       }}
