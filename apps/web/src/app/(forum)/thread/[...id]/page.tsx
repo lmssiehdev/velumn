@@ -244,8 +244,7 @@ export default async function Page({
                 );
               }
               return (
-
-                <div className='flex gap-3 p-4 relative'>
+                <div key={item.data.id} className='flex gap-3 p-4 relative'>
                   <div className='absolute left-[30px] top-0 bottom-0 w-[2px] bg-neutral-200 -my-2' />
 
                   <div className='relative z-10 bg-white rounded-full flex items-center justify-center size-8 shrink-0 ring-2 ring-neutral-200'>
@@ -258,7 +257,7 @@ export default async function Page({
                       </span>
                       {' '}mentioned this thread
                       {' '}<span className='text-neutral-400'>•</span>{' '}
-                      <span className='text-neutral-500'>2 days ago</span>
+                      <span className='text-neutral-500 text-xs'>{snowflakeToReadableDate(item.data.fromMessageId)}</span>
                     </div>
                     <a
                       href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`}
