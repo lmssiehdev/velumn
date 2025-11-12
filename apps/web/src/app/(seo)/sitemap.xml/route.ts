@@ -1,6 +1,6 @@
 import { getThreadsCountTotal } from '@repo/db/helpers/sitemap';
 
-const BASE_URL = 'http://localhost:3000';
+export const DOMAIN_BASE_URL = 'https://velumn.com';
 export const LIMIT = 47_000;
 
 export async function GET() {
@@ -10,13 +10,13 @@ export async function GET() {
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${Array.from({ length: numSitemaps })
-  .map(
-    (_, i) => `  <url>
-  <loc>${BASE_URL}/sitemap.xml/${i}</loc>
+      .map(
+        (_, i) => `  <url>
+  <loc>${DOMAIN_BASE_URL}/sitemap.xml/${i}</loc>
   <lastmod>${new Date().toISOString()}</lastmod>
 </url>`
-  )
-  .join('\n')}
+      )
+      .join('\n')}
 </sitemapindex>`;
 
   return new Response(sitemap, {

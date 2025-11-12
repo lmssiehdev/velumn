@@ -1,8 +1,6 @@
 import { getThreadsForSitemap } from '@repo/db/helpers/sitemap';
 import { getDateFromSnowflake } from '@repo/utils/helpers/snowflake';
-import { LIMIT } from '../route';
-
-const BASE_URL = 'http://localhost:3000';
+import { DOMAIN_BASE_URL, LIMIT } from '../route';
 
 export async function GET(
   _request: Request,
@@ -16,13 +14,13 @@ export async function GET(
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${threads
-  .map(
-    (thread) => `  <url>
-    <loc>${BASE_URL}/thread/${thread.id}</loc>
+      .map(
+        (thread) => `  <url>
+    <loc>${DOMAIN_BASE_URL}/thread/${thread.id}</loc>
     <lastmod>${getDateFromSnowflake(thread.id).toISOString()}</lastmod>
   </url>`
-  )
-  .join('\n')}
+      )
+      .join('\n')}
 </urlset>`;
 
   return new Response(sitemap, {
