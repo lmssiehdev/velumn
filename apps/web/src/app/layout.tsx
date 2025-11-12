@@ -4,7 +4,6 @@ import { questrial } from "../styles/fonts";
 
 export const metadata: Metadata = {
 	title: "Velumn - The community platform built for Discord",
-	description: "Make your community discoverable in search, AI, and beyond ✨",
 	icons: {
 		icon: ["/icons/favicon.svg"],
 	},

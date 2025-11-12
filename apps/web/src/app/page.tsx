@@ -9,6 +9,7 @@ import {
 	ListChecksIcon,
 	PlusIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Twemoji } from "@/components/markdown/emoji";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,8 +21,12 @@ import {
 
 export const dynamic = "force-static";
 
-export const metadata = {
-	title: "Velumn - Make Your Discord Discussions Discoverable",
+export const metadata: Metadata = {
+	title: "Velumn - The community platform built for Discord",
+	description: "Make your community discoverable in search, AI, and beyond ✨",
+	icons: {
+		icon: ["/icons/favicon.svg"],
+	},
 };
 
 export default function Home() {
