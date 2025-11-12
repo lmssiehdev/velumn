@@ -5,9 +5,9 @@
 	"scripts": {
 		"with-env": "bun --env-file=../../.env",
 		"dev": "NODE_ENV=development bun with-env src/index.ts",
-		"start": "bun run src/index.ts",
+		"start": "NODE_ENV=production bun with-env run src/index.ts",
 		"test": "bun test",
-		"type-check": "tsc --noEmit"
+		"type-check": "bunx tsc --noEmit"
 	},
 	"devDependencies": {
 		"@repo/typescript-config": "workspace:^"
