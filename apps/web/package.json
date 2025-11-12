@@ -4,9 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "with-env": "bun --env-file=../../.env",
+    "dev": "bun with-env run next dev --turbopack",
+    "build": "bun run type-check && bun with-env run next build --turbopack",
     "build:prod": "next build --turbopack",
-    "build": "bun run type-check && next build --turbopack",
     "start": "next start",
     "type-check": "tsc --noEmit",
     "lint": "biome check",

@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3001",
-    "build": "bun run type-check && SKIP_ENV_VALIDATION=true next build --turbopack",
+    "with-env": "bun --env-file=../../.env",
+    "dev": "bun with-env run next dev --turbopack -p 3001",
+    "build": "bun run type-check && bun with-env run next build --turbopack",
+    "build:prod": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",
     "type-check": "tsc --noEmit"

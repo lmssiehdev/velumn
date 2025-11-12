@@ -15,6 +15,13 @@
       "when": 1762064424951,
       "tag": "0001_grey_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762917405808,
+      "tag": "0002_lonely_blob",
+      "breakpoints": true
     }
   ]
 }

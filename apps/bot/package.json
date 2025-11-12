@@ -3,10 +3,11 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "type-check": "tsc --noEmit",
-    "dev": "NODE_ENV=development bun src/index.ts",
+    "with-env": "bun --env-file=../../.env",
+    "dev": "NODE_ENV=development bun with-env src/index.ts",
     "start": "bun run src/index.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:^"

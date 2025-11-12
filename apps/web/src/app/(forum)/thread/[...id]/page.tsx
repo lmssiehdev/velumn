@@ -63,23 +63,13 @@ export async function generateMetadata({
       openGraph: {
         title: 'Not Found',
         description: 'Thread not found',
-        images: [`/og?id=${threadId}`],
+        // TODO: generic Not found OG
+        // images: [`/og?id=${threadId}`],
       },
     };
   }
 
   const url = slugifyThreadUrl({ id: threadId, name: thread.channelName! });
-  if (!thread || !thread.messages) {
-    return {
-      title: 'Thread Not Found',
-      openGraph: {
-        title: 'Not Found',
-        description: 'Thread not found',
-        url,
-        images: [`/og?id=${threadId}`],
-      },
-    };
-  }
   return {
     title: thread.channelName,
     // TODO: check for answer first then fallback to original post
@@ -107,7 +97,7 @@ export default async function Page({
   } = await params;
 
   if (!threadId) {
-    return <div>Thread doesn't exist</div>;
+    return <div>Invalid thread ID</div>;
   }
 
   const thread = await getAllMessagesInThreadsCache(threadId);
@@ -136,7 +126,7 @@ export default async function Page({
   ].sort((a, b) => a.data.id.localeCompare(b.data.id));
 
   if (!originalPost) {
-    return <div>Thread doesn't exist</div>;
+    return <div>Thread with no post!</div>;
   }
 
   const op = originalPost.user!;
@@ -437,7 +427,7 @@ function ContinueDiscussion({
 }) {
   const icon = noReplies ? '👋' : '💬';
   return (
-    <div className="mt-2 rounded-lg border border-neutral-200 p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="mt-2 rounded-lg border border-neutral-200 p-5 shadow-sm transition-shadow">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center">

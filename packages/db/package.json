@@ -2,15 +2,16 @@
   "name": "@repo/db",
   "type": "module",
   "scripts": {
-    "dev": "tsx --env-file=.env --watch src/index.ts",
+    "with-env": "bun --env-file=../../.env",
+    "dev": "bun with-env run src/index.ts",
     "build": "tsc",
-    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
-    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:generate": "bun with-env drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "bun with-env drizzle-kit migrate --config=drizzle.config.ts",
     "db:seed": "tsx src/seed.ts",
-    "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
-    "db:wipe": "rm -rf src/drizzle && bun run src/wipe.ts",
-    "db:push": "drizzle-kit push --config=drizzle.config.ts",
-    "db:clear": "bun run src/clear.ts",
+    "db:studio": "bun with-env drizzle-kit studio --config=drizzle.config.ts",
+    "db:wipe": "rm -rf src/drizzle && bun with-env run src/wipe.ts",
+    "db:push": "bun with-env drizzle-kit push --config=drizzle.config.ts",
+    "db:clear": "bun with-env run src/clear.ts",
     "type-check": "tsc --noEmit"
   },
   "exports": {

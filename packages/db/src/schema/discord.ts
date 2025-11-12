@@ -91,6 +91,7 @@ export const dbChannel = pgTable(
   },
   (table) => [
     index('channel_pinned_idx').on(table.pinned),
+    index('channel_type_idx').on(table.type),
     index('channel_parent_id_idx').on(table.parentId),
     index('channel_server_id_idx').on(table.serverId),
   ]

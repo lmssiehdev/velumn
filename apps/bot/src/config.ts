@@ -4,7 +4,6 @@ import { z } from 'zod';
 export const botEnv = createEnv({
   server: {
     DISCORD_BOT_TOKEN: z.string().min(1),
-    DISCORD_CLIENT_ID: z.string().min(1),
   },
   runtimeEnv: process.env,
 });
