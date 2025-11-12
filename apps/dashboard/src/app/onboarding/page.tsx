@@ -435,7 +435,10 @@ function SelectChannels() {
 					<ChannelsSelector channels={channels} toggleChannel={toggleChannel} />
 					<div className="flex items-center justify-between">
 						<div>
-							<div>{channels.length} channels ready to index</div>
+							<div>
+								{channels.filter((c) => c.enabled).length} channels ready to
+								index
+							</div>
 							<div className="text-neutral-500 text-xs">
 								(you can change this later)
 							</div>
@@ -470,7 +473,7 @@ export function ChannelsSelector({
 		{ type: ChannelType.GuildText, name: "Text Channel", enabled: true },
 	]);
 
-	const { channelsToDisplay } = useMemo(() => {
+	const { channelsToDisplay, selectedChannels } = useMemo(() => {
 		const channelsToDisplay = channels
 			.filter((c) => {
 				const isTypeEnabled = channelFilterOptions.find(
