@@ -14,10 +14,10 @@ import { Mention } from "./mention";
 import { Poll } from "./poll";
 import { Spoiler } from "./spoiler";
 
-// @TODO: beter types
 export type SingleASTNode = {
 	type: string;
-	[key: string]: unknown;
+	// biome-ignore lint/suspicious/noExplicitAny: @TODO: propert ypes
+	[key: string]: any;
 };
 
 function renderASTNode(
