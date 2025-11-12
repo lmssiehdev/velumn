@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 
 const schema = z.object({
-	tag: z.enum(["clear-all-threads"]),
+	tag: z.string(),
 });
 
 export async function POST(request: NextRequest) {
