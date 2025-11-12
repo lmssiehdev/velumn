@@ -1,13 +1,13 @@
 {
-  "projectLanguage": "ts",
-  "locations": {
-    "base": "src",
-    "arguments": "arguments",
-    "commands": "commands",
-    "listeners": "listeners"
-  },
-  "customFileTemplates": {
-    "enabled": false,
-    "location": ""
-  }
+	"projectLanguage": "ts",
+	"locations": {
+		"base": "src",
+		"arguments": "arguments",
+		"commands": "commands",
+		"listeners": "listeners"
+	},
+	"customFileTemplates": {
+		"enabled": false,
+		"location": ""
+	}
 }

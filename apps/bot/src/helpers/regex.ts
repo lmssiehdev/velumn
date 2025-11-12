@@ -34,4 +34,4 @@ export const HereRegex = /^@here/;
  * - messageId: the ID of the message itself.
  */
 export const MessageLinkRegex =
-  /(?:https:\/\/(?:ptb\.|canary\.)?|(?:^|\s)(?:ptb\.|canary\.)?)discord(?:app)?\.com\/channels\/(?<guildId>(?:\d{17,20}|@me))\/(?<channelId>\d{17,20})(?:\/(?<messageId>\d{17,20}))?/g;
+	/(?:https:\/\/(?:ptb\.|canary\.)?|(?:^|\s)(?:ptb\.|canary\.)?)discord(?:app)?\.com\/channels\/(?<guildId>(?:\d{17,20}|@me))\/(?<channelId>\d{17,20})(?:\/(?<messageId>\d{17,20}))?/g;

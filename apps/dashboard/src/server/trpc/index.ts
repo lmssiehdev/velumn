@@ -1,5 +1,5 @@
-import { initTRPC, TRPCError } from '@trpc/server';
-import type { Context } from './context';
+import { initTRPC, TRPCError } from "@trpc/server";
+import type { Context } from "./context";
 
 // Avoid exporting the entire t-object
 // since it's not very descriptive.
@@ -12,20 +12,20 @@ export const procedure = t.procedure;
 export const createCallerFactory = t.createCallerFactory;
 
 export const privateProcedure = t.procedure.use(
-  t.middleware(({ ctx, next }) => {
-    if (!ctx.session || !ctx.user) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'You must be signed in to access this resource',
-      });
-    }
+	t.middleware(({ ctx, next }) => {
+		if (!(ctx.session && ctx.user)) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You must be signed in to access this resource",
+			});
+		}
 
-    return next({
-      ctx: {
-        ...ctx,
-        session: ctx.session,
-        user: ctx.user, // Now guaranteed to exist
-      },
-    });
-  })
+		return next({
+			ctx: {
+				...ctx,
+				session: ctx.session,
+				user: ctx.user, // Now guaranteed to exist
+			},
+		});
+	}),
 );

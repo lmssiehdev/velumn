@@ -1,22 +1,22 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function createContext() {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+	try {
+		const session = await auth.api.getSession({
+			headers: await headers(),
+		});
 
-    return {
-      session,
-      user: session?.user || null,
-    };
-  } catch (_error) {
-    return {
-      session: null,
-      user: null,
-    };
-  }
+		return {
+			session,
+			user: session?.user || null,
+		};
+	} catch (_error) {
+		return {
+			session: null,
+			user: null,
+		};
+	}
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;

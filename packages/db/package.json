@@ -1,43 +1,43 @@
 {
-  "name": "@repo/db",
-  "type": "module",
-  "scripts": {
-    "with-env": "bun --env-file=../../.env",
-    "dev": "bun with-env run src/index.ts",
-    "build": "tsc",
-    "db:generate": "bun with-env drizzle-kit generate --config=drizzle.config.ts",
-    "db:migrate": "bun with-env drizzle-kit migrate --config=drizzle.config.ts",
-    "db:seed": "tsx src/seed.ts",
-    "db:studio": "bun with-env drizzle-kit studio --config=drizzle.config.ts",
-    "db:wipe": "rm -rf src/drizzle && bun with-env run src/wipe.ts",
-    "db:push": "bun with-env drizzle-kit push --config=drizzle.config.ts",
-    "db:clear": "bun with-env run src/clear.ts",
-    "type-check": "tsc --noEmit"
-  },
-  "exports": {
-    "./*": "./src/*.ts"
-  },
-  "devDependencies": {
-    "@repo/typescript-config": "workspace:*",
-    "@types/pg": "^8.15.5",
-    "@types/ws": "^8.18.1",
-    "drizzle-kit": "1.0.0-beta.1-ac4ce44",
-    "tsx": "^4.20.6",
-    "typescript": "5.9.2"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.899.0",
-    "@aws-sdk/lib-storage": "^3.900.0",
-    "@neondatabase/serverless": "^1.0.2",
-    "@planetscale/database": "^1.19.0",
-    "@repo/logger": "workspace:*",
-    "@repo/utils": "workspace:*",
-    "@t3-oss/env-core": "^0.13.8",
-    "discord-api-types": "^0.38.26",
-    "dotenv": "^17.2.3",
-    "drizzle-orm": "^1.0.0-beta.1-ac4ce44",
-    "drizzle-zod": "^0.8.3",
-    "pg": "^8.16.3",
-    "zod": "^4.1.11"
-  }
+	"name": "@repo/db",
+	"type": "module",
+	"scripts": {
+		"with-env": "bun --env-file=../../.env",
+		"dev": "bun with-env run src/index.ts",
+		"build": "tsc",
+		"db:generate": "bun with-env drizzle-kit generate --config=drizzle.config.ts",
+		"db:migrate": "bun with-env drizzle-kit migrate --config=drizzle.config.ts",
+		"db:seed": "tsx src/seed.ts",
+		"db:studio": "bun with-env drizzle-kit studio --config=drizzle.config.ts",
+		"db:wipe": "rm -rf src/drizzle && bun with-env run src/wipe.ts",
+		"db:push": "bun with-env drizzle-kit push --config=drizzle.config.ts",
+		"db:clear": "bun with-env run src/clear.ts",
+		"type-check": "tsc --noEmit"
+	},
+	"exports": {
+		"./*": "./src/*.ts"
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@types/pg": "^8.15.5",
+		"@types/ws": "^8.18.1",
+		"drizzle-kit": "1.0.0-beta.1-ac4ce44",
+		"tsx": "^4.20.6",
+		"typescript": "5.9.2"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.899.0",
+		"@aws-sdk/lib-storage": "^3.900.0",
+		"@neondatabase/serverless": "^1.0.2",
+		"@planetscale/database": "^1.19.0",
+		"@repo/logger": "workspace:*",
+		"@repo/utils": "workspace:*",
+		"@t3-oss/env-core": "^0.13.8",
+		"discord-api-types": "^0.38.26",
+		"dotenv": "^17.2.3",
+		"drizzle-orm": "^1.0.0-beta.1-ac4ce44",
+		"drizzle-zod": "^0.8.3",
+		"pg": "^8.16.3",
+		"zod": "^4.1.11"
+	}
 }

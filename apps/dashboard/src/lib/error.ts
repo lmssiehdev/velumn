@@ -1,21 +1,21 @@
-import { log } from './log';
+import { log } from "./log";
 
 export const parseError = (error: unknown): string => {
-  let message = 'An error occurred';
+	let message = "An error occurred";
 
-  if (error instanceof Error) {
-    message = error.message;
-  } else if (error && typeof error === 'object' && 'message' in error) {
-    message = error.message as string;
-  } else {
-    message = String(error);
-  }
+	if (error instanceof Error) {
+		message = error.message;
+	} else if (error && typeof error === "object" && "message" in error) {
+		message = error.message as string;
+	} else {
+		message = String(error);
+	}
 
-  try {
-    log.error(`Parsing error: ${message}`);
-  } catch (newError) {
-    console.error('Error parsing error:', newError);
-  }
+	try {
+		log.error(`Parsing error: ${message}`);
+	} catch (newError) {
+		console.error("Error parsing error:", newError);
+	}
 
-  return message;
+	return message;
 };

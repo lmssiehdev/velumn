@@ -1,9 +1,9 @@
-import type { NextConfig } from 'next';
-import { withAxiom } from 'next-axiom';
+import type { NextConfig } from "next";
+import { withAxiom } from "next-axiom";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['db', 'utils'],
-  typedRoutes: false,
+	transpilePackages: ["db", "utils"],
+	typedRoutes: false,
 };
 
 export default withAxiom(nextConfig);

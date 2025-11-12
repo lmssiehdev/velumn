@@ -1,33 +1,46 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
-  "extends": ["ultracite"],
-  "files": {
-    "ignoreUnknown": true,
-    "includes": [
-      "!**/dist",
-      "!**/.next",
-      "!**/node_modules",
-      "!**/.git",
-      "!**/drizzle/**/*"
-    ]
-  },
-  "linter": {
-    "rules": {
-      "a11y": "off",
-      "complexity": {
-        "useSimplifiedLogicExpression": "off"
-      },
-      "style": {
-        "noNonNullAssertion": "off",
-        "noMagicNumbers": "off"
-      },
-      "suspicious": {
-        "noConsole": "off",
-        "noBitwiseOperators": "off"
-      },
-      "nursery": {
-        "useImageSize": "off"
-      }
-    }
-  }
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"ignoreUnknown": true,
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/.next",
+			"!**/node_modules",
+			"!**/.git",
+			"!**/drizzle/**/*"
+		]
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
+	"linter": {
+		"rules": {
+			"correctness": {
+				"useImageSize": "off"
+			},
+			"performance": {
+				"noImgElement": "off"
+			},
+			"a11y": "off",
+			"complexity": {
+				"useSimplifiedLogicExpression": "off"
+			},
+			"style": {
+				"noNonNullAssertion": "off",
+				"noMagicNumbers": "off"
+			},
+			"suspicious": {
+				"noConsole": "off",
+				"noBitwiseOperators": "off",
+				"noNonNullAssertedOptionalChain": "off",
+				"noArrayIndexKey": "off"
+			},
+			"nursery": {
+				"noIncrementDecrement": "off"
+			}
+		}
+	}
 }

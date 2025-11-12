@@ -1,24 +1,24 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { Toaster } from 'sonner';
-import { funnelSans } from '../styles/fonts';
+import type { Metadata } from "next";
+import "./globals.css";
+import { Toaster } from "sonner";
+import { funnelSans } from "../styles/fonts";
 
 export const metadata: Metadata = {
-  title: 'Dashboard',
-  robots: 'noindex, nofollow, nosnippet, noarchive, nocache',
+	title: "Dashboard",
+	robots: "noindex, nofollow, nosnippet, noarchive, nocache",
 };
 
 export default async function RootLayout({
-  children,
+	children,
 }: Readonly<{
-  children: React.ReactNode;
+	children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <body className={`${funnelSans.variable} font-sans antialiased`}>
-        {children}
-        <Toaster className="font-normal font-sans" />
-      </body>
-    </html>
-  );
+	return (
+		<html lang="en">
+			<body className={`${funnelSans.variable} font-sans antialiased`}>
+				{children}
+				<Toaster className="font-normal font-sans" />
+			</body>
+		</html>
+	);
 }

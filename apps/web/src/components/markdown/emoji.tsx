@@ -1,60 +1,60 @@
-import { emojiToTwemoji } from '@repo/utils/helpers/twemoji';
-import { cn } from '@/lib/utils';
-import type { SingleASTNode } from './renderer';
+import { emojiToTwemoji } from "@repo/utils/helpers/twemoji";
+import { cn } from "@/lib/utils";
+import type { SingleASTNode } from "./renderer";
 
 function customEmojiUrl(id: string, animated = false) {
-  const extension = animated ? 'gif' : 'webp';
-  return `https://cdn.discordapp.com/emojis/${id}.${extension}?size=128`;
+	const extension = animated ? "gif" : "webp";
+	return `https://cdn.discordapp.com/emojis/${id}.${extension}?size=128`;
 }
 
 export function getEmojiSize(parent: SingleASTNode[]): string {
-  const emojiWithText = parent?.every(
-    (n) =>
-      ['twemoji', 'emoji'].includes(n.type) ||
-      (n.type === 'text' && n.content === ' ')
-  );
+	const emojiWithText = parent?.every(
+		(n) =>
+			["twemoji", "emoji"].includes(n.type) ||
+			(n.type === "text" && n.content === " "),
+	);
 
-  return emojiWithText ? 'size-12' : 'size-[1.375rem]';
+	return emojiWithText ? "size-12" : "size-[1.375rem]";
 }
 type Props = {
-  name: string;
-  className?: string;
-  emojiId?: string;
-  animated?: boolean;
+	name: string;
+	className?: string;
+	emojiId?: string;
+	animated?: boolean;
 };
 
 export function CustomEmoji({
-  emojiId,
-  animated,
-  name,
-  className = 'size-12',
+	emojiId,
+	animated,
+	name,
+	className = "size-12",
 }: Props) {
-  return (
-    <EmojiBase
-      animated
-      className={className}
-      name={name}
-      src={customEmojiUrl(emojiId!, animated)}
-    />
-  );
+	return (
+		<EmojiBase
+			animated
+			className={className}
+			name={name}
+			src={customEmojiUrl(emojiId!, animated)}
+		/>
+	);
 }
 
-export function Twemoji({ name, className = 'size-12' }: Props) {
-  return (
-    <EmojiBase className={className} name={name} src={emojiToTwemoji(name)} />
-  );
+export function Twemoji({ name, className = "size-12" }: Props) {
+	return (
+		<EmojiBase className={className} name={name} src={emojiToTwemoji(name)} />
+	);
 }
 
 export function EmojiBase({ name, src, className }: Props & { src: string }) {
-  return (
-    <img
-      alt={name}
-      aria-label={name}
-      className={cn('not-prose inline-block', className)}
-      draggable="false"
-      loading="lazy"
-      src={src}
-      title={name}
-    />
-  );
+	return (
+		<img
+			alt={name}
+			aria-label={name}
+			className={cn("not-prose inline-block", className)}
+			draggable="false"
+			loading="lazy"
+			src={src}
+			title={name}
+		/>
+	);
 }

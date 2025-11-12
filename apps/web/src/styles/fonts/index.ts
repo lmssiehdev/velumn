@@ -1,6 +1,6 @@
-import { Questrial } from 'next/font/google';
+import { Questrial } from "next/font/google";
 
 export const questrial = Questrial({
-  weight: '400',
-  variable: '--font-questrial',
+	weight: "400",
+	variable: "--font-questrial",
 });

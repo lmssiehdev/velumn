@@ -1,70 +1,66 @@
-import { getDiscordAccountIdForUser } from '@repo/db/helpers/dashboard';
-import { PermissionFlagsBits } from 'discord-api-types/v8';
-import { unstable_cache } from 'next/cache';
+import { getDiscordAccountIdForUser } from "@repo/db/helpers/dashboard";
+import { PermissionFlagsBits } from "discord-api-types/v8";
+import { unstable_cache } from "next/cache";
 
-export const getGuildsCache = (userId: string) => {
-  return unstable_cache(() => getGuilds(userId), ['user-guilds', userId], {
-    tags: ['user-guilds'],
-    revalidate: 10,
-  })();
-};
+export const getGuildsCache = (userId: string) =>
+	unstable_cache(() => getGuilds(userId), ["user-guilds", userId], {
+		tags: ["user-guilds"],
+		revalidate: 10,
+	})();
 export type Guild = {
-  id: string;
-  name: string;
-  icon: string;
-  owner: boolean;
-  permissions: number;
+	id: string;
+	name: string;
+	icon: string;
+	owner: boolean;
+	permissions: number;
 };
 
 async function getGuilds(userId: string) {
-  try {
-    const accountData = await getDiscordAccountIdForUser(userId);
+	try {
+		const accountData = await getDiscordAccountIdForUser(userId);
 
-    if (!accountData || !accountData.accessToken) {
-      return { error: 'No discord account found' };
-    }
-    const response = await fetch('https://discord.com/api/users/@me/guilds', {
-      headers: {
-        Authorization: `Bearer ${accountData.accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+		if (!accountData?.accessToken) {
+			return { error: "No discord account found" };
+		}
+		const response = await fetch("https://discord.com/api/users/@me/guilds", {
+			headers: {
+				Authorization: `Bearer ${accountData.accessToken}`,
+				"Content-Type": "application/json",
+			},
+		});
 
-    if (!response.ok) {
-      console.log({ response });
-      return { error: 'Failed to fetch guilds' };
-    }
+		if (!response.ok) {
+			console.log({ response });
+			return { error: "Failed to fetch guilds" };
+		}
 
-    const guilds: Guild[] = await response.json();
-    return guilds
-      .filter((guild) => {
-        const permissions = BigInt(guild.permissions);
-        return (
-          // biome-ignore lint/suspicious/noBitwiseOperators: <explanation>
-          (permissions & PermissionFlagsBits.ManageGuild) ===
-          PermissionFlagsBits.ManageGuild
-        );
-      })
-      .sort((a, b) => {
-        return getPermissionRank(a) - getPermissionRank(b);
-      });
-  } catch (err) {
-    console.log(err);
-    return { error: 'Failed to fetch guilds' };
-  }
+		const guilds: Guild[] = await response.json();
+		return guilds
+			.filter((guild) => {
+				const permissions = BigInt(guild.permissions);
+				return (
+					(permissions & PermissionFlagsBits.ManageGuild) ===
+					PermissionFlagsBits.ManageGuild
+				);
+			})
+			.sort((a, b) => getPermissionRank(a) - getPermissionRank(b));
+	} catch (err) {
+		console.log(err);
+		return { error: "Failed to fetch guilds" };
+	}
 }
 
 function getPermissionRank(guild: Guild) {
-  if (guild.owner) {
-    return 0;
-  }
+	if (guild.owner) {
+		return 0;
+	}
 
-  if (
-    (BigInt(guild.permissions) & PermissionFlagsBits.Administrator) ===
-    PermissionFlagsBits.Administrator
-  ) {
-    return 1;
-  }
+	if (
+		(BigInt(guild.permissions) & PermissionFlagsBits.Administrator) ===
+		PermissionFlagsBits.Administrator
+	) {
+		return 1;
+	}
 
-  return 2;
+	return 2;
 }

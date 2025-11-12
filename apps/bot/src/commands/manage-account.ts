@@ -1,143 +1,142 @@
-import { anonymizeUser, ignoreDiscordUser } from '@repo/db/helpers/user';
-import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { anonymizeUser, ignoreDiscordUser } from "@repo/db/helpers/user";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Command } from "@sapphire/framework";
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ComponentType,
-  EmbedBuilder,
-  MessageFlags,
-} from 'discord.js';
-import { toDbUser } from '../helpers/convertion';
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	ComponentType,
+	EmbedBuilder,
+	MessageFlags,
+} from "discord.js";
+import { toDbUser } from "../helpers/convertion";
 
 const MESSAGES = {
-  EMBED: {
-    TITLE: 'Account Privacy Settings',
-    DESCRIPTION:
-      'Configure how Velumn handles your account privacy and data display.',
-    COLOR: 0x00_99_ff,
-  },
-  BUTTONS: {
-    ANONYMIZE_LABEL: 'Enable Anonymization',
-    DELETE_ALL_LABEL: 'Delete All Data',
-  },
-  RESPONSES: {
-    INITIAL: 'Configure your account privacy settings below:',
-    ANONYMIZED:
-      'Your account has been anonymized. All your public messages will now display a randomized name instead of your username.',
-    DELETE_ALL: 'All your data has been deleted.',
-    UNAUTHORIZED:
-      'You are not authorized to use this command. Please create your own instance.',
-    TIMEOUT:
-      'This interaction has timed out. Please run the command again to continue.',
-    ERROR: 'An error occurred while updating your settings. Please try again.',
-  },
+	EMBED: {
+		TITLE: "Account Privacy Settings",
+		DESCRIPTION:
+			"Configure how Velumn handles your account privacy and data display.",
+		COLOR: 0x00_99_ff,
+	},
+	BUTTONS: {
+		ANONYMIZE_LABEL: "Enable Anonymization",
+		DELETE_ALL_LABEL: "Delete All Data",
+	},
+	RESPONSES: {
+		INITIAL: "Configure your account privacy settings below:",
+		ANONYMIZED:
+			"Your account has been anonymized. All your public messages will now display a randomized name instead of your username.",
+		DELETE_ALL: "All your data has been deleted.",
+		UNAUTHORIZED:
+			"You are not authorized to use this command. Please create your own instance.",
+		TIMEOUT:
+			"This interaction has timed out. Please run the command again to continue.",
+		ERROR: "An error occurred while updating your settings. Please try again.",
+	},
 } as const;
 
 const BUTTON_IDS = {
-  ANONYMIZE: 'ANONYMIZED',
-  DELETE_ALL: 'DELETE_ALL',
+	ANONYMIZE: "ANONYMIZED",
+	DELETE_ALL: "DELETE_ALL",
 } as const;
 
-const idHintsProd = ['"1434079887534198855"']
-const idHints = ['1421588952359370843'];
+const _idHintsProd = ['"1434079887534198855"'];
+const idHints = ["1421588952359370843"];
 
 @ApplyOptions<Command.Options>({
-  name: 'manage-account',
-  description: 'Manage how Velumn interacts with your account',
-  runIn: ['GUILD_ANY'],
+	name: "manage-account",
+	description: "Manage how Velumn interacts with your account",
+	runIn: ["GUILD_ANY"],
 })
 export class ManageAccount extends Command {
-  override registerApplicationCommands(registry: Command.Registry) {
-    registry.registerChatInputCommand(
-      (builder) => builder.setName(this.name).setDescription(this.description),
-      {
-        idHints,
-      }
-    );
-  }
+	override registerApplicationCommands(registry: Command.Registry) {
+		registry.registerChatInputCommand(
+			(builder) => builder.setName(this.name).setDescription(this.description),
+			{
+				idHints,
+			},
+		);
+	}
 
-  override async chatInputRun(
-    interaction: Command.ChatInputCommandInteraction
-  ) {
-    if (
-      !interaction.guild ||
-      !interaction.channel ||
-      interaction.channel?.isDMBased()
-    ) {
-      return;
-    }
+	override async chatInputRun(
+		interaction: Command.ChatInputCommandInteraction,
+	) {
+		if (
+			!(interaction.guild && interaction.channel) ||
+			interaction.channel?.isDMBased()
+		) {
+			return;
+		}
 
-    const embed = new EmbedBuilder()
-      .setColor(0x00_99_ff)
-      .setTitle(MESSAGES.EMBED.TITLE)
-      .setDescription(MESSAGES.EMBED.DESCRIPTION)
-      .setTimestamp();
+		const embed = new EmbedBuilder()
+			.setColor(0x00_99_ff)
+			.setTitle(MESSAGES.EMBED.TITLE)
+			.setDescription(MESSAGES.EMBED.DESCRIPTION)
+			.setTimestamp();
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(BUTTON_IDS.ANONYMIZE)
-        .setLabel('Anonymize')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId(BUTTON_IDS.DELETE_ALL)
-        .setLabel('Delete all')
-        .setStyle(ButtonStyle.Danger)
-    );
+		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+			new ButtonBuilder()
+				.setCustomId(BUTTON_IDS.ANONYMIZE)
+				.setLabel("Anonymize")
+				.setStyle(ButtonStyle.Primary),
+			new ButtonBuilder()
+				.setCustomId(BUTTON_IDS.DELETE_ALL)
+				.setLabel("Delete all")
+				.setStyle(ButtonStyle.Danger),
+		);
 
-    const reply = await interaction.reply({
-      content: MESSAGES.RESPONSES.INITIAL,
-      embeds: [embed],
-      components: [row],
-      flags: MessageFlags.Ephemeral,
-    });
-    const collector = reply.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      time: 3 * 60 * 1000,
-      filter: (i) => i.user.id === interaction.user.id,
-      // && Object.values(menuButtonIds).includes(i.customId),
-    });
+		const reply = await interaction.reply({
+			content: MESSAGES.RESPONSES.INITIAL,
+			embeds: [embed],
+			components: [row],
+			flags: MessageFlags.Ephemeral,
+		});
+		const collector = reply.createMessageComponentCollector({
+			componentType: ComponentType.Button,
+			time: 3 * 60 * 1000,
+			filter: (i) => i.user.id === interaction.user.id,
+			// && Object.values(menuButtonIds).includes(i.customId),
+		});
 
-    collector.on('collect', async (i) => {
-      const dbUser = toDbUser(interaction.user);
-      const shouldAnonymize = i.customId === BUTTON_IDS.ANONYMIZE;
-      let response = '';
+		collector.on("collect", async (i) => {
+			const dbUser = toDbUser(interaction.user);
+			const shouldAnonymize = i.customId === BUTTON_IDS.ANONYMIZE;
+			let response = "";
 
-      switch (i.customId) {
-        case BUTTON_IDS.ANONYMIZE:
-          await anonymizeUser(dbUser, shouldAnonymize);
-          response = MESSAGES.RESPONSES.ANONYMIZED;
-          break;
-        case BUTTON_IDS.DELETE_ALL:
-          await ignoreDiscordUser(dbUser);
-          response = MESSAGES.RESPONSES.DELETE_ALL;
-          break;
-      }
+			switch (i.customId) {
+				case BUTTON_IDS.ANONYMIZE:
+					await anonymizeUser(dbUser, shouldAnonymize);
+					response = MESSAGES.RESPONSES.ANONYMIZED;
+					break;
+				case BUTTON_IDS.DELETE_ALL:
+					await ignoreDiscordUser(dbUser);
+					response = MESSAGES.RESPONSES.DELETE_ALL;
+					break;
+			}
 
-      interaction.editReply({
-        content: response,
-        components: [],
-        embeds: [],
-      });
-      collector.stop();
-    });
+			interaction.editReply({
+				content: response,
+				components: [],
+				embeds: [],
+			});
+			collector.stop();
+		});
 
-    collector.on('ignore', async (interaction) => {
-      await interaction.followUp({
-        content: MESSAGES.RESPONSES.UNAUTHORIZED,
-        flags: MessageFlags.Ephemeral,
-      });
-    });
+		collector.on("ignore", async (interaction) => {
+			await interaction.followUp({
+				content: MESSAGES.RESPONSES.UNAUTHORIZED,
+				flags: MessageFlags.Ephemeral,
+			});
+		});
 
-    collector.on('end', async (_, reason) => {
-      if (reason === 'time') {
-        await interaction.editReply({
-          content: MESSAGES.RESPONSES.TIMEOUT,
-          components: [],
-          embeds: [],
-        });
-      }
-    });
-  }
+		collector.on("end", async (_, reason) => {
+			if (reason === "time") {
+				await interaction.editReply({
+					content: MESSAGES.RESPONSES.TIMEOUT,
+					components: [],
+					embeds: [],
+				});
+			}
+		});
+	}
 }

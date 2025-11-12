@@ -1,23 +1,23 @@
 export function getServerIcon(guild: { icon: string | null; id: string }) {
-    const format = guild.icon?.startsWith('a_') ? 'gif' : 'png';
+	const format = guild.icon?.startsWith("a_") ? "gif" : "png";
 
-    return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${format}?size={64}`;
+	return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${format}?size={64}`;
 }
 
 export function constructDiscordLink({
-    serverId,
-    threadId,
-    messageId,
+	serverId,
+	threadId,
+	messageId,
 }: {
-    serverId: string;
-    threadId: string;
-    messageId?: string;
+	serverId: string;
+	threadId: string;
+	messageId?: string;
 }) {
-    const parts = [serverId, threadId];
+	const parts = [serverId, threadId];
 
-    if (messageId) {
-        parts.push(messageId);
-    }
+	if (messageId) {
+		parts.push(messageId);
+	}
 
-    return `https://discord.com/channels/${parts.join('/')}`;
+	return `https://discord.com/channels/${parts.join("/")}`;
 }

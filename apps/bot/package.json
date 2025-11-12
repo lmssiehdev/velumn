@@ -1,31 +1,31 @@
 {
-  "name": "bot",
-  "type": "module",
-  "main": "src/index.ts",
-  "scripts": {
-    "with-env": "bun --env-file=../../.env",
-    "dev": "NODE_ENV=development bun with-env src/index.ts",
-    "start": "bun run src/index.ts",
-    "test": "bun test",
-    "type-check": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@repo/typescript-config": "workspace:^"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.888.0",
-    "@aws-sdk/lib-storage": "^3.888.0",
-    "@repo/db": "workspace:*",
-    "@repo/logger": "workspace:*",
-    "@sapphire/decorators": "^6.2.0",
-    "@sapphire/discord.js-utilities": "^7.3.3",
-    "@sapphire/framework": "^5.3.6",
-    "@sapphire/plugin-api": "^8.3.1",
-    "@sapphire/plugin-logger": "^4.1.0",
-    "@t3-oss/env-core": "^0.13.8",
-    "@types/bun": "^1.2.23",
-    "discord-api-types": "^0.38.24",
-    "discord.js": "~14.22.1",
-    "zod": "^4.1.5"
-  }
+	"name": "bot",
+	"type": "module",
+	"main": "src/index.ts",
+	"scripts": {
+		"with-env": "bun --env-file=../../.env",
+		"dev": "NODE_ENV=development bun with-env src/index.ts",
+		"start": "bun run src/index.ts",
+		"test": "bun test",
+		"type-check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:^"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.888.0",
+		"@aws-sdk/lib-storage": "^3.888.0",
+		"@repo/db": "workspace:*",
+		"@repo/logger": "workspace:*",
+		"@sapphire/decorators": "^6.2.0",
+		"@sapphire/discord.js-utilities": "^7.3.3",
+		"@sapphire/framework": "^5.3.6",
+		"@sapphire/plugin-api": "^8.3.1",
+		"@sapphire/plugin-logger": "^4.1.0",
+		"@t3-oss/env-core": "^0.13.8",
+		"@types/bun": "^1.2.23",
+		"discord-api-types": "^0.38.24",
+		"discord.js": "~14.22.1",
+		"zod": "^4.1.5"
+	}
 }
