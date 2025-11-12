@@ -115,8 +115,6 @@ describe("MessageLinkRegex", () => {
 				(m) => ({ ...m.groups }),
 			);
 
-			console.log("--------------------- invalid link");
-			console.log({ links });
 			expect(links).toHaveLength(2);
 			expect(links[0]).toEqual({
 				guildId: "1385955477912948806",

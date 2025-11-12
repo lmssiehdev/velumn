@@ -7,7 +7,7 @@
 		"./*": "./src/*.ts"
 	},
 	"scripts": {
-		"check-types": "tsc --noEmit"
+		"type-check": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"@repo/typescript-config": "workspace:*",

@@ -14,7 +14,7 @@
 	"scripts": {
 		"build": "turbo run build",
 		"dev": "turbo run dev",
-		"check-types": "turbo run check-types",
+		"type-check": "turbo run type-check",
 		"lint": "biome check . --write",
 		"dev:web": "turbo --filter web dev",
 		"dev:dashboard": "turbo --filter dashboard dev",
