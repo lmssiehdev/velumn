@@ -35,7 +35,7 @@ export class DeleteChannel extends Listener {
   name: 'update-channel',
 })
 export class UpdateChannel extends Listener {
-  async run(_, newChannel: GuildChannel) {
+  async run(_: GuildChannel, newChannel: GuildChannel) {
     try {
       const channel = await findChannelById(newChannel.id);
       if (!channel) {
@@ -73,7 +73,7 @@ export class ThreadDelete extends Listener {
   name: 'update-thread',
 })
 export class UpdateThread extends Listener {
-  async run(_, newThread: ThreadChannel) {
+  async run(_: GuildChannel, newThread: ThreadChannel) {
     try {
       const channelToUpdate = await toDbChannel(newThread);
 

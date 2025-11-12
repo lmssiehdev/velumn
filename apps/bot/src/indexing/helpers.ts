@@ -30,7 +30,7 @@ export function getTheOldestSnowflakeId<T extends { id: string }>(
     }
     return 0;
   });
-  return sortedMessages[0].id;
+  return sortedMessages[0]?.id ?? "0";
 }
 
 const MAX_NUMBER_OF_MESSAGES_TO_COLLECT = 20_000;

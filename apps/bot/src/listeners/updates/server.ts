@@ -83,7 +83,6 @@ export class LeftGuild extends Listener {
 export class SyncOnUpdate extends Listener {
   async run(_: Guild, newGuild: Guild) {
     try {
-      console.log('Update channel', newGuild);
       const converted = toDbServer(newGuild);
       await upsertServer(converted);
     } catch (error) {

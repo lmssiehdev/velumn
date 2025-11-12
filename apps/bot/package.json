@@ -3,7 +3,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "type-check": "tsc --noEmit",
     "dev": "NODE_ENV=development bun src/index.ts",
     "start": "bun run src/index.ts",
     "test": "bun test"
