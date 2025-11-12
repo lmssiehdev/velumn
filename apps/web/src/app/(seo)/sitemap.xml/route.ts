@@ -13,10 +13,9 @@ export async function GET() {
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${Array.from({ length: numSitemaps })
       .map(
-        (_, i) => `  <url>
+        (_, i) => `  <sitemap>
   <loc>${DOMAIN_BASE_URL}/sitemap.xml/${i}</loc>
-  <lastmod>${new Date().toISOString()}</lastmod>
-</url>`
+</sitemap>`
       )
       .join('\n')}
 </sitemapindex>`;
