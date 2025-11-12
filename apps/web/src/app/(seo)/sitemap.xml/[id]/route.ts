@@ -2,6 +2,8 @@ import { getThreadsForSitemap } from '@repo/db/helpers/sitemap';
 import { getDateFromSnowflake } from '@repo/utils/helpers/snowflake';
 import { DOMAIN_BASE_URL, LIMIT } from '../route';
 
+export const revalidate = 86400;
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

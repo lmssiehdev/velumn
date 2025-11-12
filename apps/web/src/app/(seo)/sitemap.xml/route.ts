@@ -1,5 +1,7 @@
 import { getThreadsCountTotal } from '@repo/db/helpers/sitemap';
 
+export const revalidate = 86400;
+
 export const DOMAIN_BASE_URL = 'https://velumn.com';
 export const LIMIT = 47_000;
 
