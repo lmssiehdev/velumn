@@ -1,9 +1,11 @@
+import { findChannelById } from "@repo/db/helpers/channels";
 import {
 	deleteManyMessagesById,
-	deleteMesasgeById,
-	getMessageById,
+	deleteMessageById,
 	updateMessage,
+	upsertManyMessages,
 } from "@repo/db/helpers/messages";
+import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
 import {
@@ -13,6 +15,31 @@ import {
 	type Snowflake,
 } from "discord.js";
 import { toDBMessage } from "../../helpers/convertion";
+import { invalidateTag } from "../../helpers/invalidate-cache";
+
+@ApplyOptions<Listener.Options>({
+	event: Events.MessageCreate,
+	name: "create-message",
+})
+export class InsertDiscordMessage extends Listener {
+	async run(message: Message) {
+		try {
+			console.log({ message });
+			if (!message.channel.isThread()) {
+				return;
+			}
+			const existing = await findChannelById(message.channel.id);
+			if (!existing) {
+				return;
+			}
+			const converted = await toDBMessage(message);
+			await upsertManyMessages([converted]);
+			await invalidateTag(CacheTags.thread(message.channel.id));
+		} catch (error) {
+			this.container.logger.error("Failed to update message", error);
+		}
+	}
+}
 
 @ApplyOptions<Listener.Options>({
 	event: Events.MessageUpdate,
@@ -24,12 +51,11 @@ export class UpdateDiscordMessage extends Listener {
 			if (!newMessage.channel.isThread()) {
 				return;
 			}
-			const exsting = await getMessageById(newMessage.id);
-			if (!exsting) {
-				return;
-			}
 			const converted = await toDBMessage(newMessage);
-			await updateMessage(converted);
+			const result = await updateMessage(converted);
+			if (result.rowCount) {
+				await invalidateTag(CacheTags.thread(newMessage.channel.id));
+			}
 		} catch (error) {
 			this.container.logger.error("Failed to update message", error);
 		}
@@ -43,7 +69,13 @@ export class UpdateDiscordMessage extends Listener {
 export class DeleteDiscordMessage extends Listener {
 	async run(message: Message) {
 		try {
-			await deleteMesasgeById(message.id);
+			if (!message.channel.isThread()) {
+				return;
+			}
+			const result = await deleteMessageById(message.id);
+			if (result.rowCount) {
+				await invalidateTag(CacheTags.thread(message.channel.id));
+			}
 		} catch (error) {
 			this.container.logger.error("Failed to delete message", error);
 		}
@@ -61,6 +93,7 @@ export class BulkDeleteDiscordMessage extends Listener {
 				.filter((m) => m.channel.isThread())
 				.map((m) => m.id);
 			await deleteManyMessagesById(messagesInThreadsIds);
+			// TODO: invalidate cache
 		} catch (error) {
 			this.container.logger.error("Failed to delete messages", error);
 		}

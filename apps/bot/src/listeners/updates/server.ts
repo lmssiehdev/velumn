@@ -18,7 +18,6 @@ import { isChannelIndexable } from "../../indexing/server";
 export class JoinedGuild extends Listener {
 	async run(guild: Guild) {
 		try {
-			// TODO: leave if no valid invite
 			let invitedBy = await getUserWhoInvited(guild.id);
 
 			if (!invitedBy) {
@@ -26,7 +25,9 @@ export class JoinedGuild extends Listener {
 					"Only invites from the dashboard are allowed",
 				);
 
+				// TODO: leave if no valid invite, needs testing
 				if (process.env.NODE_ENV === "production") {
+					await guild.leave();
 					return;
 				}
 				invitedBy = { userId: "1335068922067550229" };

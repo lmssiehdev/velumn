@@ -1,6 +1,7 @@
 import { logger } from "@repo/logger";
 import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
 import { eq, inArray } from "drizzle-orm";
+import { id } from "zod/locales";
 import { db } from "..";
 import {
 	type DBMessage,
@@ -13,7 +14,7 @@ import {
 import { uploadFileFromUrl } from "./upload";
 import type { DBAttachments } from "./validation";
 
-export async function deleteMesasgeById(messageId: string) {
+export async function deleteMessageById(messageId: string) {
 	return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
 }
 

@@ -109,7 +109,7 @@ export async function findChannelById(channelId: string) {
 }
 
 export async function deleteChannel(channelId: string) {
-	await db.delete(dbChannel).where(eq(dbChannel.id, channelId));
+	return await db.delete(dbChannel).where(eq(dbChannel.id, channelId));
 }
 
 export async function upsertBulkChannels(channels: DBChannel[]) {
@@ -128,7 +128,7 @@ export async function upsertChannel(data: {
 	update: Partial<DBChannel>;
 	create: DBChannel;
 }) {
-	await db.insert(dbChannel).values(data.create).onConflictDoUpdate({
+	return await db.insert(dbChannel).values(data.create).onConflictDoUpdate({
 		target: dbChannel.id,
 		set: data.update,
 	});

@@ -43,6 +43,8 @@ import { getAllMessagesInThreadsCache } from "@/utils/cache";
 import { sanitizeJsonLd } from "@/utils/sanitize";
 import { ServerInfo } from "../../layout";
 
+export const revalidate = 86_400;
+
 export async function generateMetadata({
 	params,
 }: {

@@ -3,6 +3,7 @@ import {
 	findChannelById,
 	upsertChannel,
 } from "@repo/db/helpers/channels";
+import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
 import {
@@ -12,6 +13,7 @@ import {
 	type ThreadChannel,
 } from "discord.js";
 import { toDbChannel } from "../../helpers/convertion";
+import { invalidateTag } from "../../helpers/invalidate-cache";
 
 @ApplyOptions<Listener.Options>({
 	event: Events.ChannelDelete,
@@ -21,6 +23,7 @@ export class DeleteChannel extends Listener {
 	async run(channel: Channel) {
 		try {
 			await deleteChannel(channel.id);
+			// TODO: figure out what to do here
 		} catch (error) {
 			this.container.logger.error("Failed to delete channel", error);
 		}
@@ -61,7 +64,10 @@ export class UpdateChannel extends Listener {
 export class ThreadDelete extends Listener {
 	async run(thread: ThreadChannel) {
 		try {
-			await deleteChannel(thread.id);
+			const result = await deleteChannel(thread.id);
+			if (result.rowCount) {
+				await invalidateTag(CacheTags.thread(thread.id));
+			}
 		} catch (error) {
 			this.container.logger.error("Failed to delete channel", error);
 		}
@@ -79,10 +85,15 @@ export class UpdateThread extends Listener {
 
 			const { id, channelName, pinned } = channelToUpdate;
 
-			await upsertChannel({
+			const result = await upsertChannel({
 				create: channelToUpdate,
 				update: { id, channelName, pinned },
 			});
+
+			console.log("Updating thread", result.rowCount);
+			if (result.rowCount) {
+				await invalidateTag(CacheTags.thread(newThread.id));
+			}
 		} catch (error) {
 			this.container.logger.error("Failed to delete channel", error);
 		}
