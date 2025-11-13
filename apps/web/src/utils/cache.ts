@@ -8,6 +8,7 @@ import {
 	getServerInfoByChannelId,
 	getTopicsInServer,
 } from "@repo/db/helpers/servers";
+import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
@@ -41,7 +42,7 @@ export const getAllMessagesInThreadsCache = stable_cache(
 	getAllMessagesInThreads,
 	{
 		keyParts: (id) => [`messages-thread-${id}`],
-		tags: (id) => [`clear-thread-${id}`, "clear-all-threads"],
+		tags: (id) => [CacheTags.thread(id), CacheTags.allThreads()],
 	},
 );
 
@@ -49,18 +50,18 @@ export const getServerInfoByChannelIdCache = stable_cache(
 	getServerInfoByChannelId,
 	{
 		keyParts: (id) => [`server-info-${id}`],
-		tags: (id) => [`clear-server-${id}`, "clear-all-servers"],
+		tags: (id) => [CacheTags.server(id), CacheTags.allServers()],
 	},
 );
 
 export const getServerInfoCached = stable_cache(getServerInfo, {
 	keyParts: (id) => [`server-info-${id}`],
-	tags: (id) => [`clear-server-${id}`, "clear-all-servers"],
+	tags: (id) => [CacheTags.server(id), CacheTags.allServers()],
 });
 
 export const getChannelInfoCached = stable_cache(getChannelInfo, {
 	keyParts: (id) => [`server-info-${id}`],
-	tags: (id) => [`clear-channel-info-${id}`, "clear-all-channels-info"],
+	tags: (id) => [CacheTags.channelInfo(id), CacheTags.allChannelsInfo()],
 });
 
 export const getAllThreadsCached = stable_cache(getAllThreads, {
@@ -68,15 +69,12 @@ export const getAllThreadsCached = stable_cache(getAllThreads, {
 		`get-all-threads-${getBy}-${config.id}-${config.pinned ?? "all"}-${config.page ?? 1}`,
 	],
 	tags: (_, config) => [
-		`clear-get-all-threads-${config.id}`,
-		"clear-get-all-threads",
+		CacheTags.getAllThreads(config.id),
+		CacheTags.clearAllGetThreads(),
 	],
 });
 
 export const getTopicsInServerCached = stable_cache(getTopicsInServer, {
 	keyParts: (id) => [`topics-in-server-${id}`],
-	tags: (id) => [
-		`clear-get-topics-in-server-${id}`,
-		"clear-all-get-topics-in-server",
-	],
+	tags: (id) => [CacheTags.topicsInServer(id), CacheTags.allTopicsInServer()],
 });
