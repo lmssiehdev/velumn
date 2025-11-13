@@ -40,9 +40,7 @@ type OnboardingContextType = {
 	setChannels: (channels: SortChannel[]) => void;
 	toggleChannel: (channelId: string, enabled: boolean) => void;
 	handleInviteCreation: (guildId: string) => void;
-	finishOnboarding: (
-		selectedChannels: Array<{ channelId: string; status: boolean }>,
-	) => void;
+	trpc: ReturnType<typeof useTRPC>;
 	inviteUrl: string | null;
 };
 
@@ -71,6 +69,7 @@ export function OnboardingProvider({
 	initialChannels: SortChannel[];
 	initialGuildId: string | null;
 }) {
+	const trpc = useTRPC();
 	const { user } = useAuth();
 	const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 	const [step, setStep] = useState<Step>(
@@ -78,8 +77,6 @@ export function OnboardingProvider({
 	);
 	const [selectedGuildId, setSelectedGuildId] = useState(() => initialGuildId);
 	const [channels, setChannels] = useState<SortChannel[]>(initialChannels);
-	const router = useRouter();
-	const trpc = useTRPC();
 
 	const inviteUrlMutation = useMutation(
 		trpc.server.createServerInvite.mutationOptions({
@@ -88,17 +85,6 @@ export function OnboardingProvider({
 			},
 			onSuccess({ inviteUrl }) {
 				setInviteUrl(inviteUrl);
-			},
-		}),
-	);
-
-	const finishOnBoardingMutation = useMutation(
-		trpc.server.finishOnboarding.mutationOptions({
-			onError(error) {
-				toast.error(error.message);
-			},
-			onSuccess() {
-				router.push("/");
 			},
 		}),
 	);
@@ -128,10 +114,7 @@ export function OnboardingProvider({
 		selectGuild,
 		setChannels: setChannelsAndAdvance,
 		toggleChannel,
-		finishOnboarding: async (
-			selectedChannels: Array<{ channelId: string; status: boolean }>,
-		) =>
-			await finishOnBoardingMutation.mutateAsync({ payload: selectedChannels }),
+		trpc,
 		handleInviteCreation: async (serverId: string) =>
 			await inviteUrlMutation.mutateAsync({ serverId }),
 		inviteUrl,
@@ -405,8 +388,21 @@ const _UI_TEST_GUILD = {
 	permissions: 10_000,
 };
 function SelectChannels() {
-	const { guilds, channels, selectedGuildId, finishOnboarding, toggleChannel } =
+	const { guilds, channels, selectedGuildId, trpc, toggleChannel } =
 		useOnboardingContext();
+	const router = useRouter();
+
+	const finishOnBoardingMutation = useMutation(
+		trpc.server.finishOnboarding.mutationOptions({
+			onError(error) {
+				toast.error(error.message);
+			},
+			onSuccess() {
+				toast.success("Indexing started!");
+				router.push("/");
+			},
+		}),
+	);
 
 	const guild = guilds.find((g) => g.id === selectedGuildId);
 
@@ -444,11 +440,15 @@ function SelectChannels() {
 							</div>
 						</div>
 						<Button
+							disabled={finishOnBoardingMutation.isPending}
 							className="flex items-center gap-2"
 							onClick={() =>
-								finishOnboarding(
-									channels.map((c) => ({ channelId: c.id, status: c.enabled })),
-								)
+								finishOnBoardingMutation.mutateAsync({
+									payload: channels.map((c) => ({
+										channelId: c.id,
+										status: c.enabled,
+									})),
+								})
 							}
 						>
 							Start Indexing

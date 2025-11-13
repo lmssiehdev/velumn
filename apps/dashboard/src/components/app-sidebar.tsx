@@ -17,18 +17,6 @@ import {
 } from "@/components/ui/sidebar";
 
 const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	teams: [
-		{
-			name: "Acme Inc",
-			logo: GalleryVerticalEnd,
-			plan: "Enterprise",
-		},
-	],
 	projects: [
 		{
 			name: "Home",
@@ -39,11 +27,6 @@ const data = {
 			name: "Channels",
 			url: "/channels",
 			icon: HashIcon,
-		},
-		{
-			name: "Feedback",
-			url: "/feedback",
-			icon: ChatsTeardropIcon,
 		},
 	],
 };
