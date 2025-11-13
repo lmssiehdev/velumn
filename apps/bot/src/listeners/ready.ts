@@ -1,10 +1,8 @@
 import { parseArgs } from "node:util";
-import { updateServer } from "@repo/db/helpers/servers";
 import { ApplyOptions } from "@sapphire/decorators";
-import { container, Events, Listener } from "@sapphire/framework";
+import { Events, Listener } from "@sapphire/framework";
+import { Cron } from "croner";
 import type { Client } from "discord.js";
-import { TEST_GUILDS } from "../constants";
-import { toDbServer } from "../helpers/convertion";
 import { indexServers } from "../indexing";
 
 const { values } = parseArgs({
@@ -22,21 +20,21 @@ const { values } = parseArgs({
 export class Indexing extends Listener {
 	async run(client: Client) {
 		if (!values.index) {
-			await testing(client);
 			return;
 		}
-
-		// TODO: run this every day;
 		await indexServers(client);
+		new Cron(
+			"0 0 * * *",
+			{
+				name: "server-indexing",
+				protect: true,
+				catch: (error) => {
+					client.logger?.error("Cron indexing failed:", error);
+				},
+			},
+			async () => {
+				await indexServers(client);
+			},
+		);
 	}
-}
-
-async function testing(client: Client) {
-	container.logger.info("TESTING");
-	const guild = client.guilds.cache.get(TEST_GUILDS.T);
-	if (!guild) {
-		return;
-	}
-	const converted = toDbServer(guild);
-	await updateServer(converted);
 }

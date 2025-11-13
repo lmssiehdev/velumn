@@ -11,6 +11,7 @@ import {
 	type Guild,
 	type GuildBasedChannel,
 } from "discord.js";
+import { ca } from "zod/locales";
 import { TEST_GUILDS } from "../constants";
 import { toDbServer } from "../helpers/convertion";
 import { createServerInvite } from "../helpers/create-invite";
@@ -21,15 +22,19 @@ import { indexChannel } from "./channel";
 import { Log } from "./logger";
 
 export async function indexServers(client: Client) {
-	const allGuilds = [...client.guilds.cache.values()];
-	const randomizedServers = await randomizeServers(allGuilds);
+	try {
+		const allGuilds = [...client.guilds.cache.values()];
+		const randomizedServers = await randomizeServers(allGuilds);
 
-	for await (const guild of randomizedServers) {
-		try {
-			await indexServer(guild);
-		} catch (error) {
-			Log("failed_to_fetch_guild", error, guild);
+		for await (const guild of randomizedServers) {
+			try {
+				await indexServer(guild);
+			} catch (error) {
+				Log("failed_to_fetch_guild", error, guild);
+			}
 		}
+	} catch (error) {
+		logger.error("failed_to_index_servers", { error });
 	}
 }
 
