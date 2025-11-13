@@ -12,6 +12,9 @@ import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
+// sanity check for now
+const ONE_DAY_IN_SECONDS = 86_400;
+
 // :P
 export function stable_cache<T extends unknown[], R>(
 	fn: (...args: T) => Promise<R>,
@@ -27,16 +30,12 @@ export function stable_cache<T extends unknown[], R>(
 			options.keyParts(...args),
 			{
 				tags: options.tags(...args),
-				revalidate: options.revalidate ?? THREE_DAYS_IN_SECONDS,
+				revalidate: options.revalidate ?? ONE_DAY_IN_SECONDS,
 			},
 		);
 		return cachedFn();
 	});
 }
-
-// sanity check for now
-const THREE_DAYS_IN_SECONDS =
-	process.env.NODE_ENV === "development" ? 2 : 60 * 60 * 24 * 30;
 
 export const getAllMessagesInThreadsCache = stable_cache(
 	getAllMessagesInThreads,
