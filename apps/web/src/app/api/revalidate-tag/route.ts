@@ -3,7 +3,9 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 
 const schema = z.object({
-	tag: z.string(),
+	tags: z
+		.union([z.string(), z.array(z.string())])
+		.transform((x) => (Array.isArray(x) ? x : [x])),
 	secret: z.string(),
 });
 
@@ -18,8 +20,10 @@ export async function POST(request: NextRequest) {
 		return Response.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
-	const { tag } = data;
+	const { tags } = data;
 
-	revalidateTag(tag, "max");
+	for (const tag of tags) {
+		revalidateTag(tag, "max");
+	}
 	return Response.json({ revalidated: true });
 }
