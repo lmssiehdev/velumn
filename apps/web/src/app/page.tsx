@@ -35,7 +35,7 @@ export default function Home() {
 			<div className="border-neutral-300 border-x border-b">
 				<div className="mx-auto flex max-w-screen-xl items-center justify-between border-neutral-300 border-x p-2 px-4">
 					<Link className="text-black text-xl" href="/">
-						Velumn
+						Velumn <span className="text-xs text-neutral-600">[beta]</span>
 					</Link>
 					<a
 						className={buttonVariants({ size: "sm", variant: "outline" })}
