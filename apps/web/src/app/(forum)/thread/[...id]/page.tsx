@@ -105,8 +105,9 @@ export default async function Page({
 		return <div>Thread doesn't exist</div>;
 	}
 
+	const threadUrlWithSlug = slugifyThreadUrl({ id: threadId, name: thread.channelName! }));
 	if (!slug || slug !== getSlugFromTitle(thread.channelName!)) {
-		redirect(slugifyThreadUrl({ id: threadId, name: thread.channelName! }));
+		redirect(threadUrlWithSlug);
 	}
 
 	const server = thread.server;
@@ -152,8 +153,7 @@ export default async function Page({
 				item={sanitizeJsonLd<WithContext<DiscussionForumPosting>>({
 					"@context": "https://schema.org",
 					"@type": "DiscussionForumPosting",
-					// !! TODO: non relative url
-					url: `/thread/${threadId}`,
+					url: `https://velumn.com${threadUrlWithSlug}`,
 					datePublished: getDateFromSnowflake(thread.id).toISOString(),
 					dateModified: getDateFromSnowflake(dateModified).toISOString(),
 					author: {
