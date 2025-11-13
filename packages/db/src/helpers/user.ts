@@ -13,7 +13,12 @@ export async function updateAuthUser(
 	userId: string,
 	payload: Exclude<Partial<AuthUser>, "id">,
 ) {
-	await db.update(user).set(payload).where(eq(user.id, userId));
+	const [result] = await db
+		.update(user)
+		.set(payload)
+		.where(eq(user.id, userId))
+		.returning({ serverId: user.serverId });
+	return result;
 }
 export async function resetUserServerIdLink(serverId: string) {
 	await db

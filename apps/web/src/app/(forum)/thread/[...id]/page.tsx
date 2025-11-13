@@ -105,7 +105,10 @@ export default async function Page({
 		return <div>Thread doesn't exist</div>;
 	}
 
-	const threadUrlWithSlug = slugifyThreadUrl({ id: threadId, name: thread.channelName! }));
+	const threadUrlWithSlug = slugifyThreadUrl({
+		id: threadId,
+		name: thread.channelName!,
+	});
 	if (!slug || slug !== getSlugFromTitle(thread.channelName!)) {
 		redirect(threadUrlWithSlug);
 	}
@@ -192,7 +195,7 @@ export default async function Page({
 						{thread.channelName}
 					</h1>
 					<Link
-						className="flex w-fit items-center gap-1 border-1 border-purple-600 px-2 py-0.5 text-purple-600 text-sm transition-all hover:bg-purple-600 hover:text-white"
+						className="flex w-fit items-center gap-1 border border-purple-600 px-2 py-0.5 text-purple-600 text-sm transition-all hover:bg-purple-600 hover:text-white"
 						href={`/channel/${thread.parentId}`}
 					>
 						{thread.parent?.type === ChannelType.GuildForum ? (

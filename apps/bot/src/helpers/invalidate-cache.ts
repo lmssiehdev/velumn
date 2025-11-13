@@ -1,7 +1,7 @@
 import { logger } from "@repo/logger";
 import { botEnv } from "../config";
 
-export async function invalidateTag(tag: string) {
+export async function invalidateTags(tags: string | string[]) {
 	const url =
 		process.env.NODE_ENV === "development"
 			? "http://localhost:3000"
@@ -9,7 +9,7 @@ export async function invalidateTag(tag: string) {
 	try {
 		await fetch(`https://velumn.com/api/revalidate-tag`, {
 			method: "POST",
-			body: JSON.stringify({ tag, secret: botEnv.DISCORD_BOT_TOKEN }),
+			body: JSON.stringify({ tags, secret: botEnv.DISCORD_BOT_TOKEN }),
 		});
 	} catch (error) {
 		logger.error("failed_to_invalidate_cache", { error });

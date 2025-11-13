@@ -13,7 +13,7 @@ import {
 	type ThreadChannel,
 } from "discord.js";
 import { toDbChannel } from "../../helpers/convertion";
-import { invalidateTag } from "../../helpers/invalidate-cache";
+import { invalidateTags } from "../../helpers/invalidate-cache";
 
 @ApplyOptions<Listener.Options>({
 	event: Events.ChannelDelete,
@@ -66,7 +66,7 @@ export class ThreadDelete extends Listener {
 		try {
 			const result = await deleteChannel(thread.id);
 			if (result.rowCount) {
-				await invalidateTag(CacheTags.thread(thread.id));
+				await invalidateTags(CacheTags.thread(thread.id));
 			}
 		} catch (error) {
 			this.container.logger.error("Failed to delete channel", error);
@@ -92,7 +92,7 @@ export class UpdateThread extends Listener {
 
 			console.log("Updating thread", result.rowCount);
 			if (result.rowCount) {
-				await invalidateTag(CacheTags.thread(newThread.id));
+				await invalidateTags(CacheTags.thread(newThread.id));
 			}
 		} catch (error) {
 			this.container.logger.error("Failed to delete channel", error);

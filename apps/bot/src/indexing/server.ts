@@ -4,6 +4,7 @@ import {
 	upsertServer,
 } from "@repo/db/helpers/servers";
 import { logger } from "@repo/logger";
+import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import {
 	ChannelType,
 	type Client,
@@ -13,6 +14,7 @@ import {
 import { TEST_GUILDS } from "../constants";
 import { toDbServer } from "../helpers/convertion";
 import { createServerInvite } from "../helpers/create-invite";
+import { invalidateTags } from "../helpers/invalidate-cache";
 import { safeStringify } from "../helpers/lib/log";
 import { shuffle } from "../helpers/utils";
 import { indexChannel } from "./channel";
@@ -24,26 +26,43 @@ export async function indexServers(client: Client) {
 
 	for await (const guild of randomizedServers) {
 		try {
-			const channelsCahe = [...guild.channels.cache.values()];
-
-			if (channelsCahe.length === 0) {
-				Log("no_channels", guild);
-				return;
-			}
-
-			const shuffledChannels = shuffle(channelsCahe);
-
-			for await (const channel of shuffledChannels) {
-				if (!isChannelIndexable(channel) || channel.nsfw) {
-					continue;
-				}
-				await indexChannel(channel);
-			}
-			console.log("Done indexing server", guild.name, guild.id);
+			await indexServer(guild);
 		} catch (error) {
 			Log("failed_to_fetch_guild", error, guild);
 		}
 	}
+}
+
+export async function indexServer(
+	guild: Guild,
+	options?: {
+		maxThreads: number;
+	},
+) {
+	if (!guild.id) return;
+	let currIndexedThreads = 0;
+	const channelsCahe = [...guild.channels.cache.values()];
+
+	if (channelsCahe.length === 0) {
+		Log("no_channels", guild);
+		return;
+	}
+
+	const shuffledChannels = shuffle(channelsCahe);
+
+	for await (const channel of shuffledChannels) {
+		if (!isChannelIndexable(channel) || channel.nsfw) {
+			continue;
+		}
+		await indexChannel(channel);
+		await invalidateTags(CacheTags.thread(channel.id));
+		++currIndexedThreads;
+		if (options?.maxThreads && currIndexedThreads >= options.maxThreads) {
+			break;
+		}
+	}
+	console.log("Done indexing server", guild.name, guild.id);
+	await invalidateTags(CacheTags.getAllThreads(guild.id));
 }
 
 export const isChannelIndexable = (channel: GuildBasedChannel) =>
@@ -55,7 +74,7 @@ async function randomizeServers(allGuilds: Guild[]) {
 	const guilds =
 		process.env.NODE_ENV === "production"
 			? allGuilds
-			: allGuilds.filter((x) => x.id === TEST_GUILDS.T);
+			: allGuilds.filter((x) => x.id === TEST_GUILDS.EMPTY_TEST_SERVER);
 
 	try {
 		const serversPlans = await getBulkServers(guilds.map((x) => x.id));

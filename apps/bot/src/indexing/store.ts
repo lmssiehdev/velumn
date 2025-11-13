@@ -84,6 +84,7 @@ export async function storeIndexedData(
 
 	const backlinks = toDbBacklink(convertedMessages);
 	await upsertManyBacklinks(backlinks);
+
 	return true;
 }
 

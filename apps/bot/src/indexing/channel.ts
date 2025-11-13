@@ -154,6 +154,7 @@ export async function indexThread(
 		const messages = await fetchAllMessages(channel, {
 			start,
 		});
+
 		await storeIndexedData(messages, channel);
 		Log("log_indexing_complete", channel);
 	} catch (error) {

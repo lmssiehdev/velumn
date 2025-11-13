@@ -15,7 +15,7 @@ import {
 	type Snowflake,
 } from "discord.js";
 import { toDBMessage } from "../../helpers/convertion";
-import { invalidateTag } from "../../helpers/invalidate-cache";
+import { invalidateTags } from "../../helpers/invalidate-cache";
 
 @ApplyOptions<Listener.Options>({
 	event: Events.MessageCreate,
@@ -24,7 +24,6 @@ import { invalidateTag } from "../../helpers/invalidate-cache";
 export class InsertDiscordMessage extends Listener {
 	async run(message: Message) {
 		try {
-			console.log({ message });
 			if (!message.channel.isThread()) {
 				return;
 			}
@@ -34,7 +33,7 @@ export class InsertDiscordMessage extends Listener {
 			}
 			const converted = await toDBMessage(message);
 			await upsertManyMessages([converted]);
-			await invalidateTag(CacheTags.thread(message.channel.id));
+			await invalidateTags(CacheTags.thread(message.channel.id));
 		} catch (error) {
 			this.container.logger.error("Failed to update message", error);
 		}
@@ -54,7 +53,7 @@ export class UpdateDiscordMessage extends Listener {
 			const converted = await toDBMessage(newMessage);
 			const result = await updateMessage(converted);
 			if (result.rowCount) {
-				await invalidateTag(CacheTags.thread(newMessage.channel.id));
+				await invalidateTags(CacheTags.thread(newMessage.channel.id));
 			}
 		} catch (error) {
 			this.container.logger.error("Failed to update message", error);
@@ -74,7 +73,7 @@ export class DeleteDiscordMessage extends Listener {
 			}
 			const result = await deleteMessageById(message.id);
 			if (result.rowCount) {
-				await invalidateTag(CacheTags.thread(message.channel.id));
+				await invalidateTags(CacheTags.thread(message.channel.id));
 			}
 		} catch (error) {
 			this.container.logger.error("Failed to delete message", error);

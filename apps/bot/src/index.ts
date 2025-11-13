@@ -2,6 +2,7 @@ import { LogLevel, SapphireClient } from "@sapphire/framework";
 import { GatewayIntentBits, Partials } from "discord.js";
 import { botEnv } from "./config";
 import "@sapphire/plugin-logger/register";
+import { BotApi } from "./api-server";
 
 process.on("uncaughtException", (error) => {
 	console.error("Uncaught Exception:", error);
@@ -40,3 +41,8 @@ if (sapphireClient) {
 
 	sapphireClient.login(botEnv.DISCORD_BOT_TOKEN);
 }
+
+export default {
+	port: 8001,
+	fetch: BotApi.fetch,
+};

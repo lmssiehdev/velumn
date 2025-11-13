@@ -15,6 +15,8 @@
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.888.0",
 		"@aws-sdk/lib-storage": "^3.888.0",
+		"@hono/trpc-server": "^0.4.0",
+		"@hono/zod-validator": "^0.7.4",
 		"@repo/db": "workspace:*",
 		"@repo/logger": "workspace:*",
 		"@sapphire/decorators": "^6.2.0",
@@ -26,6 +28,7 @@
 		"@types/bun": "^1.2.23",
 		"discord-api-types": "^0.38.24",
 		"discord.js": "~14.22.1",
+		"hono": "^4.10.5",
 		"zod": "^4.1.5"
 	}
 }

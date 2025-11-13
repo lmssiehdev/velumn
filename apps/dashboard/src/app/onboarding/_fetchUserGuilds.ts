@@ -30,7 +30,6 @@ async function getGuilds(userId: string) {
 		});
 
 		if (!response.ok) {
-			console.log({ response });
 			return { error: "Failed to fetch guilds" };
 		}
 

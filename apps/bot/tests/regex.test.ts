@@ -147,7 +147,7 @@ describe("MessageLinkRegex", () => {
 				"https://notdiscord.com/channels/1385955477912948806/1424175308872876174";
 
 			const matches = [...link.matchAll(MessageLinkRegex)];
-			console.log({ matches: matches.map((m) => m.groups) });
+
 			expect(matches).toHaveLength(0);
 		});
 

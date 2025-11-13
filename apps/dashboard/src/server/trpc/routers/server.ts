@@ -1,12 +1,24 @@
 import { setBulkIndexingStatus } from "@repo/db/helpers/channels";
 import { createBotInvite, getChannelsInServer } from "@repo/db/helpers/servers";
 import { updateAuthUser } from "@repo/db/helpers/user";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { parseError } from "@/lib/error";
 import { log } from "@/lib/log";
 import { privateProcedure, router } from "@/server/trpc";
+import type { BotRouter } from "../../../../../bot/src/helpers/trpc"; // Adjust path as needed
 
+export const botClient = createTRPCClient<BotRouter>({
+	links: [
+		httpBatchLink({
+			url: `${process.env.BOT_API_URL}/trpc`,
+			headers: {
+				"x-velumn-secret": process.env.DISCORD_BOT_TOKEN,
+			},
+		}),
+	],
+});
 export const serverRouter = router({
 	finishOnboarding: privateProcedure
 		.input(
@@ -19,10 +31,14 @@ export const serverRouter = router({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const channels = input.payload;
-				await updateAuthUser(ctx.user.id, {
+				const result = await updateAuthUser(ctx.user.id, {
 					finishedOnboarding: true,
 				});
+				if (!result?.serverId) {
+					throw new Error("Server ID not found");
+				}
 				await setBulkIndexingStatus(channels);
+				botClient.indexServer.mutate({ serverId: result.serverId });
 				return { success: true };
 			} catch (err) {
 				log.error("finish_onboarrding_failed", { err: parseError(err) });
