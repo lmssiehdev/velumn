@@ -10,17 +10,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="mx-auto flex min-h-screen flex-col">
 			<div className="border-neutral-300 border-b">
-				<div className="mx-auto max-w-screen-lg border-neutral-300 border-x p-2 px-4">
+				<div className="mx-auto max-w-5xl h-[52px] border-neutral-300 border-x p-2 px-4 flex items-center justify-between">
 					<Link className="text-black text-xl" href="/">
 						Velumn
 					</Link>
+					{/* TOD: we render this using a protal, maybe we can improve this */}
+					<div id="search-box"></div>
 				</div>
 			</div>
-			<div className="mx-auto w-full max-w-screen-lg flex-1 py-2 pb-10">
+			<div className="mx-auto w-full max-w-5xl flex-1 py-2 pb-10">
 				{children}
 			</div>
 			<div className="mt-auto border-neutral-300 border-x border-t">
-				<div className="mx-auto max-w-screen-lg border-neutral-300 p-2 px-4">
+				<div className="mx-auto max-w-5xl border-neutral-300 p-2 px-4">
 					Powered by Velumn
 				</div>
 			</div>

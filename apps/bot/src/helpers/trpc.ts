@@ -33,7 +33,6 @@ export const botRouter = t.router({
 			z.object({
 				serverId: z.string(),
 				query: z.string(),
-				limit: z.number().catch(10),
 			}),
 		)
 		.query(async ({ input }) => {

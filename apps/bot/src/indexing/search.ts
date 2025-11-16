@@ -52,7 +52,7 @@ export async function searchMessages(options: {
 	const results = await index.search<SearchMessage>(query, {
 		filter: `serverId = ${serverId}`,
 		matchingStrategy: "frequency",
-		limit: limit * 1.5,
+		limit,
 		attributesToHighlight: ["content", "title"],
 		highlightPreTag: "<mark>",
 		highlightPostTag: "</mark>",

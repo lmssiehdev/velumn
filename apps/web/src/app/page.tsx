@@ -159,7 +159,7 @@ export default function Home() {
 					</div>
 				</section>
 				<section className="my-40 border-neutral-300 border-t px-4">
-					<div className="mx-auto max-w-screen-lg">
+					<div className="mx-auto max-w-5xl">
 						<div className="space-y-2 py-40 text-center">
 							<span className="text-lg">How it works</span>
 							<h2 className="font-semibold text-4xl">
@@ -344,7 +344,7 @@ export function FAQ() {
 function BottomCTA() {
 	return (
 		<section className="border-neutral-300 border-t">
-			<div className="mx-auto my-40 max-w-screen-lg space-y-6 rounded border bg-white py-40 text-center">
+			<div className="mx-auto my-40 max-w-5xl space-y-6 rounded border bg-white py-40 text-center">
 				<h3 className="font-bold text-4xl leading-tight">
 					Ready to make your Discord searchable?
 				</h3>

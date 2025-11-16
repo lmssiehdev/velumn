@@ -52,7 +52,7 @@ export default function PricingPage() {
 
 			<section className="border-neutral-300 border-t">
 				<div className="mx-auto max-w-screen-xl border-x px-4 py-60">
-					<div className="mx-auto grid max-w-screen-lg grid-cols-1 justify-between md:grid-cols-3 md:gap-12">
+					<div className="mx-auto grid max-w-5xl grid-cols-1 justify-between md:grid-cols-3 md:gap-12">
 						<div className="group flex flex-col items-center text-center">
 							<div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-100 transition-colors group-hover:bg-blue-200">
 								<LightningIcon className="rounded text-3xl text-blue-600" />

@@ -15,6 +15,7 @@ import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import { ChannelType } from "discord-api-types/v10";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createPortal } from "react-dom";
 import { JsonLd } from "react-schemaorg";
 import type { DiscussionForumPosting, WithContext } from "schema-dts";
 import {
@@ -29,6 +30,7 @@ import {
 	DiscordUIMessage,
 } from "@/components/markdown/renderer";
 import { DiscordIcon } from "@/components/misc";
+import SearchPortal, { SearchInput } from "@/components/search/search-input";
 import ThreadFeedback from "@/components/thread-feedback";
 import { Button } from "@/components/ui/button";
 import { rainbowButtonVariants } from "@/components/ui/rainbow-button";
@@ -273,6 +275,7 @@ export default async function Page({
 					/>
 				</div>
 				<div className="hidden w-full max-w-xs space-y-6 md:block">
+					<SearchPortal serverId={server.id} />
 					<ServerInfo server={server} />
 					<ThreadFeedback />
 				</div>
