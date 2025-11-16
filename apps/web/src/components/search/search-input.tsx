@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/security/noDangerouslySetInnerHtml: sanitized on the server :) */
 "use client";
 
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr";
@@ -8,7 +7,7 @@ import { createPortal } from "react-dom";
 
 const SearchModal = dynamic(() => import("./search-modal"), { ssr: false });
 
-export default function SearchPortal({ serverId }: { serverId: string }) {
+export function SearchPortal({ serverId }: { serverId: string }) {
 	const [container, setContainer] = useState<HTMLElement | null>(null);
 
 	useLayoutEffect(() => {
@@ -21,6 +20,12 @@ export default function SearchPortal({ serverId }: { serverId: string }) {
 
 export function SearchInput({ serverId }: { serverId: string }) {
 	const [open, setOpen] = useState(false);
+	const [hasOpened, setHasOpened] = useState(false);
+
+	useEffect(() => {
+		if (open) setHasOpened(true);
+	}, [open]);
+
 	useEffect(() => {
 		const down = (e: KeyboardEvent) => {
 			if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -52,7 +57,9 @@ export function SearchInput({ serverId }: { serverId: string }) {
 					<span className="text-xs">⌘</span>K
 				</kbd>
 			</button>
-			<SearchModal serverId={serverId} open={open} setOpen={setOpen} />
+			{hasOpened && (
+				<SearchModal serverId={serverId} open={open} setOpen={setOpen} />
+			)}
 		</>
 	);
 }
