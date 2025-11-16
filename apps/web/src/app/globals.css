@@ -13,6 +13,9 @@
 	}
 }
 
+mark {
+	background-color: transparent;
+}
 .inline-code pre {
 	@apply p-2 rounded;
 }

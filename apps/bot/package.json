@@ -30,6 +30,8 @@
 		"discord-api-types": "^0.38.24",
 		"discord.js": "~14.22.1",
 		"hono": "^4.10.5",
+		"isomorphic-dompurify": "^2.32.0",
+		"meilisearch": "^0.54.0",
 		"zod": "^4.1.5"
 	}
 }

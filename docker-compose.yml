@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: turborepo-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: velumn
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./dump/postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.16
+    container_name: turborepo-meilisearch
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY}
+    ports:
+      - "7700:7700"
+    volumes:
+      - ./dump/meili_data:/meili_data
+    restart: unless-stopped
+    command: meilisearch --schedule-snapshot --snapshot-dir=/meili_data/snapshots

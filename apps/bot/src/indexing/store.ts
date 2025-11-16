@@ -21,6 +21,7 @@ import {
 	toDbUser,
 } from "../helpers/convertion";
 import { getTheOldestSnowflakeId } from "./helpers";
+import { insertBulkSearchMessages } from "./search";
 
 export async function storeIndexedData(
 	messages: Message[],
@@ -84,7 +85,7 @@ export async function storeIndexedData(
 
 	const backlinks = toDbBacklink(convertedMessages);
 	await upsertManyBacklinks(backlinks);
-
+	insertBulkSearchMessages(channel, convertedMessages);
 	return true;
 }
 

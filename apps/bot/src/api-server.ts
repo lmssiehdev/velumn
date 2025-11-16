@@ -1,6 +1,8 @@
 import { trpcServer } from "@hono/trpc-server";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
 import type z from "zod";
 import { botRouter } from "./helpers/trpc";
 
@@ -19,16 +21,28 @@ export function validateParams<Schema extends z.ZodSchema>(
 		}
 	});
 }
-export const BotApi = new Hono().use(
-	"/trpc/*",
-	trpcServer({
-		router: botRouter,
-		createContext: (_opts, c) => ({
-			secret: c.req.header("x-velumn-secret"),
+export const BotApi = new Hono()
+	.use(
+		"/*",
+		cors({
+			origin: "http://localhost:3000",
+			credentials: true,
 		}),
-	}),
-);
+	)
+	.use(
+		"/trpc/*",
+		trpcServer({
+			router: botRouter,
+			createContext: (_opts, c) => ({
+				secret: c.req.header("x-velumn-secret"),
+			}),
+		}),
+	)
+	.get("/health", (c) => {
+		return c.text("OK");
+	});
 
 BotApi.onError((err, c) => {
+	console.log({ apiError: err });
 	return c.json({ success: false, error: err.message }, 500);
 });

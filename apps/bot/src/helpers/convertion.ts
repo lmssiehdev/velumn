@@ -214,7 +214,6 @@ function toDbReactions(message: Message): DBMessage["reactions"] {
 	return dbReactions;
 }
 
-// shut it, this code is pretty;
 export async function toDBMessage(
 	message: Message,
 ): Promise<DBMessageWithRelations> {
@@ -260,6 +259,9 @@ export async function toDBMessage(
 		snapshot,
 		isIgnored: false,
 		primaryChannelId: message.channelId,
+		starterMessage:
+			message.type === MessageType.ThreadStarterMessage ||
+			fullMessage.channel.id === fullMessage.id,
 	};
 	return convertedMessage;
 }

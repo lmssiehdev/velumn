@@ -5,3 +5,5 @@ export const TEST_GUILDS = {
 };
 
 export const EVERY_DAY_AT_MIDNIGHT = "0 0 * * *";
+
+export const MESSAGES_INDEX_NAME = "discord-messages";

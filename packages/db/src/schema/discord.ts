@@ -142,6 +142,7 @@ export const dbMessage = pgTable(
 			.$type<MessageMetadataSchema | null>()
 			.default(null),
 		snapshot: json("snapshot").$type<DBSnapshotSchema | null>().default(null),
+		starterMessage: boolean("starter_message").notNull().default(false),
 		/**
 		 * The primary channel ID for querying all messages in the thread.
 		 *

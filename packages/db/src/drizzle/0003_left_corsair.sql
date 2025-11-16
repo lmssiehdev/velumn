@@ -1,0 +1,1 @@
+ALTER TABLE "db_message" ADD COLUMN "starter_message" boolean DEFAULT false NOT NULL;

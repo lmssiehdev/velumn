@@ -195,7 +195,7 @@ export default async function Page({
 						{thread.channelName}
 					</h1>
 					<Link
-						className="flex w-fit items-center gap-1 border border-purple-600 px-2 py-0.5 text-purple-600 text-sm transition-all hover:bg-purple-600 hover:text-white"
+						className="flex w-fit items-center gap-1 px-2 py-0.5 text-purple-700 text-sm transition-all bg-purple-100 hover:bg-purple-200 "
 						href={`/channel/${thread.parentId}`}
 					>
 						{thread.parent?.type === ChannelType.GuildForum ? (

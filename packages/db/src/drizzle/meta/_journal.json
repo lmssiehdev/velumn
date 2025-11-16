@@ -22,6 +22,27 @@
       "when": 1762917405808,
       "tag": "0002_lonely_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763243319600,
+      "tag": "0003_left_corsair",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1763253151571,
+      "tag": "0004_real_mac_gargan",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1763259524889,
+      "tag": "0005_grey_agent_zero",
+      "breakpoints": true
     }
   ]
 }
