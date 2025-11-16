@@ -2,7 +2,6 @@ import { trpcServer } from "@hono/trpc-server";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 import type z from "zod";
 import { botRouter } from "./helpers/trpc";
 

@@ -11,8 +11,8 @@ async function main() {
 					const channel = await guild.channels.fetch("1256869825624543282");
 					if (!channel) throw "not a channel";
 
-					const thread = await channel.threa;
-				} catch (err) {
+					const _thread = await channel.threa;
+				} catch (_err) {
 				} finally {
 					resolve(true);
 				}

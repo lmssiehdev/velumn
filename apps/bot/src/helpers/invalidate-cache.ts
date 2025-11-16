@@ -2,7 +2,7 @@ import { logger } from "@repo/logger";
 import { botEnv } from "../config";
 
 export async function invalidateTags(tags: string | string[]) {
-	const url =
+	const _url =
 		process.env.NODE_ENV === "development"
 			? "http://localhost:3000"
 			: "https://velumn.com";
@@ -17,7 +17,7 @@ export async function invalidateTags(tags: string | string[]) {
 }
 
 export async function invalidatePath(path: string) {
-	const url =
+	const _url =
 		process.env.NODE_ENV === "development"
 			? "http://localhost:3000"
 			: "https://velumn.com";

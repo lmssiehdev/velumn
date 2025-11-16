@@ -58,7 +58,7 @@ export function SearchInput({ serverId }: { serverId: string }) {
 				</kbd>
 			</button>
 			{hasOpened && (
-				<SearchModal serverId={serverId} open={open} setOpen={setOpen} />
+				<SearchModal serverId={serverId} open={open} toggleOpen={setOpen} />
 			)}
 		</>
 	);

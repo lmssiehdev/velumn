@@ -2,8 +2,7 @@ import { parseArgs } from "node:util";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Events, Listener } from "@sapphire/framework";
 import { Cron } from "croner";
-import { type Client, MessageFlags } from "discord.js";
-import { toDBMessage } from "../helpers/convertion";
+import type { Client } from "discord.js";
 import { indexServers } from "../indexing";
 
 const { values } = parseArgs({

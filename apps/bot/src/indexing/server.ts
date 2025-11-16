@@ -11,7 +11,6 @@ import {
 	type Guild,
 	type GuildBasedChannel,
 } from "discord.js";
-import { ca } from "zod/locales";
 import { TEST_GUILDS } from "../constants";
 import { toDbServer } from "../helpers/convertion";
 import { createServerInvite } from "../helpers/create-invite";

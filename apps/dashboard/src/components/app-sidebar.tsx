@@ -1,9 +1,9 @@
 "use client";
 
-import { ChatsTeardropIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
+import { HashIcon } from "@phosphor-icons/react/dist/ssr";
 import type { AuthUserInsert } from "@repo/db/schema/auth";
 import type { DBServer } from "@repo/db/schema/discord";
-import { GalleryVerticalEnd, HomeIcon } from "lucide-react";
+import { HomeIcon } from "lucide-react";
 import type * as React from "react";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";

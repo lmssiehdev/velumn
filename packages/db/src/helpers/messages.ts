@@ -1,7 +1,6 @@
 import { logger } from "@repo/logger";
 import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
 import { eq, inArray } from "drizzle-orm";
-import { id } from "zod/locales";
 import { db } from "..";
 import {
 	type DBMessage,

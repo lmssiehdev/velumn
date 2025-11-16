@@ -33,11 +33,11 @@ const botClient = createTRPCClient<BotRouter>({
 
 export default function SearchModal({
 	open,
-	setOpen,
+	toggleOpen,
 	serverId,
 }: {
 	open: boolean;
-	setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	toggleOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	serverId: string;
 }) {
 	const [query, setQuery] = useState("");
@@ -83,7 +83,7 @@ export default function SearchModal({
 	return (
 		<CommandDialog
 			open={open}
-			onOpenChange={setOpen}
+			onOpenChange={toggleOpen}
 			className="max-w-3xl! w-full top-[35%]!"
 			showCloseButton={false}
 		>
@@ -108,7 +108,7 @@ export default function SearchModal({
 				/>
 				<button
 					className="bg-muted text-muted-foreground pointer-events-none inline-flex items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium select-none"
-					onClick={() => setOpen(false)}
+					onClick={() => toggleOpen(false)}
 				>
 					<span className="text-sm">ESC</span>
 				</button>
@@ -140,7 +140,7 @@ export default function SearchModal({
 								return (
 									<Link
 										onClick={() => {
-											setOpen(false);
+											toggleOpen(false);
 										}}
 										key={hit.id}
 										href={threadUrl}
