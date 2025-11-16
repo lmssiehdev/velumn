@@ -16,7 +16,7 @@ services:
     image: getmeili/meilisearch:v1.16
     container_name: turborepo-meilisearch
     environment:
-      MEILI_ENV: development
+      MEILI_ENV: ${MEILI_ENV:-development}
       MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY}
     ports:
       - "7700:7700"
