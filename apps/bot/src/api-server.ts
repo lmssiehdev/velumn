@@ -25,8 +25,11 @@ export const BotApi = new Hono()
 	.use(
 		"/*",
 		cors({
-			origin: "http://localhost:3000",
+			origin: "*",
 			credentials: true,
+			allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+			allowHeaders: ["Origin", "Content-Type", "Accept", "X-Requested-With"],
+			maxAge: 3600,
 		}),
 	)
 	.use(
