@@ -9,7 +9,7 @@ import { Attachments } from "./attachments";
 import { Code } from "./code";
 import { Embeds } from "./embed";
 import { CustomEmoji, getEmojiSize, Twemoji } from "./emoji";
-import { Link } from "./link";
+import { MarkdownLink } from "./link";
 import { Mention } from "./mention";
 import { Poll } from "./poll";
 import { Spoiler } from "./spoiler";
@@ -82,7 +82,7 @@ function renderASTNode(
 		case "link":
 		case "url":
 			return (
-				<Link
+				<MarkdownLink
 					content={renderNodes(node.content) as string}
 					key={key}
 					message={message!}

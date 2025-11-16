@@ -171,6 +171,7 @@ export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
 			<div>
 				<div>
 					<Link
+			      prefetch={false}
 						className="underline-offset-2 hover:underline"
 						href={slugifyThreadUrl({
 							id: data.id,
@@ -182,6 +183,7 @@ export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
 					<div className="text-neutral-500 text-sm">
 						by {authorName} • in{" "}
 						<Link
+				  prefetch={false}
 							className="underline-offset-2 hover:underline"
 							href={`/channel/${parent?.id}`}
 						>

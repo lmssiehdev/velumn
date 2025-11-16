@@ -473,7 +473,7 @@ export function ChannelsSelector({
 		{ type: ChannelType.GuildText, name: "Text Channel", enabled: true },
 	]);
 
-	const { channelsToDisplay, selectedChannels } = useMemo(() => {
+	const channelsToDisplay = useMemo(() => {
 		const channelsToDisplay = channels
 			.filter((c) => {
 				const isTypeEnabled = channelFilterOptions.find(
@@ -490,11 +490,9 @@ export function ChannelsSelector({
 					.includes(searchFilter.toLowerCase());
 			})
 			.sort((a, b) => b.type - a.type);
-		return {
-			channelsToDisplay,
-			selectedChannels: channels.filter((c) => c.enabled).map((c) => c.id),
-		};
+		return channelsToDisplay;
 	}, [searchFilter, channelFilterOptions, channels]);
+
 	return (
 		<>
 			<div className="flex items-center justify-between gap-2">

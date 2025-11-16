@@ -8,7 +8,7 @@ import type { DBMessage } from "@repo/db/schema/discord";
 import { ChannelType } from "discord-api-types/v10";
 import { ChannelIcon } from "./mention";
 
-export function Link({
+export function MarkdownLink({
 	target,
 	content,
 	message,

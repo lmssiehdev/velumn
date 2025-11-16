@@ -6,7 +6,7 @@ import {
 	ChatTeardropIcon,
 	MagnifyingGlassIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client";
 import { useDebounce } from "@uidotdev/usehooks";
 import Link from "next/link";
 import type React from "react";
@@ -41,7 +41,9 @@ export default function SearchModal({
 	serverId: string;
 }) {
 	const [query, setQuery] = useState("");
-	const [results, setResults] = useState<any[]>([]);
+	const [results, setResults] = useState<
+		Awaited<ReturnType<TRPCClient<BotRouter>["search"]["query"]>>["hits"]
+	>([]);
 	const debouncedQuery = useDebounce(query, 300);
 
 	useEffect(() => {
@@ -133,8 +135,8 @@ export default function SearchModal({
 								const contentExist = content !== "";
 								const threadUrl =
 									slugifyThreadUrl({
-										id: threadId,
-										name: title,
+										id: threadId!,
+										name: title!,
 									}) + (isThreadStarter ? "" : `/#${id}`);
 
 								return (
@@ -160,14 +162,14 @@ export default function SearchModal({
 												<div className="space-x-0.5 text-xs text-muted-foreground">
 													<span
 														className="truncate"
-														dangerouslySetInnerHTML={{ __html: channelName }}
+														dangerouslySetInnerHTML={{ __html: channelName! }}
 													/>
 													{contentExist && (
 														<>
 															<CaretRightIcon className="inline-block size-3! shrink-0" />
 															<span
 																className="truncate"
-																dangerouslySetInnerHTML={{ __html: title }}
+																dangerouslySetInnerHTML={{ __html: title! }}
 															/>
 														</>
 													)}
@@ -176,12 +178,14 @@ export default function SearchModal({
 												{contentExist ? (
 													<div className="text-sm leading-relaxed line-clamp-2 ">
 														<span
-															dangerouslySetInnerHTML={{ __html: content }}
+															dangerouslySetInnerHTML={{ __html: content! }}
 														/>
 													</div>
 												) : (
 													<div className="leading-relaxed line-clamp-2 ">
-														<span dangerouslySetInnerHTML={{ __html: title }} />
+														<span
+															dangerouslySetInnerHTML={{ __html: title! }}
+														/>
 													</div>
 												)}
 											</div>
