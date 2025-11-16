@@ -191,7 +191,7 @@ export default async function Page({
 			/>
 			<div>
 				<div className="my-6 px-3">
-					<h1 className="my-2 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
+					<h1 className="my-2 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl truncate">
 						{thread.channelName}
 					</h1>
 					<Link
