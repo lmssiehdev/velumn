@@ -13,7 +13,7 @@ const client = new MeiliSearch({
 
 const index = client.index(MESSAGES_INDEX_NAME);
 
-type SearchMessage = {
+export type SearchMessage = {
 	id: string;
 	title: string;
 	channelName: string;
