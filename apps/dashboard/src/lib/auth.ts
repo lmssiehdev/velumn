@@ -1,3 +1,4 @@
+import { dashboardEnv } from "@/utils/env";
 import { db } from "@repo/db/index";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -33,7 +34,7 @@ export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 	}),
-	trustedOrigins: [process.env.NEXT_PUBLIC_VELUMN_DASHBOARD_URL!],
+	trustedOrigins: [dashboardEnv.NEXT_PUBLIC_VELUMN_DASHBOARD_URL!],
 	plugins: [
 		// polar({
 		// 	client: polarClient,
@@ -83,8 +84,8 @@ export const auth = betterAuth({
 	],
 	socialProviders: {
 		discord: {
-			clientId: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
-			clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+			clientId: dashboardEnv.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+			clientSecret: dashboardEnv.DISCORD_CLIENT_SECRET!,
 			scope: ["identify", "email", "guilds"],
 			disableDefaultScope: true,
 			enabled: true,
