@@ -5,5 +5,5 @@ import type { BetterAuthServer } from "./auth";
 
 export const authClient = createAuthClient({
 	plugins: [polarClient(), inferAdditionalFields<BetterAuthServer>()],
-	baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL!,
+	baseURL: process.env.NEXT_PUBLIC_VELUMN_DASHBOARD_URL!,
 });

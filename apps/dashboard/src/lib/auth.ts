@@ -33,7 +33,7 @@ export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 	}),
-	trustedOrigins: [process.env.NEXT_PUBLIC_BETTER_AUTH_URL!],
+	trustedOrigins: [process.env.NEXT_PUBLIC_VELUMN_DASHBOARD_URL!],
 	plugins: [
 		// polar({
 		// 	client: polarClient,
