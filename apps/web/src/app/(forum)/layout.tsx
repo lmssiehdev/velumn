@@ -2,6 +2,7 @@ import { ChatsCircleIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
 import type { DBServer } from "@repo/db/schema/index";
 import { ChannelType } from "discord-api-types/v10";
 import Link from "next/link";
+import { SearchPortal } from "@/components/search/search-input";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getTopicsInServerCached } from "@/utils/cache";
@@ -67,6 +68,7 @@ export function ServerInfo({ server }: { server?: DBServer }) {
 			>
 				Join Server
 			</a>
+			<SearchPortal serverId={server.id} />
 		</div>
 	);
 }

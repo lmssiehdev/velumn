@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getCurrentUserOrRedirect, getUserServer } from "@/server/user";
 import { Providers } from "../providers";
+import { ServerProvider } from "@/providers/server";
 export default async function RootLayout({
 	children,
 }: Readonly<{
@@ -25,8 +26,15 @@ export default async function RootLayout({
 
 	const server = await getUserServer(user.serverId);
 
+	if ( !server ) {
+  return <div>
+    	Server Not Found
+  	</div>
+	}
+
 	return (
 		<Providers>
+		<ServerProvider server={server}>
 			<SidebarProvider>
 				<AppSidebar servers={[server!]} user={user as AuthUserInsert} />
 				<SidebarInset>
@@ -40,6 +48,7 @@ export default async function RootLayout({
 					</div>
 				</SidebarInset>
 			</SidebarProvider>
+		</ServerProvider>
 		</Providers>
 	);
 }

@@ -3,7 +3,7 @@ import { botEnv } from "../config";
 
 const client = new MeiliSearch({
 	host: botEnv.MEILISEARCH_HOST || "http://127.0.0.1:7700",
-	apiKey: botEnv.MEILISEARCH_API_KEY,
+	apiKey: botEnv.MEILISEARCH_MASTER_KEY,
 });
 
 const index = client.index("discord-messages");

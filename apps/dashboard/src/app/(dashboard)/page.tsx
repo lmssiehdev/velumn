@@ -6,7 +6,7 @@ import { getAllThreads } from "@repo/db/helpers/servers";
 import { emojiToTwemoji } from "@repo/utils/helpers/twemoji";
 import Link from "next/link";
 import ThreadsTable from "@/components/threads-table";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { getCurrentUserOrRedirect } from "@/server/user";
 
 export default async function Page() {
@@ -67,15 +67,14 @@ export default async function Page() {
 								Check Channel Settings
 							</Link>
 						</Button>
-						<Button asChild size="sm" variant="ghost">
 							<a
+					      className={buttonVariants({ size: "sm", variant: "ghost"})}
 								href="https://discord.gg/YOUR_INVITE_CODE"
 								rel="noopener noreferrer"
 								target="_blank"
 							>
 								<DiscordLogoIcon /> Get Help on Discord
 							</a>
-						</Button>
 					</div>
 				</div>
 			</div>

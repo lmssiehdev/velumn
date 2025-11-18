@@ -5,6 +5,7 @@ export const botEnv = createEnv({
 	server: {
 		DISCORD_BOT_TOKEN: z.string().min(1),
 		MEILISEARCH_HOST: z.string().min(1).optional(),
+		MEILISEARCH_MASTER_KEY: z.string().min(1).optional(),
 		MEILISEARCH_API_KEY: z.string().min(1),
 	},
 	runtimeEnv: process.env,

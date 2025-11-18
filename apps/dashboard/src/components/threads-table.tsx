@@ -154,7 +154,7 @@ export const columns: ColumnDef<ThreadWithMetadata>[] = [
 							}}
 						>
 							<ArrowUpRightIcon className="inline-block" />
-							View indexed posts
+							View indexed post
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
