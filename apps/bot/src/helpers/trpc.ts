@@ -1,3 +1,4 @@
+import { apiLogger } from "@repo/logger";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { sapphireClient } from "..";
@@ -57,25 +58,41 @@ export const botRouter = t.router({
 		)
 		.mutation(async ({ input }) => {
 			const { serverId, maxThreads } = input;
+			try {
+				if (!sapphireClient) {
+					throw new TRPCError({
+						code: "SERVICE_UNAVAILABLE",
+						message: "Bot client not initialized",
+					});
+				}
 
-			if (!sapphireClient) {
-				throw new TRPCError({
-					code: "SERVICE_UNAVAILABLE",
-					message: "Bot client not initialized",
+				const guild = await sapphireClient.guilds.fetch(serverId);
+
+				if (!guild) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Guild not found",
+					});
+				}
+
+				indexServer(guild, { maxThreads });
+				return { success: true };
+			} catch (error) {
+				apiLogger.error("index_server_failed", {
+					serverId,
+					error,
 				});
-			}
 
-			const guild = sapphireClient.guilds.cache.get(serverId);
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 
-			if (!guild) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Guild not found",
+					message: "[API] Failed to index server",
+					cause: error,
 				});
 			}
-
-			indexServer(guild, { maxThreads });
-			return { success: true };
 		}),
 });
 

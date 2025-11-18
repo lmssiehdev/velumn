@@ -17,3 +17,11 @@ export const logger = new Logger({
 		}),
 	],
 });
+
+export const botLogger = logger.with({
+	service: "bot",
+});
+
+export const apiLogger = logger.with({
+	service: "api",
+});
