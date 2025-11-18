@@ -78,7 +78,7 @@ async function randomizeServers(allGuilds: Guild[]) {
 	const guilds =
 		process.env.NODE_ENV === "production"
 			? allGuilds
-			: allGuilds.filter((x) => x.id === TEST_GUILDS.T);
+		: allGuilds.filter((x) => Object.values(TEST_GUILDS).includes(x.id));
 
 	try {
 		const serversPlans = await getBulkServers(guilds.map((x) => x.id));

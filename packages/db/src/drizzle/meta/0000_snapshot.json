@@ -1,5 +1,5 @@
 {
-  "id": "9df039cd-71ff-436c-9add-041b21ecf4a8",
+  "id": "aea850a0-1510-45ad-be05-85b7f7251811",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -582,6 +582,21 @@
           "method": "btree",
           "with": {}
         },
+        "channel_type_idx": {
+          "name": "channel_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "channel_parent_id_idx": {
           "name": "channel_parent_id_idx",
           "columns": [
@@ -803,6 +818,13 @@
           "notNull": false,
           "default": "'null'::json"
         },
+        "starter_message": {
+          "name": "starter_message",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "primary_channel_id": {
           "name": "primary_channel_id",
           "type": "bigint",
@@ -973,6 +995,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "icon": {
+          "name": "icon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
         }
       },
       "indexes": {},

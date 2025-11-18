@@ -19,6 +19,7 @@ export const botClient = createTRPCClient<BotRouter>({
 		}),
 	],
 });
+
 export const serverRouter = router({
 	finishOnboarding: privateProcedure
 		.input(

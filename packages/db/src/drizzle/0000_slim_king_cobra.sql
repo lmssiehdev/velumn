@@ -104,6 +104,7 @@ CREATE TABLE "db_message" (
 	"poll" json DEFAULT 'null'::json,
 	"metadata" json DEFAULT 'null'::json,
 	"snapshot" json DEFAULT 'null'::json,
+	"starter_message" boolean DEFAULT false NOT NULL,
 	"primary_channel_id" bigint,
 	"is_ignored" boolean DEFAULT false NOT NULL
 );
@@ -117,7 +118,8 @@ CREATE TABLE "db_server" (
 	"plan" "plan" DEFAULT 'FREE' NOT NULL,
 	"server_invite" text,
 	"invitedBy" text,
-	"anonymize_users" boolean DEFAULT false NOT NULL
+	"anonymize_users" boolean DEFAULT false NOT NULL,
+	"icon" text DEFAULT ''
 );
 --> statement-breakpoint
 CREATE TABLE "thread_backlink" (
@@ -145,6 +147,7 @@ CREATE INDEX "user_email_idx" ON "user" USING btree ("email");--> statement-brea
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");--> statement-breakpoint
 CREATE INDEX "attachment_message_id_idx" ON "attachments" USING btree ("message_id");--> statement-breakpoint
 CREATE INDEX "channel_pinned_idx" ON "db_channel" USING btree ("pinned");--> statement-breakpoint
+CREATE INDEX "channel_type_idx" ON "db_channel" USING btree ("type");--> statement-breakpoint
 CREATE INDEX "channel_parent_id_idx" ON "db_channel" USING btree ("parent_id");--> statement-breakpoint
 CREATE INDEX "channel_server_id_idx" ON "db_channel" USING btree ("server_id");--> statement-breakpoint
 CREATE INDEX "message_author_id_idx" ON "db_message" USING btree ("author_id");--> statement-breakpoint

@@ -1,1 +1,0 @@
-ALTER TABLE "db_server" ADD COLUMN "icon" text DEFAULT '';

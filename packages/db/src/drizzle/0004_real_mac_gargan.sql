@@ -1,1 +1,0 @@
-ALTER TABLE "db_message" DROP COLUMN "starter_message";

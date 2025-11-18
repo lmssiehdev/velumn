@@ -1,12 +1,10 @@
-import { neon } from "@neondatabase/serverless";
+import { sql } from 'drizzle-orm';
 
 async function wipeDatabase() {
 	if (process.env.NODE_ENV === "production") {
 		return;
 	}
 	try {
-		const sql = neon(process.env.DATABASE_URL!);
-
 		await sql`DROP SCHEMA public CASCADE`;
 		await sql`CREATE SCHEMA public`;
 		console.log("Database wiped successfully!");

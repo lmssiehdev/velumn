@@ -1,1 +1,0 @@
-CREATE INDEX "channel_type_idx" ON "db_channel" USING btree ("type");
