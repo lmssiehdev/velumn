@@ -1,14 +1,17 @@
 "use client";
 import {
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { useServer } from "@/providers/server";
-import { ArrowUpRightIcon, DiscordLogoIcon } from "@phosphor-icons/react/dist/ssr";
+	ArrowUpRightIcon,
+	DiscordLogoIcon,
+} from "@phosphor-icons/react/dist/ssr";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import {
+	SidebarGroup,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { useServer } from "@/providers/server";
 
 export function NavProjects({
 	projects,
@@ -19,8 +22,8 @@ export function NavProjects({
 		icon: LucideIcon;
 	}[];
 }) {
-  const {server} = useServer();
-  return (
+	const { server } = useServer();
+	return (
 		<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 			{/* <SidebarGroupLabel>Projects</SidebarGroupLabel> */}
 			<SidebarMenu>
@@ -35,22 +38,22 @@ export function NavProjects({
 					</SidebarMenuItem>
 				))}
 				<SidebarMenuButton asChild>
-				<a
-				  href={`https://velumn.com/server/${server.id}`}
-					rel="noopener noreferrer"
-					target="_blank"
-				>
-					<ArrowUpRightIcon /> View Forum
-				</a>
+					<a
+						href={`https://velumn.com/server/${server.id}`}
+						rel="noopener noreferrer"
+						target="_blank"
+					>
+						<ArrowUpRightIcon /> View Forum
+					</a>
 				</SidebarMenuButton>
 				<SidebarMenuButton asChild>
-				<a
-				  href="https://velumn.com/discord"
-					rel="noopener noreferrer"
-					target="_blank"
-				>
-					<DiscordLogoIcon /> Get Help on Discord
-				</a>
+					<a
+						href="https://velumn.com/discord"
+						rel="noopener noreferrer"
+						target="_blank"
+					>
+						<DiscordLogoIcon /> Get Help on Discord
+					</a>
 				</SidebarMenuButton>
 			</SidebarMenu>
 		</SidebarGroup>

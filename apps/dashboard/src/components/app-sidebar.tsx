@@ -1,20 +1,20 @@
 "use client";
 
-import { NavProjects } from "@/components/nav-projects";
-import { NavUser } from "@/components/nav-user";
-import { ServersSwitcher } from "@/components/team-switcher";
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarRail,
-} from "@/components/ui/sidebar";
 import { HashIcon } from "@phosphor-icons/react/dist/ssr";
 import type { AuthUserInsert } from "@repo/db/schema/auth";
 import type { DBServer } from "@repo/db/schema/discord";
 import { HomeIcon } from "lucide-react";
 import type * as React from "react";
+import { NavProjects } from "@/components/nav-projects";
+import { NavUser } from "@/components/nav-user";
+import { ServersSwitcher } from "@/components/team-switcher";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarHeader,
+	SidebarRail,
+} from "@/components/ui/sidebar";
 
 const data = {
 	projects: [

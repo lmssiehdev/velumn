@@ -67,14 +67,14 @@ export default async function Page() {
 								Check Channel Settings
 							</Link>
 						</Button>
-							<a
-					      className={buttonVariants({ size: "sm", variant: "ghost"})}
-								href="https://discord.gg/YOUR_INVITE_CODE"
-								rel="noopener noreferrer"
-								target="_blank"
-							>
-								<DiscordLogoIcon /> Get Help on Discord
-							</a>
+						<a
+							className={buttonVariants({ size: "sm", variant: "ghost" })}
+							href="https://discord.gg/YOUR_INVITE_CODE"
+							rel="noopener noreferrer"
+							target="_blank"
+						>
+							<DiscordLogoIcon /> Get Help on Discord
+						</a>
 					</div>
 				</div>
 			</div>

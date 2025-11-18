@@ -7,8 +7,8 @@ import { z } from "zod";
 import { parseError } from "@/lib/error";
 import { log } from "@/lib/log";
 import { privateProcedure, router } from "@/server/trpc";
-import type { BotRouter } from "../../../../../bot/src/helpers/trpc"; // Adjust path as needed
 import { dashboardEnv } from "@/utils/env";
+import type { BotRouter } from "../../../../../bot/src/helpers/trpc"; // Adjust path as needed
 
 export const botClient = createTRPCClient<BotRouter>({
 	links: [

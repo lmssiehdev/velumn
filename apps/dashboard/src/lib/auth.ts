@@ -1,8 +1,8 @@
-import { dashboardEnv } from "@/utils/env";
 import { db } from "@repo/db/index";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { dashboardEnv } from "@/utils/env";
 
 // const polarClient = new Polar({
 // 	accessToken: process.env.POLAR_ACCESS_TOKEN,
