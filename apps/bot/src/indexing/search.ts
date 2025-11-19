@@ -60,7 +60,7 @@ export async function searchMessages(options: {
 }) {
 	const { serverId, query, limit = 15 } = options;
 	const results = await index.search<SearchMessage>(query, {
-		filter: `serverId = ${serverId}`,
+		filter: `serverId = "${serverId}"`,
 		matchingStrategy: "frequency",
 		limit,
 		attributesToHighlight: ["content", "title"],
