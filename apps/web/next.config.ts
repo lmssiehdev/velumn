@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
 			},
 		];
 	},
+	productionBrowserSourceMaps: true,
 	transpilePackages: ["db", "utils"],
 	typescript: {
 		ignoreBuildErrors: true,
