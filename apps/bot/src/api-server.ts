@@ -1,7 +1,9 @@
 import { trpcServer } from "@hono/trpc-server";
 import { zValidator } from "@hono/zod-validator";
+import { apiLogger } from "@repo/logger";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { logger } from "hono/logger";
 import type z from "zod";
 import { botRouter } from "./helpers/trpc";
 
@@ -20,7 +22,15 @@ export function validateParams<Schema extends z.ZodSchema>(
 		}
 	});
 }
+
+export const customLogger = (message: string, ...rest: string[]) => {
+	apiLogger.info(`[API] ${message}`, {
+		...rest,
+	});
+};
+
 export const BotApi = new Hono()
+	.use(logger(customLogger))
 	.use(
 		"/*",
 		cors({
