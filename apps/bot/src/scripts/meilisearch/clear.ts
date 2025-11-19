@@ -1,6 +1,6 @@
 import { MeiliSearch } from "meilisearch";
-import { botEnv } from "../config";
-import { MESSAGES_INDEX_NAME } from "../constants";
+import { botEnv } from "../../config";
+import { MESSAGES_INDEX_NAME } from "../../constants";
 
 const client = new MeiliSearch({
 	host: botEnv.MEILISEARCH_HOST || "http://127.0.0.1:7700",

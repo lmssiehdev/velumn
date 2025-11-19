@@ -1,5 +1,5 @@
 import { MeiliSearch } from "meilisearch";
-import { botEnv } from "../config";
+import { botEnv } from "../../config";
 
 const client = new MeiliSearch({
 	host: botEnv.MEILISEARCH_HOST || "http://127.0.0.1:7700",
