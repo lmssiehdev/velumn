@@ -3,7 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { sapphireClient } from "..";
 import { botEnv } from "../config";
-import { searchMessages } from "../indexing/search";
+import { client, searchMessages } from "../indexing/search";
 import { indexServer } from "../indexing/server";
 
 interface Context {
@@ -28,6 +28,27 @@ const protectedProcedure = t.procedure.use(isAuthenticated);
 export const botRouter = t.router({
 	health: protectedProcedure.query(() => {
 		return "OK";
+	}),
+	meiliHealth: protectedProcedure.query(async () => {
+		try {
+			const health = await client.health();
+			const version = await client.getVersion();
+			const index = client.index("discord-messages");
+			const stats = await index.getStats();
+			return {
+				health: health.status,
+				version: version.pkgVersion,
+				numberOfDocuments: stats.numberOfDocuments,
+				isIndexing: stats.isIndexing,
+			};
+		} catch (error) {
+			apiLogger.error("meiliHealth_failed", { error });
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to check MeiliSearch health",
+				cause: error,
+			});
+		}
 	}),
 	search: publicProcedure
 		.input(

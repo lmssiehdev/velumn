@@ -1,4 +1,5 @@
 import type { DBMessageWithRelations } from "@repo/db/schema/discord";
+import { botLogger } from "@repo/logger";
 import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake";
 import type { PublicThreadChannel } from "discord.js";
 import DOMPurify from "isomorphic-dompurify";
@@ -6,7 +7,7 @@ import { MeiliSearch } from "meilisearch";
 import { botEnv } from "../config";
 import { MESSAGES_INDEX_NAME } from "../constants";
 
-const client = new MeiliSearch({
+export const client = new MeiliSearch({
 	host: botEnv.MEILISEARCH_HOST || "http://127.0.0.1:7700",
 	apiKey: botEnv.MEILISEARCH_API_KEY,
 });
@@ -28,17 +29,26 @@ export function insertBulkSearchMessages(
 	thread: PublicThreadChannel,
 	messages: DBMessageWithRelations[],
 ) {
-	const convertedMessages = messages.map((m) => ({
-		id: m.id,
-		title: thread.name,
-		channelName: thread.parent?.name,
-		content: m.cleanContent,
-		serverId: thread.guild.id,
-		threadId: m.channelId,
-		isThreadStarter: m.starterMessage,
-		timestamp: getDateFromSnowflake(m.id).getTime(),
-	}));
-	index.addDocuments(convertedMessages, { primaryKey: "id" });
+	try {
+		const convertedMessages = messages.map((m) => ({
+			id: m.id,
+			title: thread.name,
+			channelName: thread.parent?.name,
+			content: m.cleanContent,
+			serverId: thread.guild.id,
+			threadId: m.channelId,
+			isThreadStarter: m.starterMessage,
+			timestamp: getDateFromSnowflake(m.id).getTime(),
+		}));
+		index.addDocuments(convertedMessages, { primaryKey: "id" });
+	} catch (error) {
+		botLogger.error("failed_to_insert_search_messages", {
+			threadId: thread.id,
+			messageIds: messages.map((m) => m.id),
+			error,
+		});
+		return;
+	}
 	return;
 }
 
