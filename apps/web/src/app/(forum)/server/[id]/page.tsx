@@ -5,10 +5,10 @@ import {
 	PushPinIcon,
 } from "@phosphor-icons/react/ssr";
 import type { getAllThreads } from "@repo/db/helpers/servers";
+import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { slugifyThreadUrl } from "@/lib/slugify";
 import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
 import { FrontPageSidebar } from "../../layout";
 import { anonymizeName } from "../../thread/[...id]/page";

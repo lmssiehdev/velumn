@@ -1,12 +1,12 @@
 import type { DBMessageWithRelations } from "@repo/db/schema/discord";
 import { botLogger } from "@repo/logger";
+import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake";
 import type { PublicThreadChannel } from "discord.js";
 import DOMPurify from "isomorphic-dompurify";
 import { MeiliSearch } from "meilisearch";
 import { botEnv } from "../config";
 import { MESSAGES_INDEX_NAME } from "../constants";
-
 export const client = new MeiliSearch({
 	host: botEnv.MEILISEARCH_HOST || "http://127.0.0.1:7700",
 	apiKey: botEnv.MEILISEARCH_API_KEY,
@@ -80,6 +80,11 @@ export async function searchMessages(options: {
 		})
 		.map((hit) => ({
 			...hit._formatted,
+			threadUrl:
+				slugifyThreadUrl({
+					id: hit.threadId!,
+					name: hit.title!,
+				}) + (hit.isThreadStarter ? "" : `/#${hit.id}`),
 			sanitizedName: sanitize(hit._formatted?.title),
 			sanitizedContent: sanitize(hit._formatted?.content),
 		}))

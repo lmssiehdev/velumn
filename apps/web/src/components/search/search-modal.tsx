@@ -19,8 +19,6 @@ import {
 	CommandItem,
 	CommandList,
 } from "@/components/ui/command";
-// TODO: move this to the server to avoid importing it on the client
-import { slugifyThreadUrl } from "@/lib/slugify";
 import type { BotRouter } from "../../../../bot/src/helpers/trpc";
 
 const botClient = createTRPCClient<BotRouter>({
@@ -124,21 +122,8 @@ export default function SearchModal({
 						</div>
 						<CommandGroup className="p-0!">
 							{results?.map((hit) => {
-								const {
-									threadId,
-									content,
-									title,
-									channelName,
-									isThreadStarter,
-									id,
-								} = hit;
+								const { content, title, channelName, threadUrl } = hit;
 								const contentExist = content !== "";
-								const threadUrl =
-									slugifyThreadUrl({
-										id: threadId!,
-										name: title!,
-									}) + (isThreadStarter ? "" : `/#${id}`);
-
 								return (
 									<Link
 										onClick={() => {

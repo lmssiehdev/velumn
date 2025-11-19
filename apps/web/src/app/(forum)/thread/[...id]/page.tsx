@@ -10,6 +10,10 @@ import type { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import type { DBUser } from "@repo/db/schema/discord";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
 import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
+import {
+	getSlugFromTitle,
+	slugifyThreadUrl,
+} from "@repo/utils/helpers/slugify";
 import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import { ChannelType } from "discord-api-types/v10";
@@ -29,7 +33,6 @@ import {
 	DiscordUIMessage,
 } from "@/components/markdown/renderer";
 import { DiscordIcon } from "@/components/misc";
-import { SearchPortal } from "@/components/search/search-input";
 import ThreadFeedback from "@/components/thread-feedback";
 import { Button } from "@/components/ui/button";
 import { rainbowButtonVariants } from "@/components/ui/rainbow-button";
@@ -38,7 +41,6 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getSlugFromTitle, slugifyThreadUrl } from "@/lib/slugify";
 import { cn } from "@/lib/utils";
 import { getAllMessagesInThreadsCache } from "@/utils/cache";
 import { sanitizeJsonLd } from "@/utils/sanitize";

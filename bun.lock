@@ -200,6 +200,7 @@
         "@t3-oss/env-core": "^0.13.8",
         "@t3-oss/env-nextjs": "^0.13.8",
         "dayjs": "^1.11.18",
+        "slugify": "^1.6.6",
         "zod": "^4.1.5",
       },
       "devDependencies": {
