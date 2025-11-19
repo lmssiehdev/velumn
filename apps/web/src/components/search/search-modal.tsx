@@ -130,7 +130,7 @@ export default function SearchModal({
 											toggleOpen(false);
 										}}
 										key={hit.id}
-										href={threadUrl}
+										href={threadUrl ?? "#"}
 										prefetch={false}
 										className="block mx-2 my-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md [&_mark]:bg-primary/10 [&_mark]:text-purple-500 [&_mark]:font-semibold [&_mark]:px-0.5 [&_mark]:rounded"
 									>
