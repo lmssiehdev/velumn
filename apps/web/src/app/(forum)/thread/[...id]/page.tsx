@@ -274,7 +274,6 @@ export default async function Page({
 					/>
 				</div>
 				<div className="hidden w-full max-w-xs space-y-6 md:block">
-					<SearchPortal serverId={server.id} />
 					<ServerInfo server={server} />
 					<ThreadFeedback />
 				</div>
