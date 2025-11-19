@@ -40,7 +40,7 @@ export const serverRouter = router({
 					throw new Error("Server ID not found");
 				}
 				await setBulkIndexingStatus(channels);
-				botClient.indexServer.mutate({ serverId: result.serverId });
+				await botClient.indexServer.mutate({ serverId: result.serverId });
 				return { success: true };
 			} catch (err) {
 				log.error("finish_onboarrding_failed", { err: parseError(err) });
