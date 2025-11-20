@@ -2,6 +2,17 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../index";
 import { type DBChannel, dbChannel } from "../schema";
 
+export async function updateVote(
+	threadId: string,
+	type: "upvote" | "downvote",
+) {
+	const field = type === "upvote" ? dbChannel.upvotes : dbChannel.downvotes;
+	return await db
+		.update(dbChannel)
+		.set({ [field.name]: sql`${dbChannel.upvotes} + 1` })
+		.where(eq(dbChannel.id, threadId));
+}
+
 export async function setBulkIndexingStatus(
 	channels: { channelId: string; status: boolean }[],
 ) {

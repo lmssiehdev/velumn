@@ -70,7 +70,6 @@ export async function searchMessages(options: {
 
 	const threadCounts = new Map<string, number>();
 	const filteredHits = results.hits
-
 		.filter((hit) => {
 			const count = threadCounts.get(hit.threadId) || 0;
 			if (count >= MAX_RESULTS_PER_THREAD) return false;

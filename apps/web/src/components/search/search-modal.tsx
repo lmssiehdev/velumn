@@ -19,15 +19,8 @@ import {
 	CommandItem,
 	CommandList,
 } from "@/components/ui/command";
+import { botClient } from "@/utils/trpc-client";
 import type { BotRouter } from "../../../../bot/src/helpers/trpc";
-
-const botClient = createTRPCClient<BotRouter>({
-	links: [
-		httpBatchLink({
-			url: `${process.env.NEXT_PUBLIC_VELUMN_API_URL}/trpc`,
-		}),
-	],
-});
 
 export default function SearchModal({
 	open,

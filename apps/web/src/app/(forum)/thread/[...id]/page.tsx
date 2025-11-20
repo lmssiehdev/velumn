@@ -277,7 +277,7 @@ export default async function Page({
 				</div>
 				<div className="hidden w-full max-w-xs space-y-6 md:block">
 					<ServerInfo server={server} />
-					<ThreadFeedback />
+					<ThreadFeedback threadId={thread.id} />
 				</div>
 			</div>
 		</div>

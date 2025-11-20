@@ -24,3 +24,14 @@ services:
       - ./dump/meili_data:/meili_data
     restart: unless-stopped
     command: meilisearch --schedule-snapshot --snapshot-dir=/meili_data/snapshots
+
+  redis:
+    image: redis:7-alpine
+    container_name: turborepo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./dump/redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+

@@ -19,6 +19,7 @@ import type {
 	MessageMetadataSchema,
 	PollSchema,
 } from "../helpers/validation";
+
 export const snowflake = customType<{
 	data: string;
 }>({
@@ -88,6 +89,9 @@ export const dbChannel = pgTable(
 		pinned: boolean("pinned").default(false).notNull(),
 
 		indexingEnabled: boolean("indexing_enabled").default(false).notNull(),
+
+		upvotes: integer("upvotes").default(0).notNull(),
+		downvotes: integer("downvotes").default(0).notNull(),
 	},
 	(table) => [
 		index("channel_pinned_idx").on(table.pinned),

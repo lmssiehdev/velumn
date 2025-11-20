@@ -1,13 +1,17 @@
+import { updateVote } from "@repo/db/helpers/channels";
 import { apiLogger } from "@repo/logger";
 import { initTRPC, TRPCError } from "@trpc/server";
+import type { GetConnInfo } from "hono/conninfo";
 import { z } from "zod";
 import { sapphireClient } from "..";
 import { botEnv } from "../config";
 import { client, searchMessages } from "../indexing/search";
 import { indexServer } from "../indexing/server";
+import { isRateLimited, trackVote } from "./rate-limit";
 
 interface Context {
 	secret?: string;
+	ip?: string;
 }
 
 const t = initTRPC.context<Context>().create();
@@ -29,7 +33,7 @@ export const botRouter = t.router({
 	health: protectedProcedure.query(() => {
 		return "OK";
 	}),
-	meiliHealth: protectedProcedure.query(async () => {
+	meiliHealth: protectedProcedure.query(async ({ ctx }) => {
 		try {
 			const health = await client.health();
 			const version = await client.getVersion();
@@ -40,6 +44,7 @@ export const botRouter = t.router({
 				version: version.pkgVersion,
 				numberOfDocuments: stats.numberOfDocuments,
 				isIndexing: stats.isIndexing,
+				ip: ctx.ip,
 			};
 		} catch (error) {
 			apiLogger.error("meiliHealth_failed", { error });
@@ -112,6 +117,50 @@ export const botRouter = t.router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "[API] Failed to index server",
 					cause: error,
+				});
+			}
+		}),
+	returnIp: protectedProcedure.query(async ({ ctx }) => {
+		return { ip: ctx.ip };
+	}),
+	updateVote: publicProcedure
+		.input(
+			z.object({
+				threadId: z.string(),
+				type: z.enum(["upvote", "downvote"]),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { threadId } = input;
+			const ip = ctx.ip;
+
+			if (await isRateLimited(threadId, ip)) {
+				apiLogger.info("rate_limited_ip", { threadId, ip: ip });
+				throw new TRPCError({
+					code: "TOO_MANY_REQUESTS",
+					message: "You're voting too quickly. Please slow down.",
+				});
+			}
+			try {
+				const result = await updateVote(threadId, input.type);
+				if (result.rowCount === 0) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Thread not found",
+					});
+				}
+
+				await trackVote(threadId, ip);
+				return { success: true };
+			} catch (error) {
+				apiLogger.error("vote_on_thread_failed", {
+					error,
+					ip,
+					...input,
+				});
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to vote on thread",
 				});
 			}
 		}),
