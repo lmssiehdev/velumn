@@ -1,6 +1,7 @@
 import { updateVote } from "@repo/db/helpers/channels";
 import { apiLogger } from "@repo/logger";
 import { initTRPC, TRPCError } from "@trpc/server";
+import { redis } from "bun";
 import type { GetConnInfo } from "hono/conninfo";
 import { z } from "zod";
 import { sapphireClient } from "..";
@@ -32,6 +33,10 @@ const protectedProcedure = t.procedure.use(isAuthenticated);
 export const botRouter = t.router({
 	health: protectedProcedure.query(() => {
 		return "OK";
+	}),
+	clear: publicProcedure.query(async ({ ctx }) => {
+		const keys = await redis.keys("*");
+		return { keys };
 	}),
 	meiliHealth: protectedProcedure.query(async ({ ctx }) => {
 		try {
@@ -120,9 +125,6 @@ export const botRouter = t.router({
 				});
 			}
 		}),
-	returnIp: protectedProcedure.query(async ({ ctx }) => {
-		return { ip: ctx.ip };
-	}),
 	updateVote: publicProcedure
 		.input(
 			z.object({

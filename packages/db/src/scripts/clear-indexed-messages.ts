@@ -3,11 +3,13 @@ import * as schema from "../schema";
 
 async function clearDbMessages() {
 	try {
-		await db.update(schema.dbChannel).set({
-			lastIndexedMessageId: null,
-		});
-
-		const tables = [schema.dbAttachments, schema.dbMessage];
+		const tables = [
+			schema.dbInternalMessageLink,
+			schema.dbThreadBacklink,
+			schema.dbAttachments,
+			schema.dbChannel,
+			schema.dbMessage,
+		];
 
 		for (const table of tables) {
 			await db.delete(table);

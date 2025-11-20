@@ -58,6 +58,8 @@ export async function toDbChannel(
 		// archived: channel.isThread() && (channel.archived ?? false),
 		indexingEnabled: false,
 		pinned: channel.isThread() && channel.flags.has(ChannelFlags.Pinned),
+		downvotes: 0,
+		upvotes: 0,
 	};
 
 	return convertedChannel;
@@ -143,7 +145,7 @@ async function toDbInternalLink(message: Message | MessageSnapshot) {
 						parent: {
 							name: channel.parent?.name,
 							type: channel.parent?.type,
-							parentId: channel.parentId ?? undefined,
+							id: channel.parent?.id ?? undefined,
 						},
 						id: channel.id,
 						type: channel.type,
