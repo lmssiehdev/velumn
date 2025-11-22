@@ -1,0 +1,68 @@
+{
+	"$schema": "https://mintlify.com/docs.json",
+	"theme": "mint",
+	"name": "Velumn Docs",
+	"colors": {
+		"primary": "#a855f7",
+		"light": "#07C983",
+		"dark": "#15803D"
+	},
+	"favicon": "/favicon.ico",
+	"navigation": {
+		"tabs": [
+			{
+				"tab": "Guides",
+				"groups": [
+					{
+						"group": "Getting started",
+						"pages": ["index", "development", "troubleshooting", "privacy"]
+					}
+				]
+			},
+			{
+				"tab": "API reference",
+				"groups": []
+			}
+		],
+		"global": {
+			"anchors": [
+				{
+					"anchor": "Documentation",
+					"href": "https://mintlify.com/docs",
+					"icon": "book-open-cover"
+				},
+				{
+					"anchor": "Discord",
+					"href": "https://velumn.com/discord",
+					"icon": "discord"
+				}
+			]
+		}
+	},
+	"logo": "Velumn-",
+	"navbar": {
+		"primary": {
+			"type": "button",
+			"label": "Website",
+			"href": "https://velumn.com"
+		}
+	},
+	"contextual": {
+		"options": [
+			"copy",
+			"view",
+			"chatgpt",
+			"claude",
+			"perplexity",
+			"mcp",
+			"cursor",
+			"vscode"
+		]
+	},
+	"footer": {
+		"socials": {
+			"github": "https://github.com/lmssiehdev/velumn",
+			"discord": "https://velumn.com/discord"
+		}
+	}
+}
