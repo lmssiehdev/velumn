@@ -2,7 +2,6 @@ import { updateVote } from "@repo/db/helpers/channels";
 import { apiLogger } from "@repo/logger";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { redis } from "bun";
-import type { GetConnInfo } from "hono/conninfo";
 import { z } from "zod";
 import { sapphireClient } from "..";
 import { botEnv } from "../config";

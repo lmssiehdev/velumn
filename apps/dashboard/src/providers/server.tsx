@@ -20,7 +20,7 @@ export function ServerProvider({
 	children: React.ReactNode;
 	server: DBServer;
 }) {
-	const value = useMemo(() => ({ server }), [server.id]);
+	const value = useMemo(() => ({ server }), [server.id, server]);
 
 	return (
 		<ServerContext.Provider value={value}>{children}</ServerContext.Provider>

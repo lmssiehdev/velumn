@@ -145,7 +145,7 @@ async function toDbInternalLink(message: Message | MessageSnapshot) {
 						parent: {
 							name: channel.parent?.name,
 							type: channel.parent?.type,
-							id: channel.parent?.id ?? undefined,
+							parentId: channel.parent?.id,
 						},
 						id: channel.id,
 						type: channel.type,

@@ -6,7 +6,7 @@ import {
 	ChatTeardropIcon,
 	MagnifyingGlassIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client";
+import type { TRPCClient } from "@trpc/client";
 import { useDebounce } from "@uidotdev/usehooks";
 import Link from "next/link";
 import type React from "react";
