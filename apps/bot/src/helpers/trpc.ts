@@ -83,7 +83,7 @@ export const botRouter = t.router({
 		.input(
 			z.object({
 				serverId: z.string(),
-				maxThreads: z.number().max(30).catch(15),
+				maxThreads: z.number().max(30).default(15),
 			}),
 		)
 		.mutation(async ({ input }) => {
