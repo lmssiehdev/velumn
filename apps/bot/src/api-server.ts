@@ -57,6 +57,6 @@ export const BotApi = new Hono()
 	});
 
 BotApi.onError((err, c) => {
-	console.log({ apiError: err });
+	apiLogger.error("api_error", { error: err });
 	return c.json({ success: false, error: err.message }, 500);
 });

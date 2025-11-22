@@ -320,6 +320,7 @@ function GuildListItem({ guild }: { guild: Guild }) {
 	const initials = guild.name
 		.split(" ")
 		.map((x) => x[0])
+		.splice(0, 2)
 		.join("");
 	return (
 		<div className="flex items-center justify-between gap-2 rounded p-4 transition-all hover:bg-accent">
