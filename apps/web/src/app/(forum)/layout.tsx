@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 					<div id="search-box"></div>
 				</div>
 			</div>
-			<div className="mx-auto w-full max-w-5xl flex-1 py-2 pb-10">
+			<div className="mx-auto w-full max-w-5xl flex-1 py-2 pb-10 px-2">
 				{children}
 			</div>
 			<div className="mt-auto border-neutral-300 border-x border-t">
