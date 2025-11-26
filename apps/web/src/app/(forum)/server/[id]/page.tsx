@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
 import { FrontPageSidebar } from "../../layout";
-import { anonymizeName } from "../../thread/[...id]/page";
+import { anonymizeName } from "../../thread/[...id]/_components/thread-message";
 
 export async function generateMetadata({
 	params,
