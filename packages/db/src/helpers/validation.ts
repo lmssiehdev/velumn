@@ -1,10 +1,47 @@
-import { EmbedType, PollLayoutType } from "discord-api-types/v10";
+import {
+	ButtonStyle,
+	ComponentType,
+	EmbedType,
+	PollLayoutType,
+} from "discord-api-types/v10";
 import z from "zod";
 import {
 	collectionToArray,
 	collectionToRecord,
 	removeUndefinedValues,
 } from "../utils/zod";
+
+const partialEmojiSchema = z
+	.object({
+		id: z.string().nullable(),
+		name: z.string(),
+		animated: z.boolean().catch(false),
+	})
+	.nullable();
+
+//
+// Rows Schema
+//
+export const rowsSchema = z.object({
+	type: z.literal(ComponentType.ActionRow),
+	components: z
+		.array(z.object({ type: z.number() }))
+		.transform((components) =>
+			components.filter((c) => c.type === ComponentType.Button),
+		)
+		.pipe(
+			z.array(
+				z.object({
+					type: z.literal(ComponentType.Button),
+					style: z.enum(ButtonStyle),
+					label: z.string(),
+					emoji: partialEmojiSchema,
+				}),
+			),
+		),
+});
+
+export type RowsSchema = z.infer<typeof rowsSchema>;
 
 //
 // Metadata Schema
@@ -61,13 +98,7 @@ export const messageMetadataSchema = z
 const answerSchema = z.object({
 	text: z.string(),
 	voteCount: z.number(),
-	emoji: z
-		.object({
-			id: z.string().nullable(),
-			name: z.string(),
-			animated: z.boolean().catch(false),
-		})
-		.nullable(),
+	emoji: partialEmojiSchema,
 });
 export const pollSchema = z.object({
 	question: z

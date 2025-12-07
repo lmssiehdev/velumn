@@ -1,6 +1,6 @@
 {
-  "id": "f8dfb8ca-1ccb-4c8a-b99a-767c1a5aac9f",
-  "prevId": "b5f428b3-6c55-4e0d-9644-d47c5d9482ec",
+  "id": "f7ae26b1-9bd8-4e7f-8ba4-05844d92c2e6",
+  "prevId": "5767644e-20c2-45cd-b241-d67cb956bae7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -820,6 +820,13 @@
         },
         "metadata": {
           "name": "metadata",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'null'::json"
+        },
+        "components": {
+          "name": "components",
           "type": "json",
           "primaryKey": false,
           "notNull": false,

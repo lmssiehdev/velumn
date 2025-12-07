@@ -1,5 +1,5 @@
 {
-  "id": "b5f428b3-6c55-4e0d-9644-d47c5d9482ec",
+  "id": "5767644e-20c2-45cd-b241-d67cb956bae7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -564,6 +564,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "upvotes": {
+          "name": "upvotes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "downvotes": {
+          "name": "downvotes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         }
       },
       "indexes": {

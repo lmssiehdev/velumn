@@ -73,7 +73,9 @@ CREATE TABLE "db_channel" (
 	"last_indexed_message_id" bigint,
 	"type" integer NOT NULL,
 	"pinned" boolean DEFAULT false NOT NULL,
-	"indexing_enabled" boolean DEFAULT false NOT NULL
+	"indexing_enabled" boolean DEFAULT false NOT NULL,
+	"upvotes" integer DEFAULT 0 NOT NULL,
+	"downvotes" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "db_user" (

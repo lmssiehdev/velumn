@@ -6,6 +6,7 @@ import { ChannelType } from "discord.js";
 import { z } from "zod";
 import { sapphireClient } from "..";
 import { botEnv } from "../config";
+import { indexChannel } from "../indexing/channel";
 import { client, searchMessages } from "../indexing/search";
 import { indexServer } from "../indexing/server";
 import { isRateLimited, trackVote } from "./rate-limit";
@@ -38,6 +39,50 @@ export const botRouter = t.router({
 		const keys = await redis.keys("*");
 		return { keys };
 	}),
+	reindexThread: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string(),
+				channelId: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				if (!sapphireClient) {
+					throw new TRPCError({
+						code: "SERVICE_UNAVAILABLE",
+						message: "Bot client not initialized",
+					});
+				}
+
+				const guild = await sapphireClient.guilds.fetch(input.serverId);
+				if (!guild) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Guild not found",
+					});
+				}
+
+				const channel = await guild.channels.fetch(input.channelId);
+				if (!channel) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Channel doesn't exist",
+					});
+				}
+
+				// @ts-expect-error we filter inside the function
+				await indexChannel(channel);
+				return { success: true };
+			} catch (error) {
+				apiLogger.error("reindexThread_failed", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to reindex thread",
+					cause: error,
+				});
+			}
+		}),
 	getRawMessageData: protectedProcedure
 		.input(
 			z.object({

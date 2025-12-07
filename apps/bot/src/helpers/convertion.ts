@@ -5,6 +5,8 @@ import {
 	type MessageMetadataSchema,
 	messageMetadataSchema,
 	pollSchema,
+	type RowsSchema,
+	rowsSchema,
 	snapShotSchema,
 } from "@repo/db/helpers/validation";
 import type {
@@ -18,6 +20,7 @@ import type {
 import {
 	ChannelFlags,
 	ChannelType,
+	ComponentType,
 	type Emoji,
 	type Guild,
 	type GuildBasedChannel,
@@ -216,6 +219,31 @@ function toDbReactions(message: Message): DBMessage["reactions"] {
 	return dbReactions;
 }
 
+export function toDbActionRows(message: Message): DBMessage["components"] {
+	if (!message.components?.length) {
+		return null;
+	}
+
+	const rowsData: RowsSchema[] = [];
+
+	for (const component of message.components) {
+		if (component.type !== ComponentType.ActionRow) {
+			continue;
+		}
+
+		const parsedData = rowsSchema.safeParse(component);
+
+		if (!parsedData.success) {
+			console.warn("Failed to parse row:", parsedData.error);
+			continue;
+		}
+
+		rowsData.push(parsedData.data);
+	}
+
+	return rowsData.length ? rowsData : null;
+}
+
 export async function toDBMessage(
 	message: Message,
 ): Promise<DBMessageWithRelations> {
@@ -264,6 +292,7 @@ export async function toDBMessage(
 		starterMessage:
 			message.type === MessageType.ThreadStarterMessage ||
 			fullMessage.channel.id === fullMessage.id,
+		components: toDbActionRows(fullMessage),
 	};
 	return convertedMessage;
 }
