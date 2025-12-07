@@ -2,6 +2,7 @@ import { updateVote } from "@repo/db/helpers/channels";
 import { apiLogger } from "@repo/logger";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { redis } from "bun";
+import { ChannelType } from "discord.js";
 import { z } from "zod";
 import { sapphireClient } from "..";
 import { botEnv } from "../config";
@@ -37,6 +38,58 @@ export const botRouter = t.router({
 		const keys = await redis.keys("*");
 		return { keys };
 	}),
+	getRawMessageData: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string(),
+				channelId: z.string(),
+				messageId: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				if (!sapphireClient) {
+					throw new TRPCError({
+						code: "SERVICE_UNAVAILABLE",
+						message: "Bot client not initialized",
+					});
+				}
+				const guild = await sapphireClient.guilds.fetch(input.serverId);
+				if (!guild) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Guild not found",
+					});
+				}
+				const channel = await guild.channels.fetch(input.channelId);
+				if (!channel || channel.type !== ChannelType.PublicThread) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Channel is not a thread",
+					});
+				}
+				const message = await channel.messages.fetch(input.messageId);
+				if (!message) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Message not found",
+					});
+				}
+				return {
+					content: message.content,
+					embeds: message.embeds.map((e) => e.toJSON()),
+					attachments: message.attachments.map((a) => a.url),
+					rows: message.components.map((c) => c.toJSON()),
+				};
+			} catch (error) {
+				apiLogger.error("getRawMessageData_failed", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to get raw message data",
+					cause: error,
+				});
+			}
+		}),
 	meiliHealth: protectedProcedure.query(async ({ ctx }) => {
 		try {
 			const health = await client.health();
