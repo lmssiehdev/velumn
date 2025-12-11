@@ -6,7 +6,7 @@ import { ChannelType } from "discord.js";
 import { z } from "zod";
 import { sapphireClient } from "..";
 import { botEnv } from "../config";
-import { indexChannel } from "../indexing/channel";
+import { indexThread } from "../indexing/channel";
 import { client, searchMessages } from "../indexing/search";
 import { indexServer } from "../indexing/server";
 import { isRateLimited, trackVote } from "./rate-limit";
@@ -72,7 +72,9 @@ export const botRouter = t.router({
 				}
 
 				// @ts-expect-error we filter inside the function
-				await indexChannel(channel);
+				await indexThread(channel, {
+					fromMessageId: 0,
+				});
 				return { success: true };
 			} catch (error) {
 				apiLogger.error("reindexThread_failed", { error });

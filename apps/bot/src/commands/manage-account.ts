@@ -40,8 +40,10 @@ const BUTTON_IDS = {
 	DELETE_ALL: "DELETE_ALL",
 } as const;
 
-const _idHintsProd = ['"1434079887534198855"'];
-const idHints = ["1421588952359370843"];
+const idHints =
+	process.env.NODE_ENV === "development"
+		? ["1421588952359370843"]
+		: ["1434079887534198855"];
 
 @ApplyOptions<Command.Options>({
 	name: "manage-account",

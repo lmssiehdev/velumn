@@ -33,6 +33,7 @@ export async function indexChannel(channel: IndexableChannels) {
 		channel.type !== ChannelType.GuildText &&
 		channel.type !== ChannelType.GuildAnnouncement
 	) {
+		console.log("Skipping channel");
 		return;
 	}
 
@@ -42,6 +43,7 @@ export async function indexChannel(channel: IndexableChannels) {
 	}
 
 	if (channel.nsfw || !channel.viewable) {
+		console.log("NSFW or not viewable", channel.name);
 		return;
 	}
 

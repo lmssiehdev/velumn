@@ -1,5 +1,4 @@
 import {
-	ButtonStyle,
 	ComponentType,
 	EmbedType,
 	PollLayoutType,
@@ -13,8 +12,8 @@ import {
 
 const partialEmojiSchema = z
 	.object({
-		id: z.string().nullable(),
-		name: z.string(),
+		id: z.string().nullable().optional(),
+		name: z.string().nullable().optional(),
 		animated: z.boolean().catch(false),
 	})
 	.nullable();
@@ -24,21 +23,15 @@ const partialEmojiSchema = z
 //
 export const rowsSchema = z.object({
 	type: z.literal(ComponentType.ActionRow),
-	components: z
-		.array(z.object({ type: z.number() }))
-		.transform((components) =>
-			components.filter((c) => c.type === ComponentType.Button),
-		)
-		.pipe(
-			z.array(
-				z.object({
-					type: z.literal(ComponentType.Button),
-					style: z.enum(ButtonStyle),
-					label: z.string(),
-					emoji: partialEmojiSchema,
-				}),
-			),
-		),
+	components: z.array(
+		z.object({
+			type: z.literal(ComponentType.Button),
+			style: z.number(),
+			disabled: z.boolean().default(false),
+			label: z.string().nullable(),
+			emoji: partialEmojiSchema,
+		}),
+	),
 });
 
 export type RowsSchema = z.infer<typeof rowsSchema>;
@@ -204,6 +197,7 @@ export const snapShotSchema = z.object({
 	createdTimestamp: z.number(),
 	editedTimestamp: z.number().nullable(),
 	attachments: collectionToArray(dbAttachmentsSchema),
+	components: z.array(rowsSchema),
 	embeds: z
 		.array(
 			z
