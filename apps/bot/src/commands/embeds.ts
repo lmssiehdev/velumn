@@ -21,13 +21,16 @@ const testGuild = "1385955477912948806";
 })
 export class ManageAccount extends Command {
 	override registerApplicationCommands(registry: Command.Registry) {
-		registry.registerChatInputCommand(
-			(builder) => builder.setName(this.name).setDescription(this.description),
-			{
-				idHints,
-				guildIds: [testGuild],
-			},
-		);
+		if (process.env.NODE_ENV === "development") {
+			registry.registerChatInputCommand(
+				(builder) =>
+					builder.setName(this.name).setDescription(this.description),
+				{
+					idHints,
+					guildIds: [testGuild],
+				},
+			);
+		}
 	}
 
 	override async chatInputRun(
@@ -102,7 +105,7 @@ export class ManageAccount extends Command {
 
 				// Edge case: ~50% chance of having an emoji
 				if (Math.random() > 0.5) {
-					const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+					const emoji = emojis[Math.floor(Math.random() * emojis.length)]!;
 					button.setEmoji(emoji);
 				}
 
