@@ -18,6 +18,7 @@ import type {
 	DBUser,
 } from "@repo/db/schema/index";
 import {
+	type APIMessageComponentEmoji,
 	ChannelFlags,
 	ChannelType,
 	ComponentType,
@@ -30,6 +31,7 @@ import {
 	type MessageSnapshot,
 	MessageType,
 	type ThreadChannel,
+	type TopLevelComponent,
 	type User,
 } from "discord.js";
 import z from "zod";
@@ -219,22 +221,43 @@ function toDbReactions(message: Message): DBMessage["reactions"] {
 	return dbReactions;
 }
 
-export function toDbActionRows(message: Message): DBMessage["components"] {
-	if (!message.components?.length) {
+export function toDbDiscordComponents(
+	components: TopLevelComponent[],
+): DBMessage["components"] {
+	if (!components?.length) {
 		return null;
 	}
 
 	const rowsData: RowsSchema[] = [];
 
-	for (const component of message.components) {
+	for (const component of components) {
 		if (component.type !== ComponentType.ActionRow) {
 			continue;
 		}
 
-		const parsedData = rowsSchema.safeParse(component);
+		const data = {
+			type: component.type,
+			components: component.components
+				.map((c) => {
+					if (c.type !== ComponentType.Button) {
+						return null;
+					}
+					return {
+						type: c.type,
+						style: c.style,
+						disabled: c.disabled,
+						label: c.label,
+						emoji: getEmojiData(c.emoji),
+					};
+				})
+				.filter((x) => x !== null),
+		} satisfies RowsSchema;
+
+		const parsedData = rowsSchema.safeParse(data);
 
 		if (!parsedData.success) {
-			console.warn("Failed to parse row:", parsedData.error);
+			// @TODO: better log
+			console.warn("Failed to parse row:", data, parsedData.error);
 			continue;
 		}
 
@@ -292,7 +315,7 @@ export async function toDBMessage(
 		starterMessage:
 			message.type === MessageType.ThreadStarterMessage ||
 			fullMessage.channel.id === fullMessage.id,
-		components: toDbActionRows(fullMessage),
+		components: toDbDiscordComponents(fullMessage.components),
 	};
 	return convertedMessage;
 }
@@ -363,7 +386,7 @@ export function toDbBacklink(messages: DBMessage[]): DBThreadBacklink[] {
 //
 // Helpers
 //
-export function getEmojiData(emoji: Emoji) {
+export function getEmojiData(emoji: Emoji | APIMessageComponentEmoji | null) {
 	if (!emoji) {
 		return null;
 	}
@@ -416,6 +439,7 @@ export async function toDBSnapshot(
 
 	const snapshotWithMetadata = {
 		...snapshot,
+		components: toDbDiscordComponents(snapshot.components),
 		attachments: snapshot.attachments.map((x) => ({
 			...x,
 			messageId: message.id,

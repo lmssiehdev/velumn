@@ -1,7 +1,6 @@
 import { DetectiveIcon, ImageIcon } from "@phosphor-icons/react/dist/ssr";
 import type { DBUser } from "@repo/db/schema/discord";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
-import Link from "next/link";
 import {
 	adjectives,
 	nouns,
