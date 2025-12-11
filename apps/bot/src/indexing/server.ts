@@ -69,11 +69,6 @@ export async function indexServer(
 	await invalidateTags(CacheTags.getAllThreads(guild.id));
 }
 
-export const isChannelIndexable = (channel: GuildBasedChannel) =>
-	channel.type === ChannelType.GuildText ||
-	channel.type === ChannelType.GuildAnnouncement ||
-	channel.type === ChannelType.GuildForum;
-
 async function randomizeServers(allGuilds: Guild[]) {
 	const guilds =
 		process.env.NODE_ENV === "production"
@@ -141,3 +136,8 @@ async function randomizeServers(allGuilds: Guild[]) {
 		return shuffle(guilds);
 	}
 }
+
+export const isChannelIndexable = (channel: GuildBasedChannel) =>
+	channel.type === ChannelType.GuildText ||
+	channel.type === ChannelType.GuildAnnouncement ||
+	channel.type === ChannelType.GuildForum;

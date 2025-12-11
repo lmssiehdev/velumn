@@ -58,3 +58,28 @@ export function EmojiBase({ name, src, className }: Props & { src: string }) {
 		/>
 	);
 }
+
+export function DiscordEmojiToImage({
+	name,
+	id,
+	animated,
+	className,
+}: {
+	id: string;
+	name: string;
+	animated: boolean;
+	className?: string;
+}) {
+	if (id) {
+		return (
+			<CustomEmoji
+				className={className}
+				emojiId={id}
+				name={name}
+				animated={animated}
+			/>
+		);
+	}
+
+	return <Twemoji name={name} className={className} />;
+}

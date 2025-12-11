@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { parse } from "discord-markdown-parser";
 import type React from "react";
 import type { MessageWithMetadata } from "@/app/(forum)/thread/[...id]/page";
+import { ActionRows } from "./action-rows";
 import { Attachments } from "./attachments";
 import { Code } from "./code";
 import { Embeds } from "./embed";
@@ -188,6 +189,7 @@ export function DiscordUIMessage({
 		);
 	}
 	const { serverId, channelId } = message;
+
 	const MessageContent = ({
 		message,
 	}: {
@@ -204,6 +206,9 @@ export function DiscordUIMessage({
 					metadata={{ serverId, channelId }}
 				/>
 				<Embeds embeds={message.embeds} />
+				<div className="pt-2">
+					<ActionRows components={message.components} />
+				</div>
 			</>
 		);
 	};
