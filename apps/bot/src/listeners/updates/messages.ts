@@ -12,10 +12,15 @@ import {
 	type Collection,
 	Events,
 	type Message,
+	type PublicThreadChannel,
 	type Snowflake,
 } from "discord.js";
 import { toDBMessage } from "../../helpers/convertion";
 import { invalidateTags } from "../../helpers/invalidate-cache";
+import {
+	deleteMessagesFromSearch,
+	insertBulkSearchMessages,
+} from "../../indexing/search";
 
 @ApplyOptions<Listener.Options>({
 	event: Events.MessageCreate,
@@ -33,6 +38,8 @@ export class InsertDiscordMessage extends Listener {
 			}
 			const converted = await toDBMessage(message);
 			await upsertManyMessages([converted]);
+			const thread = message.channel as PublicThreadChannel;
+			insertBulkSearchMessages(thread, [converted]);
 			await invalidateTags(CacheTags.thread(message.channel.id));
 		} catch (error) {
 			this.container.logger.error("Failed to update message", error);
@@ -53,6 +60,8 @@ export class UpdateDiscordMessage extends Listener {
 			const converted = await toDBMessage(newMessage);
 			const result = await updateMessage(converted);
 			if (result.rowCount) {
+				const thread = newMessage.channel as PublicThreadChannel;
+				insertBulkSearchMessages(thread, [converted]);
 				await invalidateTags(CacheTags.thread(newMessage.channel.id));
 			}
 		} catch (error) {
@@ -73,6 +82,7 @@ export class DeleteDiscordMessage extends Listener {
 			}
 			const result = await deleteMessageById(message.id);
 			if (result.rowCount) {
+				await deleteMessagesFromSearch([message.id]);
 				await invalidateTags(CacheTags.thread(message.channel.id));
 			}
 		} catch (error) {
@@ -91,8 +101,12 @@ export class BulkDeleteDiscordMessage extends Listener {
 			const messagesInThreadsIds = messages
 				.filter((m) => m.channel.isThread())
 				.map((m) => m.id);
-			await deleteManyMessagesById(messagesInThreadsIds);
-			// TODO: invalidate cache
+			const result = await deleteManyMessagesById(messagesInThreadsIds);
+
+			if (result?.rowCount) {
+				// TODO: invalidate cache
+				await deleteMessagesFromSearch(messagesInThreadsIds);
+			}
 		} catch (error) {
 			this.container.logger.error("Failed to delete messages", error);
 		}
