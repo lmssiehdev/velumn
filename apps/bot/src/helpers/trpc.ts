@@ -9,6 +9,7 @@ import { botEnv } from "../config";
 import { indexThread } from "../indexing/channel";
 import { client, searchMessages } from "../indexing/search";
 import { indexServer } from "../indexing/server";
+import { toDBMessage } from "./convertion";
 import { isRateLimited, trackVote } from "./rate-limit";
 
 interface Context {
@@ -122,12 +123,7 @@ export const botRouter = t.router({
 						message: "Message not found",
 					});
 				}
-				return {
-					content: message.content,
-					embeds: message.embeds.map((e) => e.toJSON()),
-					attachments: message.attachments.map((a) => a.url),
-					rows: message.components.map((c) => c.toJSON()),
-				};
+				return toDBMessage(message);
 			} catch (error) {
 				apiLogger.error("getRawMessageData_failed", { error });
 				throw new TRPCError({
