@@ -248,6 +248,7 @@ export function toDbDiscordComponents(
 						disabled: c.disabled,
 						label: c.label,
 						emoji: getEmojiData(c.emoji),
+						url: c.url,
 					};
 				})
 				.filter((x) => x !== null),

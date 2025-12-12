@@ -29,6 +29,7 @@ export const rowsSchema = z.object({
 			style: z.number(),
 			disabled: z.boolean().default(false),
 			label: z.string().nullable(),
+			url: z.string().nullable(),
 			emoji: partialEmojiSchema,
 		}),
 	),

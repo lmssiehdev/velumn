@@ -4,7 +4,8 @@
 	"main": "src/index.ts",
 	"scripts": {
 		"with-env": "bun --env-file=../../.env",
-		"dev": "NODE_ENV=development bun with-env src/index.ts",
+		"dev": "NODE_ENV=development bun --watch with-env src/index.ts",
+		"start-indexing": "NODE_ENV=development bun with-env src/index.ts --index",
 		"start": "NODE_ENV=production bun with-env run src/index.ts --index",
 		"test": "bun test",
 		"type-check": "bunx tsc --noEmit"
