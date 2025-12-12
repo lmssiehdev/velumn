@@ -95,7 +95,64 @@ export async function searchMessages(options: {
 	};
 }
 
-function sanitize(content?: string) {
+export async function deleteMessagesFromSearch(messageIds: string[]) {
+	try {
+		if (messageIds.length === 0) {
+			return;
+		}
+		await index.deleteDocuments(messageIds);
+	} catch (error) {
+		botLogger.error("failed_to_delete_messages_from_search", {
+			messageIds,
+			error,
+		});
+	}
+}
+
+export async function deleteSearchThread({ id }: { id: string }) {
+	try {
+		await index.deleteDocuments({
+			filter: `threadId = ${id}`,
+		});
+	} catch (error) {
+		botLogger.error("failed_to_delete_thread", {
+			id,
+			error,
+		});
+	}
+}
+
+export async function updateSearchThread({
+	threadId,
+	threadTitle,
+}: {
+	threadId: string;
+	threadTitle: string;
+}) {
+	try {
+		const messages = await index.getDocuments({
+			filter: `threadId = ${threadId}`,
+			limit: 10000,
+		});
+
+		if (messages.results.length > 0) {
+			const updates = messages.results.map((msg) => ({
+				id: msg.id,
+				title: threadTitle,
+			}));
+
+			await index.updateDocuments(updates);
+		}
+	} catch (error) {
+		botLogger.error("failed_to_update_thread", {
+			id: threadId,
+			name: threadTitle,
+			error,
+		});
+	}
+}
+
+async function sanitize(content?: string) {
 	if (!content) {
 		return "";
 	}

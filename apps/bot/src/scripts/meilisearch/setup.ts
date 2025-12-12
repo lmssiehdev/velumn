@@ -9,7 +9,7 @@ const client = new MeiliSearch({
 const index = client.index("discord-messages");
 await index.updateSettings({
 	searchableAttributes: ["title", "content"],
-	filterableAttributes: ["serverId"],
+	filterableAttributes: ["serverId", "threadId"],
 	sortableAttributes: ["timestamp"],
 });
 console.log("MeiliSearch index configured");

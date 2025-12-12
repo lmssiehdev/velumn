@@ -2,7 +2,8 @@ import { parseArgs } from "node:util";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Events, Listener } from "@sapphire/framework";
 import { Cron } from "croner";
-import type { Client } from "discord.js";
+import { ChannelType, type Client } from "discord.js";
+import { toDBMessage } from "../helpers/convertion";
 import { indexServers } from "../indexing";
 
 const { values } = parseArgs({
@@ -20,6 +21,23 @@ const { values } = parseArgs({
 export class Indexing extends Listener {
 	async run(client: Client) {
 		if (!values.index) {
+			const guild = await client.guilds.cache.get("1385955477912948806");
+			if (!guild) {
+				console.log("Guild not found");
+				return;
+			}
+			const channel = await guild.channels.cache.get("1448749493276119210");
+			if (!channel || channel.type !== ChannelType.PublicThread) {
+				console.log("Channel not found");
+				return;
+			}
+			const message = await channel.messages.fetch("1448992872392163489");
+			if (!message) {
+				console.log("Message not found");
+				return;
+			}
+			const messagedb = await toDBMessage(message);
+			console.log(messagedb);
 			return;
 		}
 		await indexServers(client);

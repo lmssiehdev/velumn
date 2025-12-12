@@ -35,7 +35,7 @@ export default function SearchModal({
 	const [results, setResults] = useState<
 		Awaited<ReturnType<TRPCClient<BotRouter>["search"]["query"]>>["hits"]
 	>([]);
-	const debouncedQuery = useDebounce(query, 300);
+	const debouncedQuery = useDebounce(query, 150);
 
 	useEffect(() => {
 		if (!debouncedQuery) {
@@ -107,7 +107,29 @@ export default function SearchModal({
 				</button>
 			</div>
 			<CommandList>
-				<CommandEmpty>No results found.</CommandEmpty>
+				<CommandEmpty>
+					{debouncedQuery.length === 0 ? (
+						<div className="py-4 text-center">
+							<MagnifyingGlassIcon className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+							<p className="text-muted-foreground text-sm">
+								Start typing to search the community
+							</p>
+						</div>
+					) : (
+						<div>
+							<p className="mb-1 text-lg font-medium">No results found</p>
+							<p className="text-sm text-muted-foreground max-w-xs mx-auto">
+								We couldn’t find anything for{" "}
+								<span className="font-medium text-foreground">
+									“{debouncedQuery}”
+								</span>
+							</p>
+							<p className="mt-3 text-xs text-muted-foreground">
+								Try different keywords or remove filters
+							</p>
+						</div>
+					)}
+				</CommandEmpty>
 				{results?.length !== 0 && (
 					<>
 						<div className="text-neutral-700 px-2 pt-2 pb-1 text-sm">
