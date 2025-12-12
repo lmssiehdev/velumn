@@ -13,7 +13,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 // sanity check for now
-const ONE_DAY_IN_SECONDS = process.env.NODE_ENV === "development" ? 1 : 86_400;
+const VERCEL_CACHE_TTL = process.env.NODE_ENV === "development" ? 1 : 60; // 86_400;
 
 // :P
 export function stable_cache<T extends unknown[], R>(
@@ -30,7 +30,7 @@ export function stable_cache<T extends unknown[], R>(
 			options.keyParts(...args),
 			{
 				tags: options.tags(...args),
-				revalidate: options.revalidate ?? ONE_DAY_IN_SECONDS,
+				revalidate: options.revalidate ?? VERCEL_CACHE_TTL,
 			},
 		);
 		return cachedFn();
