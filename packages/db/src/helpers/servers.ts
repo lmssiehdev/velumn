@@ -158,6 +158,14 @@ export async function getServerInfoByChannelId(channelId: string) {
 	return server;
 }
 
+export async function getServerInfoByDomain(domain: string) {
+	return await db.query.dbServer.findFirst({
+		where: {
+			customDomain: domain,
+		},
+	});
+}
+
 export async function getBulkServers(serverIds: string[]) {
 	return await db._query.dbServer.findMany({
 		where: inArray(dbServer.id, serverIds),

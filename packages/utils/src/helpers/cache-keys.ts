@@ -2,6 +2,7 @@ export const CacheTags = {
 	thread: (id: string) => `clear-thread-${id}`,
 	allThreads: () => "clear-all-threads",
 	server: (id: string) => `clear-server-${id}`,
+	serverByDomain: (domain: string) => `clear-server-by-domain-${domain}`,
 	allServers: () => "clear-all-servers",
 	channelInfo: (id: string) => `clear-channel-info-${id}`,
 	allChannelsInfo: () => "clear-all-channels-info",

@@ -5,9 +5,25 @@ import Link from "next/link";
 import { SearchPortal } from "@/components/search/search-input";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getTopicsInServerCached } from "@/utils/cache";
+import {
+	getServerInfoByDomainCache,
+	getTopicsInServerCached,
+} from "@/utils/cache";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+type Props = {
+	children: React.ReactNode;
+	params: Promise<{ domain: string }>;
+};
+export default async function Layout(props: Props) {
+	const params = await props.params;
+	const domain = decodeURIComponent(params.domain);
+
+	const server = await getServerInfoByDomainCache(domain);
+
+	if (!server) {
+		return <div>Server Not Found</div>;
+	}
+
 	return (
 		<div className="mx-auto flex min-h-screen flex-col">
 			<div className="border-neutral-300 border-b">
@@ -20,7 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 				</div>
 			</div>
 			<div className="mx-auto w-full max-w-5xl flex-1 py-2 pb-10 px-2">
-				{children}
+				{props.children}
 			</div>
 			<div className="mt-auto border-neutral-300 border-x border-t">
 				<div className="mx-auto max-w-5xl border-neutral-300 p-2 px-4">

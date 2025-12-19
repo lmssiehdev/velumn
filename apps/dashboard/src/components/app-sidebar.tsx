@@ -1,6 +1,6 @@
 "use client";
 
-import { HashIcon } from "@phosphor-icons/react/dist/ssr";
+import { GlobeIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
 import type { AuthUserInsert } from "@repo/db/schema/auth";
 import type { DBServer } from "@repo/db/schema/discord";
 import { HomeIcon } from "lucide-react";
@@ -27,6 +27,11 @@ const data = {
 			name: "Channels",
 			url: "/channels",
 			icon: HashIcon,
+		},
+		{
+			name: "Domain Setup",
+			url: "/custom-domain",
+			icon: GlobeIcon,
 		},
 	],
 };

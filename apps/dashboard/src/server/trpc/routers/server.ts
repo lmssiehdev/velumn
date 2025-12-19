@@ -1,6 +1,6 @@
 import { setBulkIndexingStatus } from "@repo/db/helpers/channels";
 import { createBotInvite, getChannelsInServer } from "@repo/db/helpers/servers";
-import { updateAuthUser } from "@repo/db/helpers/user";
+import { getAuthUser, updateAuthUser } from "@repo/db/helpers/user";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -31,26 +31,32 @@ export const serverRouter = router({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			try {
-				const channels = input.payload;
-				const result = await updateAuthUser(ctx.user.id, {
-					finishedOnboarding: true,
-				});
-				if (!result?.serverId) {
-					throw new Error("Server ID not found");
-				}
-				await setBulkIndexingStatus(channels);
-				await botClient.indexServer.mutate({ serverId: result.serverId });
-				return { success: true };
-			} catch (err) {
-				log.error("finish_onboarrding_failed", { err: parseError(err) });
+			const channels = input.payload;
 
+			const authUser = await getAuthUser(ctx.user.id);
+
+			if (!authUser?.serverId) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to complete onboarding",
-					cause: err,
+					code: "BAD_REQUEST",
+					message: "Failed to link a server",
 				});
 			}
+
+			const result = await updateAuthUser(ctx.user.id, {
+				finishedOnboarding: true,
+			});
+
+			if (!result?.serverId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Server ID not found",
+				});
+			}
+
+			await setBulkIndexingStatus(channels);
+			await botClient.indexServer.mutate({ serverId: result.serverId });
+
+			return { success: true };
 		}),
 	getChannelsInServer: privateProcedure
 		.input(z.object({ serverId: z.string() }))

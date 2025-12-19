@@ -18,6 +18,7 @@ import { isChannelIndexable } from "../../indexing/server";
 export class JoinedGuild extends Listener {
 	async run(guild: Guild) {
 		try {
+			console.log("Ran");
 			let invitedBy = await getUserWhoInvited(guild.id);
 
 			if (!invitedBy) {

@@ -1,6 +1,7 @@
 import { createServerApi } from "@/server/trpc/root";
 import { getCurrentUserOrRedirect } from "@/server/user";
 import Channels from "./_components";
+
 export default async function Page() {
 	const { user } = await getCurrentUserOrRedirect();
 

@@ -9,6 +9,14 @@ import {
 	user,
 } from "../schema";
 
+export async function getAuthUser(userId: string) {
+	return await db.query.user.findFirst({
+		where: {
+			id: userId,
+		},
+	});
+}
+
 export async function updateAuthUser(
 	userId: string,
 	payload: Exclude<Partial<AuthUser>, "id">,

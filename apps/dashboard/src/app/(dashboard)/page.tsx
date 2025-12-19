@@ -11,11 +11,9 @@ import { getCurrentUserOrRedirect } from "@/server/user";
 
 export default async function Page() {
 	const { user } = await getCurrentUserOrRedirect();
-	if (!user.serverId) {
-		return <div>No server linked.</div>;
-	}
+
 	const latestThreads = await getAllThreads("server", {
-		id: user.serverId,
+		id: user.serverId!,
 		pinned: false,
 		page: 1,
 	});

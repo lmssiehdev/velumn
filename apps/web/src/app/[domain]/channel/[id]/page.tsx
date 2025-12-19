@@ -1,4 +1,4 @@
-import { ThreadList } from "@/app/(forum)/server/[id]/page";
+import { ThreadList } from "@/app/[domain]/server/[id]/page";
 import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
 import { FrontPageSidebar } from "../../layout";
 

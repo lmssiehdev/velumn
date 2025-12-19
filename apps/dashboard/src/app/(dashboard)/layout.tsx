@@ -21,7 +21,7 @@ export default async function RootLayout({
 	}
 
 	if (!user?.serverId) {
-		return <div>No server linked.</div>;
+		return <div>Finished onboarding, but no server linked.</div>;
 	}
 
 	const server = await getUserServer(user.serverId);
