@@ -8,9 +8,14 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 	if (!embeds?.length) {
 		return null;
 	}
+
 	return (
 		<>
 			{embeds.map((embed, idx) => {
+				const isLinkEmbed = embed.type === "article" || embed.type === "link";
+				const hasSmallThumbnail =
+					embed.thumbnail && !isLinkEmbed && embed.type !== "image";
+
 				const borderLeftColor = embed.color
 					? `#${embed.color.toString(16).padStart(6, "0")}`
 					: "dadadc";
@@ -24,38 +29,50 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								muted
 								poster={embed.thumbnail?.url}
 								src={embed.video?.url}
-								style={getScaledDownWidth({ width: width!, height: height! })}
+								style={getScaledDownWidth({
+									width: width!,
+									height: height!,
+								})}
 							/>
 						</div>
 					);
 				}
+
 				if (embed.type === "image") {
 					const { height, width } = embed.image! ?? embed.thumbnail!;
 					return (
 						<div className="mt-4 overflow-hidden rounded" key={idx}>
 							<img
 								src={embed.url}
-								style={getScaledDownWidth({ width: width!, height: height! })}
+								style={getScaledDownWidth({
+									width: width!,
+									height: height!,
+								})}
 							/>
 						</div>
 					);
 				}
 
-				const hasThumbnail = embed.thumbnail;
+				const hasLargeThumbnail = embed.thumbnail && isLinkEmbed;
 				return (
 					<div
 						className="grid w-md rounded-md border border-l-4 px-4 pt-2 pb-3 shadow-xs"
 						key={idx}
 						style={{
 							borderLeftColor,
-							gridTemplateColumns: hasThumbnail ? "1fr auto" : "1fr",
+							gridTemplateColumns: hasSmallThumbnail ? "1fr auto" : "1fr",
 						}}
 					>
 						<div className="min-w-0">
 							{embed.provider && (
-								<span className="text-neutral-600 text-xs">
+								<div
+									className="text-neutral-600 text-xs mb-0.5"
+									style={{
+										gridColumn: hasSmallThumbnail ? "1 / -1" : "1",
+									}}
+								>
 									{embed.provider.name}
-								</span>
+								</div>
 							)}
 							{embed.author && (
 								<a
@@ -107,8 +124,15 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 							)}
 						</div>
 
-						{hasThumbnail && (
-							<div className="ml-4 mt-2">
+						{hasSmallThumbnail && (
+							<div
+								className="ml-4"
+								style={{
+									gridColumn: "2",
+									gridRow: "1 / 99",
+									alignSelf: "start",
+								}}
+							>
 								<img
 									className="rounded object-cover"
 									src={embed.thumbnail?.url}
@@ -120,8 +144,27 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 							</div>
 						)}
 
+						{hasLargeThumbnail && embed.thumbnail && (
+							<div
+								className="mt-2 max-h-[300px] overflow-hidden rounded"
+								style={{ gridColumn: "1 / -1" }}
+							>
+								<img
+									className="max-h-full overflow-hidden object-cover"
+									src={embed.thumbnail.url}
+									style={getScaledDownWidth({
+										width: embed.thumbnail.width!,
+										height: embed.thumbnail.height!,
+									})}
+								/>
+							</div>
+						)}
+
 						{embed.image && (
-							<div className="col-span-full mt-4 max-h-[300px] overflow-hidden rounded">
+							<div
+								className="mt-2 max-h-[300px] overflow-hidden rounded"
+								style={{ gridColumn: "1 / -1" }}
+							>
 								<img
 									className="max-h-full overflow-hidden object-cover"
 									src={embed.image.url}
