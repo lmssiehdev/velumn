@@ -11,7 +11,7 @@ export async function GET(
 	const { threadId } = await params;
 
 	if (!threadId) {
-		const content = `** Invalid Thread **`;
+		const content = `**Invalid Thread**`;
 		return MarkdownResponse(content);
 	}
 
