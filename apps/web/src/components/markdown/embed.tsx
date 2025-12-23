@@ -1,6 +1,5 @@
 import type { DBMessage } from "@repo/db/schema/discord";
 import { dayjs } from "@repo/utils/helpers/dayjs";
-import { DiscordMarkdown } from "./renderer";
 
 type DBEmbed = NonNullable<DBMessage["embeds"]>[number];
 
@@ -93,12 +92,11 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								</a>
 							)}
 							{embed.type !== "video" && embed.description && (
-								<div className="mt-1 text-neutral-400 *:text-xs!">
+								<div className="mt-1 text-neutral-500 *:text-xs! text-xs">
 									{/* TODO: create a markdown parser for markdown only  */}
-									{/* @ts-expect-error */}
-									<DiscordMarkdown message={undefined}>
-										{embed.description}
-									</DiscordMarkdown>
+									{/* <DiscordMarkdown message={undefined}> */}
+									{embed.description}
+									{/* </DiscordMarkdown> */}
 								</div>
 							)}
 							{embed.fields && embed.fields.length > 0 && (
