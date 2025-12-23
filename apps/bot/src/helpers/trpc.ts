@@ -36,7 +36,7 @@ export const botRouter = t.router({
 	health: protectedProcedure.query(() => {
 		return "OK";
 	}),
-	clear: publicProcedure.query(async ({ ctx }) => {
+	clear: publicProcedure.query(async () => {
 		const keys = await redis.keys("*");
 		return { keys };
 	}),

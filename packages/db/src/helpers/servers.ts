@@ -95,7 +95,6 @@ export async function updateServer(
 	await db.update(dbServer).set(updateFields).where(eq(dbServer.id, id));
 }
 export async function upsertServer(server: Partial<DBServerInsert>) {
-	// biome-ignore lint/correctness/noUnusedVariables: used to filter;
 	const { id, invitedBy, ...updateFields } = server;
 
 	await db

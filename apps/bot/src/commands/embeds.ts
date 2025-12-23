@@ -136,7 +136,7 @@ function generateRandomEmbed(): EmbedBuilder {
 	return embed;
 }
 
-function generateRandomRows(): ActionRowBuilder<ButtonBuilder>[] {
+function _generateRandomRows(): ActionRowBuilder<ButtonBuilder>[] {
 	const rowCount = Math.floor(Math.random() * 6); // 0-5 rows
 	const rows: ActionRowBuilder<ButtonBuilder>[] = [];
 
@@ -165,7 +165,7 @@ function generateRandomRows(): ActionRowBuilder<ButtonBuilder>[] {
 	return rows;
 }
 
-function generateRandomActionRow() {
+function _generateRandomActionRow() {
 	// Discord Limits:
 	// - Max 5 ActionRows per message
 	// - Max 5 Buttons per ActionRow

@@ -4,7 +4,6 @@ import * as schema from "../schema";
 async function clearDbMessages() {
 	try {
 		const tables = [
-			schema.dbInternalMessageLink,
 			schema.dbThreadBacklink,
 			schema.dbAttachments,
 			schema.dbChannel,

@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/correctness/useExhaustiveDependencies: <explanation> */
+/** biome-ignore-all lint/correctness/useExhaustiveDependencies: meh */
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Serializer<T> = (object: T | undefined) => string;
@@ -8,7 +8,7 @@ type Setter<T> = React.Dispatch<React.SetStateAction<T | undefined>>;
 type Options<T> = Partial<{
 	serializer: Serializer<T>;
 	parser: Parser<T>;
-	logger: (error: any) => void;
+	logger: (error: unknown) => void;
 	syncData: boolean;
 }>;
 
