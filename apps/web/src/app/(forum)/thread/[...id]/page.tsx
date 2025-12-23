@@ -28,11 +28,11 @@ import { anonymizeName, MessagePost } from "./_components/thread-message";
 
 export const revalidate = 86_400;
 
-export async function generateMetadata({
-	params,
-}: {
-	params: Promise<{ id: [string, string?] }>;
-}) {
+type PageProps = {
+	params: Promise<{ id: [string, string?, string?] }>;
+};
+
+export async function generateMetadata({ params }: PageProps) {
 	const {
 		id: [threadId],
 	} = await params;
@@ -69,14 +69,14 @@ export async function generateMetadata({
 	};
 }
 
-export default async function Page({
-	params,
-}: {
-	params: Promise<{ id: [string, string?] }>;
-}) {
+export default async function Page({ params }: PageProps) {
 	const {
-		id: [threadId, slug],
+		id: [threadId, slug, markdown],
 	} = await params;
+
+	if (markdown) {
+		redirect(`/markdown/${threadId}`);
+	}
 
 	if (!threadId) {
 		return <div>Invalid thread ID</div>;

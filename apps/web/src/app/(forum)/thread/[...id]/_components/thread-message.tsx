@@ -126,13 +126,16 @@ function ReferenceMessage({ message }: { message: MessageWithMetadata }) {
 
 export function anonymizeName(
 	user: Pick<DBUser, "id" | "displayName" | "anonymizeName" | "isIgnored">,
+	forceAnonymize = false,
 ) {
 	if (!user) {
 		return "Unknown";
 	}
 
-	if (!(user.anonymizeName || user.isIgnored)) {
-		return user.displayName;
+	if (!forceAnonymize) {
+		if (!(user.anonymizeName || user.isIgnored)) {
+			return user.displayName;
+		}
 	}
 	return uniqueUsernameGenerator({
 		dictionaries: [adjectives, nouns],
