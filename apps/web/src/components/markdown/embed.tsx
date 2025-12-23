@@ -29,8 +29,8 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								poster={embed.thumbnail?.url}
 								src={embed.video?.url}
 								style={getScaledDownWidth({
-									width: width!,
-									height: height!,
+									width,
+									height,
 								})}
 							/>
 						</div>
@@ -44,8 +44,8 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 							<img
 								src={embed.url}
 								style={getScaledDownWidth({
-									width: width!,
-									height: height!,
+									width,
+									height,
 								})}
 							/>
 						</div>
@@ -151,8 +151,8 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 									className="max-h-full overflow-hidden object-cover"
 									src={embed.thumbnail.url}
 									style={getScaledDownWidth({
-										width: embed.thumbnail.width!,
-										height: embed.thumbnail.height!,
+										width: embed.thumbnail?.width!,
+										height: embed.thumbnail?.height!,
 									})}
 								/>
 							</div>
@@ -167,8 +167,8 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 									className="max-h-full overflow-hidden object-cover"
 									src={embed.image.url}
 									style={getScaledDownWidth({
-										width: embed.image.width!,
-										height: embed.image.height!,
+										width: embed.image?.width!,
+										height: embed.image?.height!,
 									})}
 								/>
 							</div>
@@ -203,9 +203,12 @@ function getScaledDownWidth({
 	height,
 	width,
 }: {
-	height: number;
-	width: number;
+	height?: number;
+	width?: number;
 }) {
+	if (!height || !width) {
+		return {};
+	}
 	const MAX_WIDTH = 400;
 	const MAX_HEIGHT = 300;
 
