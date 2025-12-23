@@ -38,7 +38,7 @@ function formatThreadAsMarkdown(
 ): string {
 	const [starterMessage, ...replies] = threadData.messages;
 
-	if (!starterMessage?.content) {
+	if (!starterMessage) {
 		return "# Empty Thread\n\nThis thread contains no messages.";
 	}
 
@@ -74,7 +74,8 @@ function formatThreadAsMarkdown(
 
 	// Replies section
 	const validReplies = replies.filter(
-		(reply) => reply.cleanContent?.trim() && reply.user,
+		(reply) =>
+			(reply.cleanContent?.trim() || reply.attachments?.length) && reply.user,
 	);
 
 	if (validReplies.length > 0) {
