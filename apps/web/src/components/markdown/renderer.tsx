@@ -142,7 +142,7 @@ function renderASTNode(
 
 		case "list":
 			return (
-				<List
+				<DiscorMarkdownList
 					items={node.items as SingleASTNode[][]}
 					key={key}
 					ordered={node.ordered}
@@ -237,7 +237,7 @@ export function DiscordUIMessage({
 	);
 }
 
-function List({
+export function DiscorMarkdownList({
 	items,
 	ordered,
 }: {

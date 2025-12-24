@@ -1,5 +1,10 @@
 import type { DBMessage } from "@repo/db/schema/discord";
 import { dayjs } from "@repo/utils/helpers/dayjs";
+import { parse } from "discord-markdown-parser";
+import { cn } from "@/lib/utils";
+import { CustomEmoji, Twemoji } from "./emoji";
+import { DiscorMarkdownList, type SingleASTNode } from "./renderer";
+import { Spoiler } from "./spoiler";
 
 type DBEmbed = NonNullable<DBMessage["embeds"]>[number];
 
@@ -7,7 +12,6 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 	if (!embeds?.length) {
 		return null;
 	}
-
 	return (
 		<>
 			{embeds.map((embed, idx) => {
@@ -36,7 +40,6 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 						</div>
 					);
 				}
-
 				if (embed.type === "image") {
 					const { height, width } = embed.image! ?? embed.thumbnail!;
 					return (
@@ -53,6 +56,14 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 				}
 
 				const hasLargeThumbnail = embed.thumbnail && isLinkEmbed;
+
+				const inlineCount = embed?.fields?.filter((f) => f.inline).length ?? 0;
+				const gridCols =
+					inlineCount >= 3
+						? "grid-cols-3"
+						: inlineCount === 2
+							? "grid-cols-2"
+							: "grid-cols-1";
 				return (
 					<div
 						className="grid w-md rounded-md border border-l-4 px-4 pt-2 pb-3 shadow-xs"
@@ -84,7 +95,7 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 							)}
 							{embed.title && (
 								<a
-									className="mt-2 font-semibold text-blue-500 hover:underline"
+									className="mt-0.5 font-semibold text-blue-500 hover:underline block"
 									href={embed.url}
 									target="_blank"
 								>
@@ -93,14 +104,11 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 							)}
 							{embed.type !== "video" && embed.description && (
 								<div className="mt-1 text-neutral-500 *:text-xs! text-xs">
-									{/* TODO: create a markdown parser for markdown only  */}
-									{/* <DiscordMarkdown message={undefined}> */}
-									{embed.description}
-									{/* </DiscordMarkdown> */}
+									<EmbedMarkdown>{embed.description}</EmbedMarkdown>
 								</div>
 							)}
 							{embed.fields && embed.fields.length > 0 && (
-								<div className="mt-3 grid grid-cols-3 gap-2">
+								<div className={cn("mt-3 grid gap-2", gridCols)}>
 									{embed.fields.map((field, fieldIdx) => {
 										const colSpan = field.inline ? "col-span-1" : "col-span-3";
 
@@ -112,8 +120,8 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 												<div className="font-semibold text-sm mb-0.5">
 													{field.name}
 												</div>
-												<div className="text-neutral-500 text-sm wrap-break-word">
-													{field.value}
+												<div className="text-neutral-500 *:text-xs! text-xs wrap-break-word">
+													<EmbedMarkdown>{field.value}</EmbedMarkdown>
 												</div>
 											</div>
 										);
@@ -159,10 +167,7 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 						)}
 
 						{embed.image && (
-							<div
-								className="mt-2 max-h-[300px] overflow-hidden rounded"
-								style={{ gridColumn: "1 / -1" }}
-							>
+							<div className="col-span-full mt-4 max-h-[300px] overflow-hidden rounded">
 								<img
 									className="max-h-full overflow-hidden object-cover"
 									src={embed.image.url}
@@ -224,4 +229,126 @@ function getScaledDownWidth({
 		height: `${scaledHeight}px`,
 		maxWidth: "100%",
 	};
+}
+
+export const EmbedMarkdown = ({ children }: { children: string | null }) => {
+	if (!children) {
+		return null;
+	}
+	const parsed = parse(children, "normal");
+	return <div className="prose">{renderEmbedContent(parsed, 0)}</div>;
+};
+
+function renderEmbedContent(
+	node: SingleASTNode | SingleASTNode[],
+	index: number,
+): React.ReactNode {
+	if (Array.isArray(node)) {
+		return node.map((child, i) => renderEmbedContent(child, i));
+	}
+
+	const key = index;
+
+	function renderNodes(content: SingleASTNode | SingleASTNode[]) {
+		return renderEmbedContent(content, key + 1);
+	}
+
+	switch (node.type) {
+		case "text":
+			return <span key={index}>{node.content}</span>;
+
+		case "br":
+			return <br key={key} />;
+
+		case "heading": {
+			// Render as bold text instead of heading in embeds
+			return <strong key={key}>{renderNodes(node.content)}</strong>;
+		}
+
+		case "strikethrough":
+			return <s key={key}>{renderNodes(node.content)}</s>;
+
+		case "strong":
+			return <strong key={key}>{renderNodes(node.content)}</strong>;
+
+		case "em":
+			return <em key={key}>{renderNodes(node.content)}</em>;
+
+		case "underline":
+			return <u key={key}>{renderNodes(node.content)}</u>;
+
+		case "inlineCode":
+		case "codeBlock":
+			return (
+				<span key={key} className="bg-neutral-300 p-0.5 border">
+					{node.content}
+				</span>
+			);
+
+		case "link":
+		case "url":
+			return (
+				<a
+					href={node.target}
+					key={key}
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					{renderNodes(node.content)}
+				</a>
+			);
+
+		case "emoji":
+			return (
+				<CustomEmoji
+					animated={node.animated}
+					className="size-4.5"
+					emojiId={node.id}
+					key={key}
+					name={node.name}
+				/>
+			);
+
+		case "twemoji":
+			return <Twemoji className="size-4.5" key={key} name={node.name} />;
+
+		case "user":
+			return <span key={key}>@{node.id}</span>;
+
+		case "channel":
+			return <span key={key}>#{node.id}</span>;
+
+		case "role":
+			return <span key={key}>@{node.id}</span>;
+
+		case "everyone":
+			return <span key={key}>@everyone</span>;
+
+		case "here":
+			return <span key={key}>@here</span>;
+
+		case "timestamp":
+			return <span key={key}>&lt;t:{node.timestamp}&gt;</span>;
+
+		case "spoiler":
+			return <Spoiler key={key}>{renderNodes(node.content)}</Spoiler>;
+
+		case "blockQuote":
+			return <blockquote key={key}>{renderNodes(node.content)}</blockquote>;
+
+		case "list":
+			return (
+				<DiscorMarkdownList
+					items={node.items as SingleASTNode[][]}
+					key={key}
+					ordered={node.ordered}
+				/>
+			);
+
+		case "guildNavigation":
+			return null;
+
+		default:
+			return null;
+	}
 }
