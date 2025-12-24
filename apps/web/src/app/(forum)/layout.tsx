@@ -1,9 +1,12 @@
 import { ChatsCircleIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
 import type { DBServer } from "@repo/db/schema/index";
+import { getServerIcon } from "@repo/utils/helpers/discord";
 import { ChannelType } from "discord-api-types/v10";
+import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { SearchPortal } from "@/components/search/search-input";
 import { buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getTopicsInServerCached } from "@/utils/cache";
 
@@ -52,9 +55,14 @@ export function ServerInfo({ server }: { server?: DBServer }) {
 	}
 	return (
 		<div className="border border-neutral-300 p-4">
-			<div className="text-lg">{server.name}</div>
-			<div className="text-neutral-700 text-sm">
-				{server.memberCount} members
+			<div>
+				<Link className="text-lg hover:underline" href={`/server/${server.id}`}>
+					{server.name}
+				</Link>
+				<div className="text-neutral-700 text-sm mb-3 flex gap-1.5 items-center ">
+					<span className="inline-block rounded-full size-1.5 bg-gray-700"></span>
+					{server.memberCount} members
+				</div>
 			</div>
 			<p className="my-3">{server.description}</p>
 			<a
