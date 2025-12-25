@@ -19,6 +19,7 @@ import type {
 	MessageMetadataSchema,
 	PollSchema,
 	RowsSchema,
+	StickerSchema,
 } from "../helpers/validation";
 
 export const snowflake = customType<{
@@ -149,6 +150,7 @@ export const dbMessage = pgTable(
 		components: json("components").$type<RowsSchema[] | null>().default(null),
 		snapshot: json("snapshot").$type<DBSnapshotSchema | null>().default(null),
 		starterMessage: boolean("starter_message").notNull().default(false),
+		stickers: json("stickers").$type<StickerSchema | null>().default(null),
 		/**
 		 * The primary channel ID for querying all messages in the thread.
 		 *

@@ -1,12 +1,9 @@
 import { ChatsCircleIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
 import type { DBServer } from "@repo/db/schema/index";
-import { getServerIcon } from "@repo/utils/helpers/discord";
 import { ChannelType } from "discord-api-types/v10";
-import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { SearchPortal } from "@/components/search/search-input";
 import { buttonVariants } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getTopicsInServerCached } from "@/utils/cache";
 
