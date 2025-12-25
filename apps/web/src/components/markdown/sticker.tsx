@@ -45,10 +45,12 @@ export function StickersInner({
 					<div key={sticker.id} className="h-40 w-40">
 						<img
 							src={url}
+							alt={sticker.name}
 							className="h-full w-full object-contain"
 							loading="lazy"
 						/>
 					</div>
+				);
 				);
 			})}
 		</>
