@@ -14,6 +14,7 @@ import { MarkdownLink } from "./link";
 import { Mention } from "./mention";
 import { Poll } from "./poll";
 import { Spoiler } from "./spoiler";
+import { Stickers } from "./sticker";
 
 export type SingleASTNode = {
 	type: string;
@@ -206,6 +207,7 @@ export function DiscordUIMessage({
 					metadata={{ serverId, channelId }}
 				/>
 				<Embeds embeds={message.embeds} />
+				<Stickers stickers={message.stickers!} />
 				<div className="pt-2">
 					<ActionRows components={message.components} />
 				</div>
