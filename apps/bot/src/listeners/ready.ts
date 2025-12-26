@@ -26,12 +26,12 @@ export class Indexing extends Listener {
 				console.log("Guild not found");
 				return;
 			}
-			const channel = await guild.channels.cache.get("1448749493276119210");
+			const channel = await guild.channels.cache.get("1453840221673230388");
 			if (!channel || channel.type !== ChannelType.PublicThread) {
 				console.log("Channel not found");
 				return;
 			}
-			const message = await channel.messages.fetch("1448992872392163489");
+			const message = await channel.messages.fetch("1453841634554019890");
 			if (!message) {
 				console.log("Message not found");
 				return;

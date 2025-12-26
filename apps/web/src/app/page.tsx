@@ -2,12 +2,9 @@ import {
 	ArrowUpRightIcon,
 	CaretDownIcon,
 	ChatsTeardropIcon,
-	CheckCircleIcon,
 	CheckFatIcon,
 	DotOutlineIcon,
 	DotsThreeVerticalIcon,
-	ListChecksIcon,
-	PlusIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -18,6 +15,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { AnimatedBeamDemo } from "./(marketing)/_components/beam";
 
 export const dynamic = "force-static";
 
@@ -80,6 +78,15 @@ export default function Home() {
 					</div>
 					{/* // TODO: Join number+ creators, and new-age startups */}
 				</header>
+				<section className="my-40 border-neutral-300 border-t px-4 md:my-32">
+					<div className="space-y-2 py-40 text-center">
+						<span className="text-lg">No migration needed</span>
+						<h2 className="font-semibold text-4xl">
+							Discord stays. Discoverability follows.
+						</h2>
+					</div>
+					<AnimatedBeamDemo />
+				</section>
 				{/* <Preview /> */}
 				<section className="my-40 border-neutral-300 border-t px-4 md:my-32">
 					<div className="mx-auto max-w-7xl">
@@ -158,67 +165,7 @@ export default function Home() {
 						</div>
 					</div>
 				</section>
-				<section className="my-40 border-neutral-300 border-t px-4">
-					<div className="mx-auto max-w-5xl">
-						<div className="space-y-2 py-40 text-center">
-							<span className="text-lg">How it works</span>
-							<h2 className="font-semibold text-4xl">
-								Set up your forum in 3 Easy Steps
-							</h2>
-						</div>
-						<div className="grid grid-flow-row grid-rows-3 justify-between gap-14 sm:grid-flow-col sm:grid-cols-3 sm:grid-rows-1 sm:gap-4">
-							<div>
-								<div className="mb-4 flex size-14 items-center justify-center rounded bg-blue-100">
-									<PlusIcon className="size-8 text-blue-600" />
-								</div>
-								<span className="text-neutral-600 text-sm">Step 1</span>
-								<div className="flex items-start gap-3">
-									<div>
-										<h3 className="mb-1 font-medium text-2xl">
-											Add bot to your server
-										</h3>
-										<p className="text-neutral-600">
-											Sign in to get your unique invite link and add our bot to
-											your Discord server with just one click.
-										</p>
-									</div>
-								</div>
-							</div>
-							<div>
-								<div className="mb-4 flex size-14 items-center justify-center rounded bg-green-100">
-									<ListChecksIcon className="size-8 text-green-600" />
-								</div>
-								<span className="text-neutral-600 text-sm">Step 2</span>
-								<div className="flex items-start gap-3">
-									<div>
-										<h3 className="mb-1 font-medium text-2xl">
-											Choose channels to index
-										</h3>
-										<p className="text-neutral-600">
-											Select which channels you want indexed. We'll crawl them
-											and index all threads.
-										</p>
-									</div>
-								</div>
-							</div>
-							<div>
-								<div className="mb-4 flex size-14 items-center justify-center rounded bg-purple-100">
-									<CheckCircleIcon className="size-6 text-purple-600" />
-								</div>
-								<span className="text-neutral-600 text-sm">Step 3</span>
-								<div className="flex items-start gap-3">
-									<div>
-										<h3 className="mb-1 font-medium text-2xl">That's it!</h3>
-										<p className="text-neutral-600">
-											We'll start indexing immediately and email you when your
-											forum is live and searchable.
-										</p>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</section>
+
 				<FAQ />
 				<BottomCTA />
 			</div>

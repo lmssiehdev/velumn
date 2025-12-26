@@ -21,32 +21,57 @@ export default function PricingPage() {
 			<section className="mx-auto max-w-screen-xl space-y-10 border-neutral-200 border-x px-4 py-20 text-center">
 				<div>
 					<h1 className="mb-2 font-bold text-3xl leading-tight">
-						One plan. Everything included.
+						Simple pricing for everyone
 					</h1>
 					<p className="text-neutral-600">Try us for free — for 7 days.</p>
 				</div>
-				<div className="mx-auto w-full max-w-sm space-y-10 rounded border border-neutral-200 p-12 shadow-xs">
-					<div>
-						<div className="font-bold text-2xl">$89/month</div>
-						<p className="text-neutral-600">
-							Everything you need to make your Discord discoverable
-						</p>
+				<div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-8 md:grid-cols-2">
+					<div className="flex flex-col space-y-10 rounded border border-neutral-200 p-12 shadow-xs">
+						<div>
+							<div className="font-bold text-2xl">Free</div>
+							<p className="text-neutral-600">
+								For open source and non-commercial communities
+							</p>
+						</div>
+						<div className="space-y-4 flex-1">
+							{["Unlimited indexed channels", "Community support"].map(
+								(feature) => (
+									<div className="flex items-center gap-4" key={feature}>
+										<CheckIcon className="size-6 rounded-full border-purple-700 bg-purple-100 p-1 text-purple-700" />
+										<span className="text-neutral-600">{feature}</span>
+									</div>
+								),
+							)}
+						</div>
+						<div>
+							<Button size={"lg"} variant="outline" className="mt-auto">
+								Get Started
+							</Button>
+						</div>
 					</div>
-					<div className="space-y-4">
-						{[
-							"Connect your own domain",
-							"Sub-path hosting (ie. /community)",
-							"Unlimited indexed channels",
-							"Unlimited page views",
-							"Priority support",
-						].map((feature) => (
-							<div className="flex items-center gap-4" key={feature}>
-								<CheckIcon className="size-6 rounded-full border-purple-700 bg-purple-100 p-1 text-purple-700" />
-								<span className="text-neutral-600">{feature}</span>
-							</div>
-						))}
+
+					<div className="space-y-10 rounded border-2 border-purple-700 p-12 shadow-xs">
+						<div>
+							<div className="font-bold text-2xl">$89/month</div>
+							<p className="text-neutral-600">
+								Everything you need to make your Discord discoverable
+							</p>
+						</div>
+						<div className="space-y-4">
+							{[
+								"Connect your own domain",
+								"Unlimited indexed channels",
+								"Unlimited page views",
+								"Priority support",
+							].map((feature) => (
+								<div className="flex items-center gap-4" key={feature}>
+									<CheckIcon className="size-6 rounded-full border-purple-700 bg-purple-100 p-1 text-purple-700" />
+									<span className="text-neutral-600">{feature}</span>
+								</div>
+							))}
+						</div>
+						<Button size={"lg"}>Start Free Trial</Button>
 					</div>
-					<Button size={"lg"}>Start Free Trial</Button>
 				</div>
 			</section>
 
