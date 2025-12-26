@@ -14,7 +14,7 @@ export function Stickers({ stickers }: { stickers: DBMessage["stickers"] }) {
 		return null;
 	}
 	return (
-		<div className="size-40">
+		<div className="flex flex-wrap gap-2">
 			<DynamicQueryProvider>
 				<StickersInner stickers={stickers} />
 			</DynamicQueryProvider>
