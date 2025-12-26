@@ -11,6 +11,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import CodeViewer from "../code-preview";
 
 const isCode = (a: DBAttachments) =>
 	!a.contentType?.startsWith("image/") || a.proxyURL?.endsWith(".svg");
@@ -33,12 +34,19 @@ export function Attachments({
 		<div className="flex flex-col gap-2">
 			<ImageGallery images={attachments.filter(isEmbeddableAttachment)} />
 			{attachments.filter(isCode).map((attachment) => (
-				<FileShowcase
-					attachment={attachment}
-					key={attachment.id}
-					metadata={metadata}
+				<CodeViewer
+					fileUrl={attachment.proxyURL}
+					fileName={attachment.name}
+					key={attachment.name}
 				/>
 			))}
+			{/* // {attachments.filter(isCode).map((attachment) => (
+			// 	<FileShowcase
+			// 		attachment={attachment}
+			// 		key={attachment.id}
+			// 		metadata={metadata}
+			// 	/>
+			// ))} */}
 		</div>
 	);
 }

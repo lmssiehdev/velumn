@@ -5,7 +5,7 @@ import { getAllMessagesInThreadsCache } from "@/utils/cache";
 import { anonymizeName } from "../../thread/[...id]/_components/thread-message";
 
 export async function GET(
-	request: Request,
+	_request: Request,
 	{ params }: { params: Promise<{ threadId: string }> },
 ) {
 	const { threadId } = await params;
