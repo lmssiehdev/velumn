@@ -51,7 +51,6 @@ export function StickersInner({
 						/>
 					</div>
 				);
-				);
 			})}
 		</>
 	);
