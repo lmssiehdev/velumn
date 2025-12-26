@@ -75,6 +75,7 @@ export const botRouter = t.router({
 				// @ts-expect-error we filter inside the function
 				await indexThread(channel, {
 					fromMessageId: 0,
+					skipIndexingEnabledCheck: true,
 				});
 				return { success: true };
 			} catch (error) {

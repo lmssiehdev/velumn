@@ -15,6 +15,13 @@
       "when": 1765133684844,
       "tag": "0001_short_roughhouse",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766696013616,
+      "tag": "0002_awesome_joshua_kane",
+      "breakpoints": true
     }
   ]
 }

@@ -150,7 +150,7 @@ export async function indexThread(
 	}
 	try {
 		let start = opts?.fromMessageId;
-		if (!start) {
+		if (!start && !opts?.skipIndexingEnabledCheck) {
 			start = await findLatestMessageInChannel(channel.id);
 		}
 		const messages = await fetchAllMessages(channel, {

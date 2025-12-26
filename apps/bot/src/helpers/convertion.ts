@@ -8,6 +8,7 @@ import {
 	type RowsSchema,
 	rowsSchema,
 	snapShotSchema,
+	stickerSchema,
 } from "@repo/db/helpers/validation";
 import type {
 	DBChannel,
@@ -308,6 +309,7 @@ export async function toDBMessage(
 		serverId: fullMessage.guildId,
 		// questionId: null,
 		childThreadId: fullMessage.thread?.id ?? null,
+		stickers: toDbStickers(fullMessage),
 		poll: toDbPoll(fullMessage),
 		metadata,
 		snapshot,
@@ -461,4 +463,17 @@ export async function toDBSnapshot(
 		metadata: await toDbMetadata(snapshot),
 		forwardedInMessageId: message.id,
 	};
+}
+
+function toDbStickers(message: Message) {
+	if (!message.stickers?.size) {
+		return null;
+	}
+
+	const parsed = stickerSchema.safeParse(message.stickers);
+	if (!parsed.success) {
+		console.error("Failed to parse stickers:", parsed.error);
+		return null;
+	}
+	return parsed.data;
 }
