@@ -15,7 +15,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { AnimatedBeamDemo } from "./(marketing)/_components/beam";
+import { AnimatedBeamSection } from "./(marketing)/_components/beam";
 
 export const dynamic = "force-static";
 
@@ -85,7 +85,7 @@ export default function Home() {
 							Discord stays. Discoverability follows.
 						</h2>
 					</div>
-					<AnimatedBeamDemo />
+					<AnimatedBeamSection />
 				</section>
 				{/* <Preview /> */}
 				<section className="my-40 border-neutral-300 border-t px-4 md:my-32">

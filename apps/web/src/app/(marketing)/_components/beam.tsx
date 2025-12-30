@@ -5,17 +5,19 @@ import {
 	ChatCircleIcon,
 	ChatIcon,
 	ChatsTeardropIcon,
+	DiscordLogoIcon,
 	HeartIcon,
 	OpenAiLogoIcon,
 	XLogoIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useRef, useState } from "react";
+import { Twemoji } from "@/components/markdown/emoji";
 import { ThreadIcon } from "@/components/markdown/mention";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-export function AnimatedBeamDemo() {
+export function AnimatedBeamSection() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const discordUIRef = useRef<HTMLDivElement>(null);
 	const velumnRef = useRef<HTMLDivElement>(null);
@@ -102,52 +104,62 @@ export function AnimatedBeamDemo() {
 	);
 }
 
+function ThreadDescription() {
+	return (
+		<p className="text-sm text-gray-800">
+			How do I make my server's
+			<span className="inline-block px-1 not-prose space-x-0.5 rounded bg-purple-100 text-purple-800 align-baseline">
+				<ThreadIcon className="inline-block size-3" />
+				<span>help</span>
+			</span>
+			channel show up on Google so new people can find us?
+		</p>
+	);
+}
+
 function DiscordView() {
 	return (
 		<div className="p-3 flex h-full flex-col">
 			<div className="mb-3 border-b pb-2">
-				<ThreadIcon className="size-4 mr-2 inline-block" />
-				<span className="text-sm font-semibold text-gray-700">thread-name</span>
+				<DiscordLogoIcon className="size-4 mr-2 inline-block" />
+				<span className="text-sm font-semibold text-gray-700">
+					Discord threads discoverable on Google?
+				</span>
 			</div>
 			<div className="flex-1 space-y-3 overflow-hidden">
 				<div className="flex gap-2">
-					<div className="h-8 w-8 shrink-0 rounded-full bg-blue-400"></div>
+					<div className="h-8 w-8 shrink-0 rounded-full bg-gray-200"></div>
 					<div>
 						<div className="mb-1 flex items-baseline gap-2">
 							<span className="text-sm font-semibold text-gray-900">
-								Username
+								Akashi
 							</span>
 							<span className="text-xs text-gray-500">12:34 PM</span>
 						</div>
-						<p className="text-sm text-gray-800">Hey, check this out!</p>
+						<ThreadDescription />
 					</div>
 				</div>
 				<div className="flex gap-2">
-					<div className="h-8 w-8 shrink-0 rounded-full bg-green-400"></div>
+					<div className="h-8 w-8 shrink-0 rounded-full bg-gray-200"></div>
 					<div>
 						<div className="mb-1 flex items-baseline gap-2">
 							<span className="text-sm font-semibold text-gray-900">
-								AnotherUser
+								lmssiehdev
 							</span>
 							<span className="text-xs text-gray-500">12:35 PM</span>
 						</div>
-						<p className="text-sm text-gray-800">
-							This works with every platform?
-						</p>
+						<p className="text-sm text-gray-800">Just try velumn</p>
 					</div>
 				</div>
 				<div className="flex gap-2">
-					<div className="h-8 w-8 shrink-0 rounded-full bg-green-400"></div>
-					<div>
+					<div className="h-8 w-8 shrink-0 rounded-full bg-gray-200"></div>
+					<div className="flex-1">
 						<div className="mb-1 flex items-baseline gap-2">
-							<span className="text-sm font-semibold text-gray-900">
-								AnotherUser
-							</span>
-							<span className="text-xs text-gray-500">12:35 PM</span>
+							<div className="h-2.5 w-1/6 rounded bg-gray-200"></div>
 						</div>
-						<div className="text-sm text-gray-800 space-y-1">
-							<div className="h-3 w-full rounded bg-gray-200"></div>
-							<div className="h-3 w-4/6 rounded bg-gray-200"></div>
+						<div className="text-sm space-y-1">
+							<div className="h-2.5 w-full rounded bg-gray-200"></div>
+							<div className="h-2.5 w-4/6 rounded bg-gray-200"></div>
 						</div>
 					</div>
 				</div>
@@ -189,10 +201,11 @@ function VelumnView() {
 						<div>
 							<div className="mb-1 flex items-baseline gap-2">
 								<span className="text-sm font-semibold text-gray-900">
-									Username
+									Akashi
 								</span>
 								<span className="text-xs text-gray-500">12:34 PM</span>
 							</div>
+							<ThreadDescription />
 							<p className="text-sm text-gray-800">Hey, check this out!</p>
 						</div>
 					</div>
@@ -208,30 +221,15 @@ function VelumnView() {
 						<div>
 							<div className="mb-1 flex items-baseline gap-2">
 								<span className="text-sm font-semibold text-gray-900">
-									AnotherUser
+									lmssiehdev
 								</span>
 								<span className="text-xs text-gray-500">12:35 PM</span>
 							</div>
-							<p className="text-sm text-gray-800">
-								This works with every platform?
-							</p>
+							<p className="text-sm text-gray-800">Just try velumn</p>
 						</div>
 					</div>
 
-					<div className="flex gap-2">
-						<div className="h-8 w-8 shrink-0 rounded-full bg-gray-300"></div>
-						<div className="flex-1">
-							<div className="mb-1 flex ">
-								<div className="h-2.5 w-1/6 rounded bg-gray-200"></div>
-							</div>
-							<div className="text-sm text-gray-800 space-y-1">
-								<div className="h-2.5 w-full rounded bg-gray-200"></div>
-								<div className="h-2.5 w-4/6 rounded bg-gray-200"></div>
-							</div>
-						</div>
-					</div>
-
-					<div className="flex gap-2">
+					<div className="flex gap-2 mb-2">
 						<div className="h-8 w-8 shrink-0 rounded-full bg-gray-300"></div>
 						<div className="flex-1">
 							<div className="mb-1 flex ">
@@ -292,19 +290,25 @@ function ChatView() {
 			<div className="flex-1 space-y-4 overflow-y-auto px-1">
 				<div className="flex justify-end">
 					<div className="max-w-md rounded-2xl bg-gray-600 px-4 py-2 text-white">
-						<p className="text-sm">This works with every platform?</p>
+						<p className="text-sm">
+							How do I make my server's help channel show up on Google so new
+							people can find us?
+						</p>
 					</div>
 				</div>
 
 				<div className="flex justify-start">
 					<div className="max-w-md space-y-3">
 						<div className="rounded-2xl bg-gray-100 px-4 py-3 text-sm">
-							<p>
-								Yes, it works across most major platforms including Discord,
-								Slack, Twitter/X, Reddit, and more. The integration is designed
-								to be seamless regardless of where the conversation is
-								happening.
-							</p>
+							You can easily make your Discord help channel discoverable on
+							Google using Velumn!
+							<ol>
+								<li>1. invite the Velumn bot to your server</li>
+								<li>2. select which channel you want to index</li>
+								<li>
+									3. that's it <Twemoji className="size-3" name="🎉" />
+								</li>
+							</ol>
 						</div>
 					</div>
 				</div>
@@ -316,7 +320,7 @@ function ChatView() {
 							<ChatsTeardropIcon className="size-3 inline-block " />
 						</div>
 						<div className="leading-normal">
-							This works with every platform?
+							Discord threads discoverable on Google?
 						</div>
 					</div>
 				</div>
@@ -342,7 +346,7 @@ function SearchView() {
 				<input
 					type="text"
 					disabled
-					value="thread-name discord"
+					value="How to get my Discord channel on Google?"
 					className="flex-1 rounded-full border px-4 py-1.5 text-sm text-gray-700 outline-none"
 				/>
 			</div>
@@ -350,14 +354,14 @@ function SearchView() {
 			<div className="flex-1 space-y-4 overflow-hidden">
 				<div className="space-y-1">
 					<div className="flex items-baseline gap-2">
-						<span className="text-xs ">discord.com › thread</span>
+						<span className="text-xs ">velumn.com › thread</span>
 					</div>
 					<h3 className="text-lg font-normal text-blue-800 hover:underline cursor-pointer">
-						This works with every platform? - Discord Thread
+						Discord threads discoverable on Google? - Velumn
 					</h3>
 					<p className="text-sm text-gray-600">
-						Hey, check this out! This works with every platform? Discussion in
-						thread-name about seamless integration...
+						How do I make my server's help channel show up on Google so new
+						people can find us?
 					</p>
 				</div>
 
@@ -376,7 +380,6 @@ function SearchView() {
 		</div>
 	);
 }
-
 function SocialView() {
 	return (
 		<div className="flex h-full flex-col">
@@ -384,55 +387,69 @@ function SocialView() {
 				<XLogoIcon className="size-4 inline-block mr-1.5" />
 			</div>
 
-			<div className="flex-1 space-y-3 overflow-hidden">
+			<div className="flex-1 space-y-3 overflow-y-auto px-1">
 				<div>
 					<div className="flex gap-3">
 						<div className="h-8 w-8 shrink-0 rounded-full bg-gray-200"></div>
-						<div className="flex-1 space-y-1">
+						<div className="flex-1 space-y-2">
 							<div className="mb-1 flex items-baseline gap-2">
 								<span className="text-sm font-semibold text-gray-900">
-									Username
+									Akashi
 								</span>
-								<span className="text-xs text-gray-500">12:34 PM</span>
+								<span className="text-xs text-gray-500">
+									@akashibuilds · 2h
+								</span>
 							</div>
-							<p className="text-sm">
-								Hey, check this out! This works with every platform? Discussion
-								in thread-name about seamless integration...
+							<p className="text-sm text-gray-900">
+								Our Discord support threads now appear in Google searches,
+								driving more organic traffic. Thanks{" "}
+								<span className="text-purple-600">@velumn</span>!
 							</p>
-							<div className="flex justify-between items-center">
-								<ChatCircleIcon className="size-4" weight="duotone" />
-								<ArrowsClockwiseIcon className="size-4" weight="duotone" />
-								<HeartIcon className="size-4" weight="duotone" />
+							<div className="mt-2 overflow-hidden rounded-lg border border-gray-200">
+								<div className="bg-gray-50 px-3 py-2 text-xs text-gray-500">
+									velumn.com
+								</div>
+								<div className="p-3">
+									<h4 className="text-sm font-semibold text-gray-900">
+										The community platform built for Discord
+									</h4>
+									<p className="mt-1 text-xs text-gray-600">
+										Make your Discord community discoverable on Google and grow
+										organically.
+									</p>
+								</div>
+							</div>
+							<div className="flex gap-8 pt-2 text-gray-500 justify-between">
+								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
+									<ChatCircleIcon className="size-4" weight="regular" />
+									<span className="text-xs">24</span>
+								</div>
+								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
+									<ArrowsClockwiseIcon className="size-4" weight="regular" />
+									<span className="text-xs">142</span>
+								</div>
+								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
+									<HeartIcon className="size-4" weight="regular" />
+									<span className="text-xs">387</span>
+								</div>
 							</div>
 						</div>
 					</div>
-					<div className="ml-[52px] m-2">
-						<Separator className="my-3" />
-						<div className=" flex gap-3">
-							<div className="h-8 w-8 shrink-0 rounded-full bg-gray-200"></div>
-							<div className="flex-1">
-								<div className="mb-1 flex items-baseline gap-2">
-									<span className="text-sm font-semibold text-gray-900">
-										ReplyUser
-									</span>
-									<span className="text-xs text-gray-500">12:36 PM</span>
-								</div>
-								<p className="text-sm text-gray-700">
-									Yes! It integrates seamlessly across all platforms.
-								</p>
-							</div>
+
+					<div className="ml-[44px] mt-3 flex gap-3">
+						<div className="relative flex flex-col items-center">
+							<div className="w-0.5 bg-gray-200 h-3"></div>
+							<div className="h-7 w-7 shrink-0 rounded-full bg-gray-200"></div>
+							<div className="w-0.5 bg-gray-200 flex-1"></div>
 						</div>
-						<Separator className="my-3" />
-						<div className=" flex gap-3 mb-3">
-							<div className="h-8 w-8 shrink-0 rounded-full bg-gray-200"></div>
-							<div className="flex-1">
-								<div className="mb-1 flex items-baseline gap-2">
-									<div className="h-3 w-2/6 rounded bg-gray-200"></div>
-								</div>
-								<div className="space-y-1">
-									<div className="h-3 w-5/6 rounded bg-gray-200"></div>
-									<div className="h-3 w-3/6 rounded bg-gray-200"></div>
-								</div>
+						<div className="flex-1 space-y-3 mt-3 mb-3">
+							<div className="mb-1 flex ">
+								<div className="h-2.5 w-1/6 rounded bg-gray-200"></div>
+							</div>
+
+							<div className="text-sm text-gray-800 space-y-1">
+								<div className="h-2.5 w-full rounded bg-gray-200"></div>
+								<div className="h-2.5 w-4/6 rounded bg-gray-200"></div>
 							</div>
 						</div>
 					</div>
