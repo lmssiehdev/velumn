@@ -1,3 +1,5 @@
+"use client";
+
 import type { DBMessage } from "@repo/db/schema/discord";
 import { ComponentType } from "discord-api-types/v10";
 import { cn } from "@/lib/utils";
