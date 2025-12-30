@@ -1,5 +1,5 @@
 import { logger } from "@repo/logger";
-import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
+import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "..";
 import {
@@ -114,8 +114,7 @@ async function processAttachments(attachments: DBAttachments[]) {
 		return;
 	}
 	const nonUploadableAttachments = attachments.filter(
-		({ contentType, proxyURL }) =>
-			!isEmbeddableAttachment({ contentType, proxyURL }),
+		(a) => !getEmbedFileInfo(a).isUploadable,
 	);
 
 	if (nonUploadableAttachments.length) {
@@ -126,10 +125,10 @@ async function processAttachments(attachments: DBAttachments[]) {
 	}
 
 	const uploadableAttachments = attachments.filter(
-		({ contentType, proxyURL }) =>
-			isEmbeddableAttachment({ contentType, proxyURL }),
+		(a) => getEmbedFileInfo(a).isUploadable,
 	);
 
+	// TODO: handle pricing
 	if (!uploadableAttachments.length) {
 		return;
 	}
@@ -153,20 +152,28 @@ async function processAttachments(attachments: DBAttachments[]) {
 	if (newAttachments.length === 0) {
 		return;
 	}
-
 	const uploadPromises = newAttachments.map(async (attachment) => {
 		const { id, name, contentType, url } = attachment;
-		try {
-			const file = await uploadFileFromUrl({
+
+		const result = await uploadFileFromUrl({
+			id,
+			name,
+			contentType: contentType ?? undefined,
+			url,
+		});
+
+		if (!result) {
+			logger.warn("attachment_upload_failed", {
 				id,
 				name,
-				contentType: contentType ?? undefined,
 				url,
 			});
-			if (!file?.Location) {
-				return;
-			}
-			const proxyURL = `https://cdn.velumn.com/${id}/${name}`;
+			return;
+		}
+
+		const proxyURL = `https://cdn.velumn.com/${id}/${name}`;
+
+		try {
 			await db
 				.insert(dbAttachments)
 				.values({
@@ -179,10 +186,8 @@ async function processAttachments(attachments: DBAttachments[]) {
 				error,
 				id,
 				name,
-				contentType,
-				url,
+				proxyURL,
 			});
-			return;
 		}
 	});
 

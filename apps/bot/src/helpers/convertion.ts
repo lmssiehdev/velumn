@@ -1,5 +1,6 @@
 import {
 	type DBSnapshotSchema,
+	dbAttachmentsSchema,
 	embedSchema,
 	internalLinksSchema,
 	type MessageMetadataSchema,
@@ -412,21 +413,38 @@ function toDbEmbeds(message: Message | MessageSnapshot) {
 }
 
 function toDbAttachments(message: Message | MessageSnapshot) {
-	// !! TODO: use the zod schema
-	return message.attachments.map((attachment) => ({
-		id: attachment.id,
-		url: attachment.url,
-		messageId: message.id!,
-		proxyURL: attachment.proxyURL,
-		name: attachment.name ?? "",
-		size: attachment.size,
-		height: attachment.height,
-		width: attachment.width,
-		contentType: attachment.contentType,
-		description: attachment.description,
-		ephemeral: attachment.ephemeral ?? false,
-		isSnapshot: false,
-	}));
+	return message.attachments
+		.map((attachment) => {
+			const attachmentData = {
+				id: attachment.id,
+				url: attachment.url,
+				messageId: message.id!,
+				proxyURL: attachment.proxyURL,
+				name: attachment.name ?? "",
+				size: attachment.size,
+				height: attachment.height,
+				width: attachment.width,
+				contentType: attachment.contentType,
+				description: attachment.description,
+				isSnapshot: false,
+			};
+
+			const result = dbAttachmentsSchema.safeParse(attachmentData);
+			if (!result.success) {
+				console.error(
+					"Failed to validate attachment:",
+					attachment.id,
+					"Error:",
+					result.error.issues.map((issue) => issue.message).join(", "),
+				);
+				return null;
+			}
+			return result.data;
+		})
+		.filter(
+			(attachment): attachment is NonNullable<typeof attachment> =>
+				attachment !== null,
+		);
 }
 
 export async function toDBSnapshot(

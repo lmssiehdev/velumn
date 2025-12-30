@@ -1,11 +1,11 @@
 import type { DBMessageWithRelations } from "@repo/db/schema/discord";
-import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
+import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import { snowflakeToDayjs } from "@repo/utils/helpers/time";
 import { getAllMessagesInThreadsCache } from "@/utils/cache";
 import { anonymizeName } from "../../thread/[...id]/_components/thread-message";
 
 export async function GET(
-	request: Request,
+	_request: Request,
 	{ params }: { params: Promise<{ threadId: string }> },
 ) {
 	const { threadId } = await params;
@@ -114,7 +114,7 @@ function formatCommentContentAsMarkdown(message: DBMessageWithRelations) {
 	}
 
 	for (const attachment of message.attachments ?? []) {
-		const isImageAttachment = isEmbeddableAttachment(attachment);
+		const isImageAttachment = getEmbedFileInfo(attachment).type === "image";
 
 		if (isImageAttachment) {
 			sections.push(`![${attachment.name}](${attachment.proxyURL})`);
