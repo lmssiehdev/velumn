@@ -4,16 +4,18 @@ import {
 	findLatestMessageInChannel,
 	upsertChannel,
 } from "@repo/db/helpers/channels";
-import { logger } from "@repo/logger";
+import { botLogger, logger } from "@repo/logger";
 import {
 	type AnyThreadChannel,
 	ChannelType,
+	type Message,
 	PermissionFlagsBits,
 	type PublicThreadChannel,
 	type Snowflake,
 } from "discord.js";
 import { toDbChannel } from "../helpers/convertion";
 import { fetchAllMessages, type IndexableChannels } from "./helpers";
+import { logIndexingError } from "./indexing-logger";
 import { Log } from "./logger";
 import { storeIndexedData } from "./store";
 
@@ -155,18 +157,69 @@ export async function indexThread(
 	if (channel.isDMBased() || !channel.viewable || !canBotViewChannel(channel)) {
 		return;
 	}
+
+	const startTime = Date.now();
+	const channelContext = {
+		channelId: channel.id,
+		threadId: channel.isThread() ? channel.id : undefined,
+		guildId: channel.guildId || channel.guild?.id,
+		channelType: channel.type,
+		isThread: channel.isThread(),
+		channelName: channel.name,
+		guildName: channel.guild?.name,
+	};
+	let messages: Message[] = [];
+
 	try {
 		let start = opts?.fromMessageId;
 		if (!start && !opts?.skipIndexingEnabledCheck) {
 			start = await findLatestMessageInChannel(channel.id);
 		}
-		const messages = await fetchAllMessages(channel, {
+
+		messages = await fetchAllMessages(channel, {
 			start: opts?.force ? "0" : start,
 		});
 
 		await storeIndexedData(messages, channel);
-		Log("log_indexing_complete", channel);
+
+		if (channel.guild) {
+			botLogger.info("Indexing operation completed successfully", {
+				event: "indexing_success",
+				timestamp: new Date().toISOString(),
+				context: {
+					messageId: messages[0]?.id || channel.id,
+					channelId: channel.parentId || channel.id,
+					threadId: channel.id,
+					guildId: channel.guild.id,
+					processingStage: "store",
+					batchSize: messages.length,
+					messageType: 0,
+					processingTimeMs: Date.now() - startTime,
+				},
+			});
+		}
 	} catch (error) {
+		logIndexingError(
+			error,
+			{
+				...channelContext,
+				processingStage: "store",
+				errorCategory: "processing",
+				retryable: true,
+				lastSuccessfullyProcessedId:
+					messages.length > 0 ? messages.at(-1)?.id : undefined,
+				failedAtSnowflake: opts?.fromMessageId,
+				estimatedRemainingCount: channel.lastMessageId
+					? parseInt(channel.lastMessageId, 10) -
+						parseInt(opts?.fromMessageId || "0", 10)
+					: undefined,
+			},
+			{
+				messagesProcessed: messages.length,
+				forceIndex: opts?.force || false,
+			},
+		);
+
 		logger.error(`Error indexing channel ${channel.name} ${channel.id}`, {
 			error,
 		});

@@ -3,7 +3,6 @@ import { apiLogger } from "@repo/logger";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import type z from "zod";
 import { getHonoIp } from "./helpers/rate-limit";
 import { botRouter } from "./helpers/trpc";
 

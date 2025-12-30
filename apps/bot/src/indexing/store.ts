@@ -15,18 +15,30 @@ import {
 } from "discord.js";
 import {
 	extractUsersSetFromMessages,
-	messagesToDBMessagesSet,
+	toDBMessage,
 	toDbBacklink,
 	toDbChannel,
 	toDbUser,
 } from "../helpers/convertion";
 import { getTheOldestSnowflakeId } from "./helpers";
+import {
+	extractIndexingContext,
+	type IndexingErrorContext,
+	logBatchOperation,
+	logIndexingError,
+} from "./indexing-logger";
 import { insertBulkSearchMessages } from "./search";
 
 export async function storeIndexedData(
 	messages: Message[],
 	channel: GuildTextBasedChannel,
 ) {
+	const startTime = Date.now();
+	const processingErrors: Array<{
+		error: Error | unknown;
+		context: IndexingErrorContext;
+	}> = [];
+
 	if (channel.client.id == null) {
 		throw new Error("Received a null client id when indexing");
 	}
@@ -35,58 +47,156 @@ export async function storeIndexedData(
 		logger.info(
 			`No messages to index for channel ${channel.name} ${channel.id}`,
 		);
+		return;
 	}
 
-	logger.info(`Upserting channel: ${channel.name} ${channel.id}`);
-	const lastIndexedMessageId = getTheOldestSnowflakeId(messages);
-
-	const convertedChannel = await toDbChannel(channel);
-	await upsertChannel({
-		create: {
-			...convertedChannel,
-			lastIndexedMessageId,
-		},
-		update: {
-			archivedTimestamp: convertedChannel.archivedTimestamp,
-			...(lastIndexedMessageId === "0" ? {} : { lastIndexedMessageId }),
-		},
+	logBatchOperation("started", {
+		channelId: channel.id,
+		threadId: channel.isThread() ? channel.id : undefined,
+		guildId: channel.guildId || channel.guild?.id,
+		totalMessages: messages.length,
+		processedMessages: 0,
+		failedMessages: 0,
+		processingStage: "store",
 	});
 
-	if (channel.type !== ChannelType.PublicThread) {
+	try {
+		logger.info(`Upserting channel: ${channel.name} ${channel.id}`);
+		const lastIndexedMessageId = getTheOldestSnowflakeId(messages);
+
+		const convertedChannel = await toDbChannel(channel);
+		await upsertChannel({
+			create: {
+				...convertedChannel,
+				lastIndexedMessageId,
+			},
+			update: {
+				archivedTimestamp: convertedChannel.archivedTimestamp,
+				...(lastIndexedMessageId === "0" ? {} : { lastIndexedMessageId }),
+			},
+		});
+
+		if (channel.type !== ChannelType.PublicThread) {
+			return;
+		}
+
+		// Filter out ignored users
+		const filteredMessages = await removeIgnoredUsers(messages);
+
+		// Log filtered messages count for transparency
+		const ignoredCount = messages.length - filteredMessages.length;
+		if (ignoredCount > 0) {
+			logger.info(
+				`Filtered ${ignoredCount} messages from ignored users in channel ${channel.id}`,
+			);
+		}
+
+		const convertedUsers = extractUsersSetFromMessages(filteredMessages);
+		const convertedMessages: Awaited<ReturnType<typeof toDBMessage>>[] = [];
+
+		// Process messages individually to capture parsing errors
+		for (const message of filteredMessages) {
+			try {
+				const convertedMessage = await toDBMessage(message);
+				convertedMessages.push(convertedMessage);
+			} catch (error) {
+				const context = extractIndexingContext(message, "parse");
+				processingErrors.push({
+					error,
+					context: {
+						...context,
+						errorCategory: "parsing",
+						retryable: false,
+						batchSize: filteredMessages.length,
+					},
+				});
+			}
+		}
+
+		logger.info(`Upserting ${convertedUsers.length} discord accounts`);
+
+		try {
+			await upsertManyDiscordAccounts(convertedUsers);
+		} catch (error) {
+			const errorContext: IndexingErrorContext = {
+				channelId: channel.id,
+				threadId: channel.isThread() ? channel.id : undefined,
+				guildId: channel.guildId || channel.guild?.id,
+				processingStage: "store",
+				errorCategory: "database",
+				retryable: true,
+				batchSize: convertedUsers.length,
+			};
+
+			logIndexingError(error, errorContext, {
+				operation: "upsert_discord_accounts",
+				accountsCount: convertedUsers.length,
+			});
+			throw error;
+		}
+
+		const botMessages = filteredMessages.filter((x) => x.author.bot);
+
+		const bots = [
+			...new Map(botMessages.map((x) => [x.author.id, x.author])).values(),
+		];
+
+		if (bots.length > 0) {
+			await upsertManyDiscordAccounts(bots.map(toDbUser));
+		}
+
+		logger.info(`Upserting ${convertedMessages.length} messages`);
+		try {
+			await upsertManyMessages(convertedMessages);
+		} catch (error) {
+			const errorContext: IndexingErrorContext = {
+				channelId: channel.id,
+				threadId: channel.isThread() ? channel.id : undefined,
+				guildId: channel.guildId || channel.guild?.id,
+				processingStage: "store",
+				errorCategory: "database",
+				retryable: true,
+				batchSize: convertedMessages.length,
+			};
+
+			logIndexingError(error, errorContext, {
+				operation: "upsert_messages",
+				messagesCount: convertedMessages.length,
+			});
+			throw error;
+		}
+
+		const backlinks = toDbBacklink(convertedMessages);
+		await upsertManyBacklinks(backlinks);
+		insertBulkSearchMessages(channel, convertedMessages);
+
+		logBatchOperation("completed", {
+			channelId: channel.id,
+			threadId: channel.isThread() ? channel.id : undefined,
+			guildId: channel.guildId || channel.guild?.id,
+			totalMessages: messages.length,
+			processedMessages: convertedMessages.length,
+			failedMessages: processingErrors.length,
+			processingStage: "store",
+			durationMs: Date.now() - startTime,
+		});
+
 		return;
+	} catch (error) {
+		logBatchOperation("failed", {
+			channelId: channel.id,
+			threadId: channel.isThread() ? channel.id : undefined,
+			guildId: channel.guildId || channel.guild?.id,
+			totalMessages: messages.length,
+			processedMessages: 0,
+			failedMessages: messages.length,
+			processingStage: "store",
+			durationMs: Date.now() - startTime,
+			error: error instanceof Error ? error : new Error(String(error)),
+		});
+
+		throw error;
 	}
-
-	if (messages.length === 0) {
-		return;
-	}
-
-	// Filter out ignored users
-	const filteredMessages = await removeIgnoredUsers(messages);
-
-	// we filter for system messages here
-	const convertedUsers = extractUsersSetFromMessages(filteredMessages);
-	const convertedMessages = await messagesToDBMessagesSet(filteredMessages);
-
-	logger.info(`Upserting ${convertedUsers.length} discord accounts`);
-
-	await upsertManyDiscordAccounts(convertedUsers);
-	const botMessages = filteredMessages.filter((x) => x.author.bot);
-
-	const bots = [
-		...new Map(botMessages.map((x) => [x.author.id, x.author])).values(),
-	];
-
-	if (bots.length > 0) {
-		await upsertManyDiscordAccounts(bots.map(toDbUser));
-	}
-
-	logger.info(`Upserting ${convertedMessages.length} messages`);
-	await upsertManyMessages(convertedMessages);
-
-	const backlinks = toDbBacklink(convertedMessages);
-	await upsertManyBacklinks(backlinks);
-	insertBulkSearchMessages(channel, convertedMessages);
-	return true;
 }
 
 async function removeIgnoredUsers(messages: Message[]) {
