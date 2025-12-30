@@ -1,224 +1,201 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Download, Maximize2, X } from "lucide-react";
-import { useState } from "react";
+import { ArrowsOutSimpleIcon } from "@phosphor-icons/react/dist/ssr";
+import type { DBAttachments } from "@repo/db/helpers/validation";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Download } from "lucide-react";
+import { memo, Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { getLanguageFromFileName, highlightCode } from "@/utils/shiki";
 import { DynamicQueryProvider } from "./dynamic-react-query-provider";
 
-interface CodeViewerProps {
-	fileUrl: string;
-	fileName: string;
-	language?: string;
-}
-
-const fetchCode = async (url: string): Promise<string> => {
-	const response = await fetch(url);
-	if (!response.ok) {
-		throw new Error("Failed to fetch code");
+export function CodeViewer({ attachments }: { attachments: DBAttachments[] }) {
+	console.log({ attachments });
+	if (!attachments.length) {
+		return null;
 	}
-	return response.text();
-};
-
-const getLanguageFromFileName = (fileName: string): string => {
-	const extension = fileName.split(".").pop()?.toLowerCase();
-	const languageMap: Record<string, string> = {
-		js: "javascript",
-		jsx: "javascript",
-		ts: "typescript",
-		tsx: "typescript",
-		py: "python",
-		java: "java",
-		cpp: "cpp",
-		c: "c",
-		cs: "csharp",
-		go: "go",
-		rs: "rust",
-		rb: "ruby",
-		php: "php",
-		html: "html",
-		css: "css",
-		json: "json",
-		md: "markdown",
-	};
-	return languageMap[extension || ""] || "text";
-};
-export default function CodeViewer({
-	fileUrl,
-	fileName,
-	language,
-}: CodeViewerProps) {
 	return (
 		<DynamicQueryProvider>
-			<CodeViewerInner
-				fileUrl={fileUrl}
-				fileName={fileName}
-				language={language}
-			/>
+			{attachments.map((attachment) => (
+				<LazyCodeViewer key={attachment.id} attachment={attachment} />
+			))}
 		</DynamicQueryProvider>
 	);
 }
+const CodeLoadingSkeleton = memo(() => {
+	return (
+		<div className="w-full rounded-lg border p-4 space-y-2">
+			{[...Array(3)].map((_, i) => (
+				<div
+					key={i}
+					className="h-3 bg-gray-200 animate-pulse"
+					style={{ width: `${Math.random() * 40 + 50}%` }}
+				/>
+			))}
+		</div>
+	);
+});
 
-export const CodeViewerInner = ({
-	fileUrl,
-	fileName,
-	language,
-}: CodeViewerProps) => {
+function LazyCodeViewer({ attachment }: { attachment: DBAttachments }) {
+	const [shouldLoad, setShouldLoad] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		const element = ref.current;
+		if (!element) return;
+
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (entry.isIntersecting) {
+					setShouldLoad(true);
+					observer.disconnect();
+				}
+			},
+			{ rootMargin: "200px" },
+		);
+
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, []);
+
+	return (
+		<div ref={ref}>
+			{shouldLoad ? (
+				<Suspense fallback={<CodeLoadingSkeleton />}>
+					<CodeViewerInner attachment={attachment} />
+				</Suspense>
+			) : (
+				<CodeLoadingSkeleton />
+			)}
+		</div>
+	);
+}
+
+const CodeViewerInner = ({ attachment }: { attachment: DBAttachments }) => {
+	const { name: fileName, proxyURL: fileUrl } = attachment;
 	const [isExpanded, setIsExpanded] = useState(false);
+	const detectedLanguage = getLanguageFromFileName(fileName);
 
-	const {
-		data: code,
-		isLoading,
-		error,
-	} = useQuery({
-		queryKey: ["code", fileUrl],
-		queryFn: () => fetchCode(fileUrl),
+	const { data: code } = useSuspenseQuery({
+		queryKey: ["preview-code", fileUrl],
+		queryFn: async () => {
+			try {
+				const response = await fetch(fileUrl, {
+					headers: { Range: "bytes=0-40000" },
+				});
+				if (!response.ok) {
+					throw new Error("Failed to fetch code");
+				}
+				const content = await response.text();
+				return await highlightCode(content, detectedLanguage);
+			} catch (_err) {
+				return `<pre>Failed to fetch code.</pre>`;
+			}
+		},
+		staleTime: Infinity,
 	});
-
-	const detectedLanguage = language || getLanguageFromFileName(fileName);
 
 	const handleDownload = () => {
 		if (!code) return;
 
-		const blob = new Blob([code], { type: "text/plain" });
-		const url = window.URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = fileName;
-		document.body.appendChild(a);
-		a.click();
-		window.URL.revokeObjectURL(url);
-		document.body.removeChild(a);
+		window.open(fileUrl, "_blank");
 	};
 
-	const renderCodeLines = (codeContent: string, truncate: boolean = false) => {
-		const lines = codeContent.split("\n");
-		const displayLines = truncate ? lines.slice(0, 6) : lines;
+	const lines = code?.split("\n") || [];
+	const MAX_PREVIEW_LINES = 10;
+	const shouldTruncate = lines.length > MAX_PREVIEW_LINES;
 
-		return (
-			<pre className="text-sm">
-				<code>
-					{displayLines.map((line, index) => (
-						<div key={index} className="table-row">
-							<span className="table-cell pr-4 text-right select-none text-muted-foreground opacity-50 w-8">
-								{index + 1}
-							</span>
-							<span className="table-cell">{line || "\n"}</span>
-						</div>
-					))}
-					{truncate && lines.length > 6 && (
-						<div className="text-muted-foreground italic pt-2">
-							... {lines.length - 6} more lines
-						</div>
-					)}
-				</code>
-			</pre>
-		);
-	};
+	const previewCode = shouldTruncate
+		? lines.slice(0, MAX_PREVIEW_LINES).join("\n")
+		: code || "";
 
-	if (isLoading) {
+	function HighlightedCode({
+		code,
+		className,
+	}: {
+		code: string;
+		className?: string;
+	}) {
 		return (
-			<Card className="w-full bg-[#2b2d31] border-[#1e1f22] rounded-md overflow-hidden">
-				<div className="p-4 text-gray-400">Loading code...</div>
-			</Card>
+			<div
+				className={cn(
+					"max-w-full text-sm! [&_pre]:max-w-0 [&_code]:whitespace-pre",
+					className,
+				)}
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: required for code highlighting
+				dangerouslySetInnerHTML={{
+					__html: code,
+				}}
+			/>
 		);
 	}
 
-	if (error) {
+	function DownloadButton() {
 		return (
-			<Card className="w-full bg-[#2b2d31] border-[#1e1f22] rounded-md overflow-hidden">
-				<div className="p-4 text-red-400">Error loading code</div>
-			</Card>
+			<Button
+				variant="ghost"
+				size="sm"
+				className="h-7 text-xs shrink-0"
+				onClick={handleDownload}
+			>
+				<Download className="size-4" />
+			</Button>
 		);
 	}
-
 	return (
-		<>
-			<Card className="w-full max-w-2xl bg-[#2b2d31] border-[#1e1f22] rounded-md overflow-hidden">
-				{/* Header */}
-				<div className="flex items-center justify-between px-3 py-2 border-b border-[#1e1f22] bg-[#232428]">
-					<span className="text-sm text-gray-300 font-medium">{fileName}</span>
-					<div className="flex gap-2">
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-6 w-6 hover:bg-[#404249] text-gray-400 hover:text-gray-200"
-							onClick={() => setIsExpanded(true)}
-						>
-							<Maximize2 className="h-4 w-4" />
-						</Button>
+		<div className="w-full rounded-md border flex flex-col [&_pre]:!bg-transparent">
+			<div className="text-sm w-full min-w-0 ">
+				<HighlightedCode code={previewCode} className="overflow-auto" />
+				{shouldTruncate && (
+					<div className=" px-2 py-0.5 text-sm text-muted-foreground italic">
+						... {lines.length - MAX_PREVIEW_LINES} more lines
 					</div>
-				</div>
+				)}
+			</div>
 
-				<div className="bg-[#1e1f22] p-4 overflow-hidden">
-					<div className="font-mono text-gray-300 text-xs leading-5">
-						{code && renderCodeLines(code, true)}
-					</div>
-				</div>
-
-				{/* Footer */}
-				<div className="flex items-center justify-between px-3 py-2 border-t border-[#1e1f22] bg-[#232428]">
-					<span className="text-xs text-gray-400">{detectedLanguage}</span>
+			<div className="flex items-center justify-between px-3 py-2 border-t shrink-0 ">
+				<div className="flex gap-1.5 items-center justify-center">
 					<Button
 						variant="ghost"
-						size="sm"
-						className="h-7 text-xs hover:bg-[#404249] text-gray-400 hover:text-gray-200"
-						onClick={handleDownload}
+						size="icon"
+						className="h-6 w-6 shrink-0"
+						onClick={() => setIsExpanded(true)}
 					>
-						<Download className="h-3 w-3 mr-1" />
-						Download
+						<ArrowsOutSimpleIcon className="size-4" />
 					</Button>
+					<span className="leading-normal ">Expand</span>
 				</div>
-			</Card>
+				<div className="flex items-center justify-center gap-1.5">
+					<span className="text-sm font-medium truncate text-neutral-700">
+						{fileName}
+					</span>
+					<DownloadButton />
+				</div>
+			</div>
 
 			<Dialog open={isExpanded} onOpenChange={setIsExpanded}>
-				<DialogContent className="max-w-4xl h-[80vh] bg-[#2b2d31] border-[#1e1f22] p-0">
-					<DialogHeader className="px-4 py-3 border-b border-[#1e1f22] bg-[#232428]">
-						<div className="flex items-center justify-between">
-							<DialogTitle className="text-gray-300 text-base font-medium">
-								{fileName}
+				<DialogContent
+					showCloseButton={false}
+					className="max-w-[80vw]! w-full h-[80vh] flex flex-col gap-0 p-1"
+				>
+					<div className="flex-1 min-h-0 overflow-auto">
+						<HighlightedCode code={code} />
+					</div>
+
+					<div className="ml-auto">
+						<div className="flex items-center justify-center gap-1.5">
+							<DialogTitle>
+								<span className="text-sm font-medium truncate text-neutral-700">
+									{fileName}
+								</span>
 							</DialogTitle>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-6 w-6 hover:bg-[#404249] text-gray-400 hover:text-gray-200"
-								onClick={() => setIsExpanded(false)}
-							>
-								<X className="h-4 w-4" />
-							</Button>
+							<DownloadButton />
 						</div>
-					</DialogHeader>
-
-					<ScrollArea className="flex-1 h-full">
-						<div className="bg-[#1e1f22] p-4">
-							<div className="font-mono text-gray-300 text-xs leading-5">
-								{code && renderCodeLines(code, false)}
-							</div>
-						</div>
-					</ScrollArea>
-
-					<div className="flex items-center justify-between px-4 py-3 border-t border-[#1e1f22] bg-[#232428]">
-						<span className="text-xs text-gray-400">{detectedLanguage}</span>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-7 text-xs hover:bg-[#404249] text-gray-400 hover:text-gray-200"
-							onClick={handleDownload}
-						>
-							<Download className="h-3 w-3 mr-1" />
-							Download
-						</Button>
 					</div>
 				</DialogContent>
 			</Dialog>
-		</>
+		</div>
 	);
 };

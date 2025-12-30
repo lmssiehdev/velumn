@@ -96,7 +96,7 @@ export class ThreadDelete extends Listener {
 				await deleteSearchThread({ id: thread.id });
 			}
 		} catch (error) {
-			this.container.logger.error("Failed to delete channel", error);
+			this.container.logger.error("Failed to delete thread", error);
 		}
 	}
 }
@@ -125,7 +125,7 @@ export class UpdateThread extends Listener {
 				await invalidateTags(CacheTags.thread(newThread.id));
 			}
 		} catch (error) {
-			this.container.logger.error("Failed to delete channel", error);
+			this.container.logger.error("Failed to update thread", error);
 		}
 	}
 }

@@ -1,7 +1,7 @@
 import { ArrowUpRightIcon, FileIcon } from "@phosphor-icons/react/dist/ssr";
 import type { DBAttachments } from "@repo/db/helpers/validation";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
-import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
+import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 // @ts-expect-error no types - used once;
 import bytes from "bytes";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,95 +11,110 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import CodeViewer from "../code-preview";
+import { CodeViewer } from "../code-preview";
 
-const isCode = (a: DBAttachments) =>
-	!a.contentType?.startsWith("image/") || a.proxyURL?.endsWith(".svg");
-
-export function Attachments({
-	attachments,
-	metadata,
-}: {
+type AttachmentsProp = {
 	metadata: {
 		serverId: string;
 		channelId: string;
 	};
 	attachments: DBAttachments[];
-}) {
+};
+
+export function Attachments({ attachments, metadata }: AttachmentsProp) {
 	if (!attachments?.length) {
 		return null;
 	}
 
+	const nonEmbeddableAttachments = attachments.filter(
+		(a) => !getEmbedFileInfo(a).isEmbeddable,
+	);
+	const embeddableAttachments = attachments.filter(
+		(a) => getEmbedFileInfo(a).isEmbeddable,
+	);
+
+	const codeAttachments = embeddableAttachments.filter(
+		(a) => getEmbedFileInfo(a).type === "code",
+	);
+
+	const imageAttachments = embeddableAttachments.filter(
+		(a) => getEmbedFileInfo(a).type === "image",
+	);
+
 	return (
 		<div className="flex flex-col gap-2">
-			<ImageGallery images={attachments.filter(isEmbeddableAttachment)} />
-			{attachments.filter(isCode).map((attachment) => (
-				<CodeViewer
-					fileUrl={attachment.proxyURL}
-					fileName={attachment.name}
-					key={attachment.name}
+			{imageAttachments.length > 0 && (
+				<ImageGallery images={imageAttachments} />
+			)}
+			{codeAttachments.length > 0 && (
+				<div className="space-y-2">
+					<CodeViewer attachments={codeAttachments} />
+				</div>
+			)}
+			{nonEmbeddableAttachments.length > 0 && (
+				<FileShowcase
+					attachments={nonEmbeddableAttachments}
+					metadata={metadata}
 				/>
-			))}
-			{/* // {attachments.filter(isCode).map((attachment) => (
-			// 	<FileShowcase
-			// 		attachment={attachment}
-			// 		key={attachment.id}
-			// 		metadata={metadata}
-			// 	/>
-			// ))} */}
+			)}
 		</div>
 	);
 }
 
-function FileShowcase({
-	attachment,
-	metadata,
-}: {
-	metadata: {
-		serverId: string;
-		channelId: string;
-	};
-	attachment: DBAttachments;
-}) {
-	const { name, size, messageId } = attachment;
-	const attachmentMessageUrl = constructDiscordLink({
-		serverId: metadata.serverId,
-		threadId: metadata.channelId,
-		messageId,
-	});
-
+function FileShowcase({ attachments, metadata }: AttachmentsProp) {
 	return (
-		<div className="group relative mt-2 flex w-full max-w-md gap-2.5 border border-neutral-300 p-4 shadow">
-			<div className="flex items-center justify-center">
-				<FileIcon className="size-10" weight="thin" />
-			</div>
-			<div className="flex flex-col overflow-hidden">
-				<a
-					className="overflow-hidden text-ellipsis whitespace-nowrap underline-offset-2 hover:underline"
-					href={attachmentMessageUrl}
-					target="_blank"
-				>
-					{name}
-				</a>
-				<span className="text-neutral-500 text-sm">{bytes(size, 2)} </span>
-			</div>
-			<div className="group-hover:fade-in-0 group-hover:zoom-in-95 absolute top-0 right-0 translate-x-[50%] translate-y-[-50%] opacity-0 transition-opacity duration-300 group-hover:animate-in group-hover:opacity-100">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<a
-							className={buttonVariants({ size: "icon", variant: "outline" })}
-							href={attachmentMessageUrl}
-							target="_blank"
-						>
-							<ArrowUpRightIcon className="size-6" weight={"bold"} />
-						</a>
-					</TooltipTrigger>
-					<TooltipContent>
-						<p>Open in discord</p>
-					</TooltipContent>
-				</Tooltip>
-			</div>
-		</div>
+		<>
+			{attachments.map((a) => {
+				const { name, size, messageId } = a;
+				const attachmentMessageUrl = constructDiscordLink({
+					serverId: metadata.serverId,
+					threadId: metadata.channelId,
+					messageId,
+				});
+				return (
+					<div
+						key={a.id}
+						className="group relative mt-2 flex w-full max-w-md gap-2.5 border border-neutral-300 p-4 shadow"
+					>
+						<div className="flex items-center justify-center">
+							<FileIcon className="size-10" weight="thin" />
+						</div>
+						<div className="flex flex-col overflow-hidden">
+							<a
+								className="overflow-hidden text-ellipsis whitespace-nowrap underline-offset-2 hover:underline"
+								href={attachmentMessageUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								{name}
+							</a>
+							<span className="text-neutral-500 text-sm">
+								{bytes(size, 2)}{" "}
+							</span>
+						</div>
+						<div className="group-hover:fade-in-0 group-hover:zoom-in-95 absolute top-0 right-0 translate-x-[50%] translate-y-[-50%] opacity-0 transition-opacity duration-300 group-hover:animate-in group-hover:opacity-100">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<a
+										className={buttonVariants({
+											size: "icon",
+											variant: "outline",
+										})}
+										href={attachmentMessageUrl}
+										target="_blank"
+									>
+										<ArrowUpRightIcon className="size-6" weight={"bold"} />
+									</a>
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Open in discord</p>
+								</TooltipContent>
+							</Tooltip>
+						</div>
+					</div>
+				);
+			})}
+		</>
 	);
 }
 

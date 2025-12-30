@@ -40,7 +40,8 @@ export async function indexServers(client: Client) {
 export async function indexServer(
 	guild: Guild,
 	options?: {
-		maxThreads: number;
+		force?: boolean;
+		maxThreads?: number;
 	},
 ) {
 	if (!guild.id) return;
@@ -58,7 +59,7 @@ export async function indexServer(
 		if (!isChannelIndexable(channel) || channel.nsfw) {
 			continue;
 		}
-		await indexChannel(channel);
+		await indexChannel(channel, { force: options?.force ?? false });
 		await invalidateTags(CacheTags.thread(channel.id));
 		++currIndexedThreads;
 		if (options?.maxThreads && currIndexedThreads >= options.maxThreads) {

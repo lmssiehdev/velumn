@@ -5,7 +5,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import type { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
-import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
+import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import {
 	getSlugFromTitle,
 	slugifyThreadUrl,
@@ -118,7 +118,7 @@ export default async function Page({ params }: PageProps) {
 	const op = originalPost.user!;
 	const title = thread.channelName ?? originalPost.content?.slice(0, 100);
 	const firstImage = originalPost.attachments
-		.filter(isEmbeddableAttachment)
+		.filter((a) => getEmbedFileInfo(a).type === "image")
 		.at(0);
 
 	// TODO: handle empty messages;

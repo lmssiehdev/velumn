@@ -27,7 +27,12 @@ const canBotViewChannel = (channel: IndexableChannels | PublicThreadChannel) =>
 			PermissionFlagsBits.ReadMessageHistory,
 		]);
 
-export async function indexChannel(channel: IndexableChannels) {
+export async function indexChannel(
+	channel: IndexableChannels,
+	options?: {
+		force?: boolean;
+	},
+) {
 	if (
 		channel.type !== ChannelType.GuildForum &&
 		channel.type !== ChannelType.GuildText &&
@@ -133,6 +138,7 @@ export async function indexChannel(channel: IndexableChannels) {
 			channel,
 		);
 		await indexThread(thread, {
+			skipIndexingEnabledCheck: options?.force,
 			fromMessageId: threadMessageLookup.get(thread.id)?.toString(),
 		});
 	}

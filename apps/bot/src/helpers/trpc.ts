@@ -40,6 +40,33 @@ export const botRouter = t.router({
 		const keys = await redis.keys("*");
 		return { keys };
 	}),
+	reindexServer: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (!sapphireClient) {
+				throw new TRPCError({
+					code: "SERVICE_UNAVAILABLE",
+					message: "Bot client not initialized",
+				});
+			}
+
+			const guild = await sapphireClient.guilds.fetch(input.serverId);
+			if (!guild) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Guild not found",
+				});
+			}
+
+			indexServer(guild, {
+				force: true,
+			});
+			return { success: true };
+		}),
 	reindexThread: protectedProcedure
 		.input(
 			z.object({
