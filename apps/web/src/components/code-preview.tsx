@@ -24,13 +24,14 @@ export function CodeViewer({ attachments }: { attachments: DBAttachments[] }) {
 	);
 }
 const CodeLoadingSkeleton = memo(() => {
+	const widths = [75, 60, 90]; // Deterministic widths
 	return (
 		<div className="w-full rounded-lg border p-4 space-y-2">
-			{[...Array(3)].map((_, i) => (
+			{widths.map((width, i) => (
 				<div
 					key={i}
 					className="h-3 bg-gray-200 animate-pulse"
-					style={{ width: `${Math.random() * 40 + 50}%` }}
+					style={{ width: `${width}%` }}
 				/>
 			))}
 		</div>
