@@ -138,7 +138,7 @@ export async function indexChannel(
 			channel,
 		);
 		await indexThread(thread, {
-			skipIndexingEnabledCheck: options?.force,
+			force: options?.force ?? false,
 			fromMessageId: threadMessageLookup.get(thread.id)?.toString(),
 		});
 	}
@@ -147,6 +147,7 @@ export async function indexChannel(
 export async function indexThread(
 	channel: PublicThreadChannel,
 	opts?: {
+		force?: boolean;
 		fromMessageId?: Snowflake;
 		skipIndexingEnabledCheck?: boolean;
 	},
@@ -160,7 +161,7 @@ export async function indexThread(
 			start = await findLatestMessageInChannel(channel.id);
 		}
 		const messages = await fetchAllMessages(channel, {
-			start,
+			start: opts?.force ? "0" : start,
 		});
 
 		await storeIndexedData(messages, channel);
