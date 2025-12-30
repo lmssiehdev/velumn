@@ -12,7 +12,6 @@ import { getLanguageFromFileName, highlightCode } from "@/utils/shiki";
 import { DynamicQueryProvider } from "./dynamic-react-query-provider";
 
 export function CodeViewer({ attachments }: { attachments: DBAttachments[] }) {
-	console.log({ attachments });
 	if (!attachments.length) {
 		return null;
 	}
