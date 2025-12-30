@@ -1,4 +1,3 @@
-import type { codeExtensions } from "@repo/utils/helpers/misc";
 import oneLight from "@shikijs/themes/one-light";
 import {
 	createdBundledHighlighter,
@@ -6,6 +5,7 @@ import {
 } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 
+// @TODO: less duplication maybe
 const languageMap: Record<string, string> = {
 	js: "javascript",
 	jsx: "javascript",
@@ -32,7 +32,7 @@ const languageMap: Record<string, string> = {
 	rust: "rust",
 	ruby: "ruby",
 	markdown: "markdown",
-} satisfies Record<(typeof codeExtensions)[number], string>;
+};
 
 const shikiLanguages = [
 	"typescript",
@@ -51,6 +51,7 @@ const shikiLanguages = [
 	"json",
 	"markdown",
 ];
+
 const BundledLanguage = {
 	typescript: () => import("@shikijs/langs/typescript"),
 	javascript: () => import("@shikijs/langs/javascript"),
