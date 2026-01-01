@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<link href="/favicon.png" rel="alternate icon" type="image/png" />
+			<link href="/icons/favicon.png" rel="alternate icon" type="image/png" />
 			<body
 				className={`${questrial.variable} bg-[#fefcf6] font-sans antialiased`}
 			>

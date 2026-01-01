@@ -53,10 +53,7 @@ export function AnimatedBeamSection() {
 	};
 
 	return (
-		<div
-			className="relative overflow-hidden p-10 w-full max-w-5xl mx-auto"
-			ref={containerRef}
-		>
+		<div className="relative overflow-hidden w-full mx-auto" ref={containerRef}>
 			<div className="size-full items-stretch justify-between">
 				<div className="grid grid-cols-1 items-center gap-50 lg:gap-20">
 					<div className="z-10 w-full max-w-[350px]">
@@ -108,7 +105,7 @@ function ThreadDescription() {
 	return (
 		<p className="text-sm text-gray-800">
 			How do I make my server's
-			<span className="inline-block px-1 not-prose space-x-0.5 rounded bg-purple-100 text-purple-800 align-baseline">
+			<span className="inline-block px-1 mx-0.5 not-prose space-x-0.5 rounded bg-purple-100 text-purple-800 align-baseline">
 				<ThreadIcon className="inline-block size-3" />
 				<span>help</span>
 			</span>
@@ -402,7 +399,7 @@ function SocialView() {
 							</div>
 							<p className="text-sm text-gray-900">
 								Our Discord support threads now appear in Google searches,
-								driving more organic traffic. Thanks{" "}
+								reducing duplicate questions. Thanks{" "}
 								<span className="text-purple-600">@velumn</span>!
 							</p>
 							<div className="mt-2 overflow-hidden rounded-lg border border-gray-200">
@@ -422,15 +419,15 @@ function SocialView() {
 							<div className="flex gap-8 pt-2 text-gray-500 justify-between">
 								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
 									<ChatCircleIcon className="size-4" weight="regular" />
-									<span className="text-xs">24</span>
+									<span className="text-xs">2</span>
 								</div>
 								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
 									<ArrowsClockwiseIcon className="size-4" weight="regular" />
-									<span className="text-xs">142</span>
+									<span className="text-xs">1</span>
 								</div>
 								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
 									<HeartIcon className="size-4" weight="regular" />
-									<span className="text-xs">387</span>
+									<span className="text-xs">13</span>
 								</div>
 							</div>
 						</div>
