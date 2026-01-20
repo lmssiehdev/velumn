@@ -1,8 +1,12 @@
 "use client";
 import type { DBServer } from "@repo/db/schema/discord";
+import { useParams } from "next/navigation";
 import { createContext, useContext, useMemo } from "react";
 
-type ServerContext = { server: DBServer };
+type ServerContext = {
+	servers: (DBServer & { finishedOnboarding?: boolean })[];
+	server: (DBServer & { finishedOnboarding?: boolean }) | undefined;
+};
 const ServerContext = createContext<ServerContext>({} as ServerContext);
 
 export function useServer() {
@@ -14,13 +18,18 @@ export function useServer() {
 }
 
 export function ServerProvider({
-	server,
+	servers,
 	children,
 }: {
 	children: React.ReactNode;
-	server: DBServer;
+	servers: (DBServer & { finishedOnboarding?: boolean })[];
 }) {
-	const value = useMemo(() => ({ server }), [server.id, server]);
+	const router = useParams();
+
+	const value = useMemo(
+		() => ({ servers, server: servers?.find((s) => s.id === router.id) }),
+		[router.id, servers],
+	);
 
 	return (
 		<ServerContext.Provider value={value}>{children}</ServerContext.Provider>

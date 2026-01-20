@@ -2,8 +2,6 @@ import {
 	ArrowUpRightIcon,
 	CaretDownIcon,
 	ChatsTeardropIcon,
-	CheckFatIcon,
-	DotOutlineIcon,
 	DotsThreeVerticalIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";

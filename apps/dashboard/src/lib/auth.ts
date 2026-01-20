@@ -17,19 +17,7 @@ export type BetterAuthServer = typeof auth;
 
 export const auth = betterAuth({
 	user: {
-		additionalFields: {
-			serverId: {
-				type: "string",
-				required: false,
-				input: false,
-				bigint: true,
-			},
-			finishedOnboarding: {
-				type: "boolean",
-				required: false,
-				input: false,
-			},
-		},
+		// No additional fields needed - server relations handled via user_servers table
 	},
 	database: drizzleAdapter(db, {
 		provider: "pg",
