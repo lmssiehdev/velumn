@@ -1,6 +1,7 @@
-import { Questrial } from "next/font/google";
+import { Outfit } from "next/font/google";
 
-export const funnelSans = Questrial({
-	weight: "400",
+export const outfitFont = Outfit({
+	preload: true,
+	display: "swap",
 	variable: "--font-questrial",
 });

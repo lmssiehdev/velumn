@@ -1,4 +1,5 @@
 import { getServerInfo } from "@repo/db/helpers/servers";
+import { getUserServers } from "@repo/db/helpers/user";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -26,3 +27,11 @@ export const getCurrentUserOrRedirect = cache(async () => {
 export const getUserServer = cache(
 	async (serverId: string) => await getServerInfo(serverId),
 );
+
+export const getUserServersData = cache(async (userId: string) => {
+	const userServers = await getUserServers(userId);
+	return userServers.map((us) => ({
+		...us.server,
+		finishedOnboarding: us.finishedOnboarding,
+	}));
+});

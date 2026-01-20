@@ -1,4 +1,11 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { snowflake } from "./discord";
 
 export const user = pgTable(
@@ -14,8 +21,7 @@ export const user = pgTable(
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
-		serverId: snowflake("server_id"),
-		finishedOnboarding: boolean("finished_onboarding").default(false).notNull(),
+		old_serverId: snowflake("server_id"),
 	},
 	(t) => [index("user_email_idx").on(t.email)],
 );
@@ -49,6 +55,7 @@ export const account = pgTable(
 	"account",
 	{
 		id: text("id").primaryKey(),
+		// this is the discord account id
 		accountId: text("account_id").notNull(),
 		providerId: text("provider_id").notNull(),
 		userId: text("user_id")
@@ -68,6 +75,30 @@ export const account = pgTable(
 	},
 	(t) => [index("account_user_id_idx").on(t.userId)],
 );
+
+export const userServers = pgTable(
+	"user_servers",
+	{
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		serverId: snowflake("server_id").notNull(),
+		finishedOnboarding: boolean("finished_onboarding").default(false).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(t) => [
+		primaryKey({ columns: [t.userId, t.serverId] }),
+		index("user_servers_user_id_idx").on(t.userId),
+		index("user_servers_server_id_idx").on(t.serverId),
+	],
+);
+
+export type UserServerInsert = typeof userServers.$inferInsert;
+export type UserServer = typeof userServers.$inferSelect;
 
 export const verification = pgTable(
 	"verification",

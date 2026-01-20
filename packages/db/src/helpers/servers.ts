@@ -10,9 +10,27 @@ import {
 	dbServer,
 	pendingDiscordInvite,
 	type ServerPlan,
-	user,
+	userServers,
 } from "../schema";
 import { buildConflictUpdateColumns } from "../utils/drizzle";
+
+export async function checkIfServerExistsForUser({
+	userId,
+	serverId,
+}: {
+	userId: string;
+	serverId: string;
+}) {
+	return await db.query.userServers.findFirst({
+		where: {
+			userId: userId,
+			serverId: serverId,
+		},
+		with: {
+			server: true,
+		},
+	});
+}
 
 export async function createBotInvite({
 	userId,
@@ -39,11 +57,12 @@ export async function createBotInvite({
 
 export async function linkServerToUser(serverId: string, userId: string) {
 	await db
-		.update(user)
-		.set({
+		.insert(userServers)
+		.values({
+			userId,
 			serverId,
 		})
-		.where(eq(user.id, userId));
+		.onConflictDoNothing();
 }
 
 export async function getUserWhoInvited(serverId: string) {
@@ -166,6 +185,7 @@ export async function getBulkServers(serverIds: string[]) {
 export type ThreadWithMetadata = Awaited<
 	ReturnType<typeof getAllThreads>
 >["threads"][number];
+
 export async function getAllThreads(
 	getBy: "server" | "channel",
 	config: {
@@ -231,4 +251,23 @@ export async function getTopicsInServer(serverId: string) {
 				),
 			),
 		);
+}
+
+export async function getServerOnboardingStatus(
+	serverId: string,
+): Promise<boolean> {
+	// Check if any user has completed onboarding for this server
+	const result = await db
+		.select({ finishedOnboarding: userServers.finishedOnboarding })
+		.from(userServers)
+		.where(eq(userServers.serverId, serverId))
+		.limit(1);
+
+	// If no users are associated with this server, assume onboarding not complete
+	if (result.length === 0) {
+		return false;
+	}
+
+	// Return true if any user has completed onboarding
+	return result.some((us) => us.finishedOnboarding);
 }
