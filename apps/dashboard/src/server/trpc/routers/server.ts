@@ -1,9 +1,22 @@
 import { setBulkIndexingStatus } from "@repo/db/helpers/channels";
-import { createBotInvite, getChannelsInServer } from "@repo/db/helpers/servers";
-import { updateAuthUser } from "@repo/db/helpers/user";
+import {
+	checkIfServerExistsForUser,
+	createBotInvite,
+	getAllThreads,
+	getChannelsInServer,
+} from "@repo/db/helpers/servers";
+import {
+	addServerToUser,
+	getUserServerCount,
+	getUserServers,
+	removeServerFromUser,
+	updateServerOnboarding,
+} from "@repo/db/helpers/user";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+
+import { verifyServerOwnership } from "@/lib/authorization";
 import { parseError } from "@/lib/error";
 import { log } from "@/lib/log";
 import { privateProcedure, router } from "@/server/trpc";
@@ -25,36 +38,62 @@ export const serverRouter = router({
 	finishOnboarding: privateProcedure
 		.input(
 			z.object({
+				serverId: z.string(),
 				payload: z.array(
 					z.object({ channelId: z.string(), status: z.boolean() }),
 				),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			try {
-				const channels = input.payload;
-				const result = await updateAuthUser(ctx.user.id, {
-					finishedOnboarding: true,
+			const userServer = await checkIfServerExistsForUser({
+				userId: ctx.user.id,
+				serverId: input.serverId,
+			});
+			if (!userServer) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You don't have access to this server",
 				});
-				if (!result?.serverId) {
-					throw new Error("Server ID not found");
-				}
-				await setBulkIndexingStatus(channels);
-				await botClient.indexServer.mutate({ serverId: result.serverId });
-				return { success: true };
+			}
+			const { serverId, payload: channels } = input;
+			if (!ctx.user) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User not authenticated",
+				});
+			}
+
+			await updateServerOnboarding(ctx.user.id, serverId, true);
+
+			await setBulkIndexingStatus(channels);
+
+			try {
+				await botClient.indexServer.mutate({ serverId });
 			} catch (err) {
 				log.error("finish_onboarrding_failed", { err: parseError(err) });
-
+				// TODO: schedule retry?
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to complete onboarding",
 					cause: err,
 				});
 			}
+
+			return { success: true };
 		}),
 	getChannelsInServer: privateProcedure
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
+			const userServer = await checkIfServerExistsForUser({
+				userId: ctx.user.id,
+				serverId: input.serverId,
+			});
+			if (!userServer) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You don't have access to this server",
+				});
+			}
 			const channels = await getChannelsInServer(input.serverId);
 			if (!channels) {
 				return { channels: [] };
@@ -70,12 +109,23 @@ export const serverRouter = router({
 	updateChannelsIndexingStatus: privateProcedure
 		.input(
 			z.object({
+				serverId: z.string(),
 				payload: z.array(
 					z.object({ channelId: z.string(), status: z.boolean() }),
 				),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
+			const userServer = await checkIfServerExistsForUser({
+				userId: ctx.user.id,
+				serverId: input.serverId,
+			});
+			if (!userServer) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You don't have access to this server",
+				});
+			}
 			try {
 				await setBulkIndexingStatus(input.payload);
 				return { success: true };
@@ -108,6 +158,66 @@ export const serverRouter = router({
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to create invite",
+					cause: err,
+				});
+			}
+		}),
+	checkIfServerExistsForUser: privateProcedure
+		.input(z.object({ serverId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			try {
+				const result = await checkIfServerExistsForUser({
+					userId: ctx.user.id,
+					serverId: input.serverId,
+				});
+				return result !== undefined;
+			} catch (err) {
+				log.error("failed_to_check_if_server_exists", {
+					err: parseError(err),
+					input,
+				});
+
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to check if server exists",
+					cause: err,
+				});
+			}
+		}),
+	getServerThreads: privateProcedure
+		.input(
+			z.object({
+				serverId: z.string(),
+				pinned: z.boolean().optional(),
+				page: z.number().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			try {
+				const result = await verifyServerOwnership(ctx.user.id, input.serverId);
+
+				if (!result.authorized) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: result.error || "You don't have access to this server",
+					});
+				}
+
+				const threads = await getAllThreads("server", {
+					id: input.serverId,
+					pinned: input.pinned ?? false,
+					page: input.page ?? 1,
+				});
+				return threads;
+			} catch (err) {
+				log.error("get_server_threads_failed", {
+					err: parseError(err),
+					input,
+				});
+
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to get server threads",
 					cause: err,
 				});
 			}

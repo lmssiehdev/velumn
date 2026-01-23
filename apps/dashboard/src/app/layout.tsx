@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
-import { funnelSans } from "../styles/fonts";
+import { outfitFont } from "../styles/fonts";
 
 export const metadata: Metadata = {
 	title: "Dashboard",
@@ -15,8 +16,8 @@ export default async function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${funnelSans.variable} font-sans antialiased`}>
-				{children}
+			<body className={`${outfitFont.variable} font-sans antialiased`}>
+				<NuqsAdapter>{children}</NuqsAdapter>
 				<Toaster className="font-normal font-sans" />
 			</body>
 		</html>

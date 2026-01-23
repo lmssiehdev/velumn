@@ -11,6 +11,7 @@ export const relations = defineRelations(schema, (r) => ({
 	user: {
 		accounts: r.many.account(),
 		sessions: r.many.session(),
+		servers: r.many.userServers(),
 	},
 	session: {
 		user: r.one.user({
@@ -20,6 +21,7 @@ export const relations = defineRelations(schema, (r) => ({
 	},
 	dbServer: {
 		channels: r.many.dbChannel(),
+		users: r.many.userServers(),
 	},
 	dbChannel: {
 		backlinks: r.many.dbThreadBacklink({
@@ -55,6 +57,16 @@ export const relations = defineRelations(schema, (r) => ({
 		message: r.one.dbMessage({
 			from: r.dbAttachments.messageId,
 			to: r.dbMessage.id,
+		}),
+	},
+	userServers: {
+		user: r.one.user({
+			from: r.userServers.userId,
+			to: r.user.id,
+		}),
+		server: r.one.dbServer({
+			from: r.userServers.serverId,
+			to: r.dbServer.id,
 		}),
 	},
 	dbThreadBacklink: {

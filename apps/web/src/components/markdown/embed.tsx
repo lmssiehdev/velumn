@@ -85,13 +85,23 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								</div>
 							)}
 							{embed.author && (
-								<a
-									className="mt-2 font-semibold text-sm hover:underline"
-									href={embed.author.url}
-									target="_blank"
-								>
-									{embed.author.name}
-								</a>
+								<div className="flex items-center gap-2 mb-2">
+									{embed.author.icon_url && (
+										<img
+											src={embed.author.icon_url}
+											alt="author avatar"
+											className="w-6 h-6 rounded-full object-cover"
+										/>
+									)}
+									<a
+										className="font-semibold text-sm hover:underline"
+										href={embed.author.url}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										{embed.author.name}
+									</a>
+								</div>
 							)}
 							{embed.title && (
 								<a

@@ -3,7 +3,7 @@ import {
 	CaretRightIcon,
 	ChatIcon,
 	PushPinIcon,
-} from "@phosphor-icons/react/ssr";
+} from "@phosphor-icons/react/dist/ssr";
 import type { getAllThreads } from "@repo/db/helpers/servers";
 import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";

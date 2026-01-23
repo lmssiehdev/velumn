@@ -1,6 +1,7 @@
 import { getAllThreads } from "@repo/db/helpers/servers";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { getGuilds } from "./app/onboarding/_fetchUserGuilds";
 
 // :P
 export function stable_cache<T extends unknown[], R>(
@@ -26,7 +27,7 @@ export function stable_cache<T extends unknown[], R>(
 
 // sanity check for now
 const THREE_DAYS_IN_SECONDS =
-	process.env.NODE_ENV === "development" ? 2 : 60 * 60 * 24 * 30;
+	process.env.NODE_ENV === "development" ? 120 : 60 * 60 * 24 * 30;
 
 export const getAllThreadsCached = stable_cache(getAllThreads, {
 	keyParts: (getBy, config) => [
@@ -36,4 +37,9 @@ export const getAllThreadsCached = stable_cache(getAllThreads, {
 		`clear-get-all-threads-${config.id}`,
 		"clear-get-all-threads",
 	],
+});
+
+export const getGuildsCache = stable_cache(getGuilds, {
+	keyParts: (userId) => [`user-guilds-${userId}`],
+	tags: (userId) => [`user-guilds-${userId}`, "user-guilds"],
 });
