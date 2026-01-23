@@ -185,7 +185,9 @@ export const dbAttachments = pgTable(
 	"attachments",
 	{
 		id: text("id").primaryKey(),
-		messageId: snowflake("message_id").notNull(),
+		messageId: snowflake("message_id")
+			.notNull()
+			.references(() => dbMessage.id, { onDelete: "cascade" }),
 		name: text("file_name").notNull(),
 		url: text("url").notNull(),
 		proxyURL: text("proxyURL").notNull(),

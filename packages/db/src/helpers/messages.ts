@@ -14,7 +14,20 @@ import { uploadFileFromUrl } from "./upload";
 import type { DBAttachments } from "./validation";
 
 export async function deleteMessageById(messageId: string) {
-	return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
+	return await db.transaction(async (tx) => {
+		const attachmentsToDelete = await tx
+			.select({ id: dbAttachments.id })
+			.from(dbAttachments)
+			.where(eq(dbAttachments.messageId, messageId));
+
+		if (attachmentsToDelete.length) {
+			await tx
+				.delete(dbAttachments)
+				.where(eq(dbAttachments.messageId, messageId));
+		}
+
+		return await tx.delete(dbMessage).where(eq(dbMessage.id, messageId));
+	});
 }
 
 export async function deleteManyMessagesById(messageIds: string[]) {
