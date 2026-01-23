@@ -26,6 +26,9 @@ import { insertBulkSearchMessages } from "./search";
 export async function storeIndexedData(
 	messages: Message[],
 	channel: GuildTextBasedChannel,
+	opts?: {
+		force?: boolean;
+	},
 ) {
 	if (channel.client.id == null) {
 		throw new Error("Received a null client id when indexing");
@@ -81,7 +84,7 @@ export async function storeIndexedData(
 	}
 
 	logger.info(`Upserting ${convertedMessages.length} messages`);
-	await upsertManyMessages(convertedMessages);
+	await upsertManyMessages(convertedMessages, opts);
 
 	const backlinks = toDbBacklink(convertedMessages);
 	await upsertManyBacklinks(backlinks);

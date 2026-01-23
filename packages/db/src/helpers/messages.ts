@@ -46,7 +46,10 @@ export async function upsertManyBacklinks(data: DBThreadBacklink[]) {
 	await db.insert(dbThreadBacklink).values(data).onConflictDoNothing();
 }
 
-export async function upsertManyMessages(data: DBMessageWithRelations[]) {
+export async function upsertManyMessages(
+	data: DBMessageWithRelations[],
+	opts?: { force?: boolean },
+) {
 	if (data.length === 0) {
 		return [];
 	}
@@ -57,13 +60,16 @@ export async function upsertManyMessages(data: DBMessageWithRelations[]) {
 		chunks.push(data.slice(i, i + chunkSize));
 	}
 	for (const chunk of chunks) {
-		await fastUpsertManyMessages(chunk);
+		await fastUpsertManyMessages(chunk, opts);
 	}
 
 	return data;
 }
 
-async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
+async function fastUpsertManyMessages(
+	msgs: DBMessageWithRelations[],
+	opts?: { force?: boolean },
+) {
 	if (msgs.length === 0) {
 		return;
 	}
@@ -95,7 +101,7 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
 	}
 
 	if (attachments.size) {
-		await processAttachments(Array.from(attachments.values()));
+		await processAttachments(Array.from(attachments.values()), opts);
 	}
 }
 
@@ -109,7 +115,10 @@ export async function upsertAttachement(attachment: DBAttachments) {
 		.onConflictDoNothing();
 }
 
-async function processAttachments(attachments: DBAttachments[]) {
+async function processAttachments(
+	attachments: DBAttachments[],
+	opts?: { force?: boolean },
+) {
 	if (attachments.length === 0) {
 		return;
 	}
@@ -145,9 +154,11 @@ async function processAttachments(attachments: DBAttachments[]) {
 
 	const existingAttachmentIds = new Set(existingAttachments.map((a) => a.id));
 
-	const newAttachments = uploadableAttachments.filter(
-		(attachment) => !existingAttachmentIds.has(attachment.id),
-	);
+	const newAttachments = opts?.force
+		? uploadableAttachments
+		: uploadableAttachments.filter(
+				(attachment) => !existingAttachmentIds.has(attachment.id),
+			);
 
 	if (newAttachments.length === 0) {
 		return;
@@ -192,5 +203,5 @@ async function processAttachments(attachments: DBAttachments[]) {
 	});
 
 	// Don't await, we run this in the background
-	Promise.allSettled(uploadPromises);
+	return Promise.allSettled(uploadPromises);
 }

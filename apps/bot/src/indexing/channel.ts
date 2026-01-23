@@ -164,7 +164,7 @@ export async function indexThread(
 			start: opts?.force ? "0" : start,
 		});
 
-		await storeIndexedData(messages, channel);
+		await storeIndexedData(messages, channel, opts);
 		Log("log_indexing_complete", channel);
 	} catch (error) {
 		logger.error(`Error indexing channel ${channel.name} ${channel.id}`, {
