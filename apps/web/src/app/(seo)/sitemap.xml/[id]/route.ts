@@ -1,4 +1,5 @@
 import { getThreadsForSitemap } from "@repo/db/helpers/sitemap";
+import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake";
 import { DOMAIN_BASE_URL, LIMIT } from "../route";
 
@@ -18,7 +19,7 @@ export async function GET(
 ${threads
 	.map(
 		(thread) => `  <url>
-    <loc>${DOMAIN_BASE_URL}/thread/${thread.id}</loc>
+    <loc>${DOMAIN_BASE_URL}${slugifyThreadUrl({ id: thread.id, name: thread.name! })}</loc>
     <lastmod>${getDateFromSnowflake(thread.id).toISOString()}</lastmod>
   </url>`,
 	)

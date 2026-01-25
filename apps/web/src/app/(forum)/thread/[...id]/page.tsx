@@ -34,7 +34,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps) {
 	const {
-		id: [threadId],
+		id: [threadId, slug],
 	} = await params;
 
 	const thread = await getAllMessagesInThreadsCache(threadId);
@@ -52,6 +52,9 @@ export async function generateMetadata({ params }: PageProps) {
 	}
 
 	const url = slugifyThreadUrl({ id: threadId, name: thread.channelName! });
+
+	const hasSlug = slug && slug === getSlugFromTitle(thread.channelName!);
+
 	return {
 		title: thread.channelName,
 		// TODO: check for answer first then fallback to original post
@@ -65,6 +68,10 @@ export async function generateMetadata({ params }: PageProps) {
 		},
 		alternates: {
 			canonical: url,
+		},
+		robots: {
+			index: hasSlug,
+			follow: true,
 		},
 	};
 }
