@@ -2,10 +2,6 @@ import { logger } from "@repo/logger";
 import { botEnv } from "../config";
 
 export async function invalidateTags(tags: string | string[]) {
-	const _url =
-		process.env.NODE_ENV === "development"
-			? "http://localhost:3000"
-			: "https://velumn.com";
 	try {
 		await fetch(`https://velumn.com/api/revalidate-tag`, {
 			method: "POST",
@@ -17,10 +13,6 @@ export async function invalidateTags(tags: string | string[]) {
 }
 
 export async function invalidatePath(path: string) {
-	const _url =
-		process.env.NODE_ENV === "development"
-			? "http://localhost:3000"
-			: "https://velumn.com";
 	try {
 		await fetch(`https://velumn.com/api/revalidate-path`, {
 			method: "POST",
