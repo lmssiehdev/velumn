@@ -35,7 +35,7 @@ export default function SearchModal({
 	const [results, setResults] = useState<
 		Awaited<ReturnType<TRPCClient<BotRouter>["search"]["query"]>>["hits"]
 	>([]);
-	const debouncedQuery = useDebounce(query, 150);
+	const debouncedQuery = useDebounce(query, 250);
 
 	useEffect(() => {
 		if (!debouncedQuery) {
