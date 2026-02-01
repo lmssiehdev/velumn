@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "..";
 import {
 	type AuthUser,
@@ -6,7 +6,9 @@ import {
 	dbAttachments,
 	dbDiscordUser,
 	dbMessage,
+	dbServer,
 	user,
+	userServers,
 } from "../schema";
 
 export async function getAuthUser(userId: string) {
@@ -25,14 +27,96 @@ export async function updateAuthUser(
 		.update(user)
 		.set(payload)
 		.where(eq(user.id, userId))
-		.returning({ serverId: user.serverId });
+		.returning();
 	return result;
 }
+
 export async function resetUserServerIdLink(serverId: string) {
+	await db.delete(userServers).where(eq(userServers.serverId, serverId));
+}
+
+export async function getUserServers(userId: string) {
+	return await db
+		.select({
+			serverId: userServers.serverId,
+			finishedOnboarding: userServers.finishedOnboarding,
+			createdAt: userServers.createdAt,
+			updatedAt: userServers.updatedAt,
+			server: {
+				id: dbServer.id,
+				name: dbServer.name,
+				icon: dbServer.icon,
+				plan: dbServer.plan,
+				description: dbServer.description,
+				memberCount: dbServer.memberCount,
+				kickedAt: dbServer.kickedAt,
+				serverInvite: dbServer.serverInvite,
+				invitedBy: dbServer.invitedBy,
+				anonymizeUsers: dbServer.anonymizeUsers,
+			},
+		})
+		.from(userServers)
+		.innerJoin(dbServer, eq(userServers.serverId, dbServer.id))
+		.where(eq(userServers.userId, userId));
+}
+
+export async function addServerToUser(userId: string, serverId: string) {
 	await db
-		.update(user)
-		.set({ serverId: null })
-		.where(eq(user.serverId, serverId));
+		.insert(userServers)
+		.values({
+			userId,
+			serverId,
+		})
+		.onConflictDoNothing();
+}
+
+export async function removeServerFromUser(userId: string, serverId: string) {
+	await db
+		.delete(userServers)
+		.where(
+			and(eq(userServers.userId, userId), eq(userServers.serverId, serverId)),
+		);
+}
+
+export async function updateServerOnboarding(
+	userId: string,
+	serverId: string,
+	finishedOnboarding: boolean,
+) {
+	await db
+		.update(userServers)
+		.set({
+			finishedOnboarding,
+			updatedAt: new Date(),
+		})
+		.where(
+			and(eq(userServers.userId, userId), eq(userServers.serverId, serverId)),
+		);
+}
+
+export async function getServerOwner(serverId: string) {
+	const result = await db
+		.select({
+			user: {
+				id: user.id,
+				name: user.name,
+				email: user.email,
+			},
+		})
+		.from(userServers)
+		.innerJoin(user, eq(userServers.userId, user.id))
+		.where(eq(userServers.serverId, serverId))
+		.limit(1);
+
+	return result[0]?.user;
+}
+
+export async function getUserServerCount(userId: string) {
+	const result = await db
+		.select({ count: userServers.serverId })
+		.from(userServers)
+		.where(eq(userServers.userId, userId));
+	return result.length;
 }
 
 export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {

@@ -1,5 +1,5 @@
 {
-  "id": "3893a7bf-4cb8-4b6a-8a49-0a054bcc4209",
+  "id": "d50572d2-5cff-4262-8719-fc74001eb57f",
   "prevId": "f7ae26b1-9bd8-4e7f-8ba4-05844d92c2e6",
   "version": "7",
   "dialect": "postgresql",
@@ -846,6 +846,13 @@
           "notNull": true,
           "default": false
         },
+        "stickers": {
+          "name": "stickers",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'null'::json"
+        },
         "primary_channel_id": {
           "name": "primary_channel_id",
           "type": "bigint",
@@ -1023,20 +1030,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "''"
-        },
-        "custom_domain": {
-          "name": "custom_domain",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": null
-        },
-        "domain_verified": {
-          "name": "domain_verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {},

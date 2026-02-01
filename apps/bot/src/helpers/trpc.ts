@@ -2,7 +2,7 @@ import { updateVote } from "@repo/db/helpers/channels";
 import { apiLogger } from "@repo/logger";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { redis } from "bun";
-import { ChannelType } from "discord.js";
+import { ChannelType, RESTJSONErrorCodes } from "discord.js";
 import { z } from "zod";
 import { sapphireClient } from "..";
 import { botEnv } from "../config";
@@ -36,10 +36,37 @@ export const botRouter = t.router({
 	health: protectedProcedure.query(() => {
 		return "OK";
 	}),
-	clear: publicProcedure.query(async ({ ctx }) => {
+	clear: publicProcedure.query(async () => {
 		const keys = await redis.keys("*");
 		return { keys };
 	}),
+	reindexServer: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (!sapphireClient) {
+				throw new TRPCError({
+					code: "SERVICE_UNAVAILABLE",
+					message: "Bot client not initialized",
+				});
+			}
+
+			const guild = await sapphireClient.guilds.fetch(input.serverId);
+			if (!guild) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Guild not found",
+				});
+			}
+
+			indexServer(guild, {
+				force: true,
+			});
+			return { success: true };
+		}),
 	reindexThread: protectedProcedure
 		.input(
 			z.object({
@@ -75,6 +102,7 @@ export const botRouter = t.router({
 				// @ts-expect-error we filter inside the function
 				await indexThread(channel, {
 					fromMessageId: 0,
+					skipIndexingEnabledCheck: true,
 				});
 				return { success: true };
 			} catch (error) {
@@ -129,6 +157,41 @@ export const botRouter = t.router({
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to get raw message data",
+					cause: error,
+				});
+			}
+		}),
+	isBotInServer: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string(),
+			}),
+		)
+		.query(async ({ input }) => {
+			try {
+				if (!sapphireClient) {
+					throw new TRPCError({
+						code: "SERVICE_UNAVAILABLE",
+						message: "Bot client not initialized",
+					});
+				}
+
+				const guild = await sapphireClient.guilds
+					.fetch(input.serverId)
+					.catch(() => null);
+
+				return !!guild;
+			} catch (error: unknown) {
+				apiLogger.error("isBotInServer_failed", { error });
+				if (
+					(error as { code: RESTJSONErrorCodes })?.code ===
+					RESTJSONErrorCodes.UnknownGuild
+				) {
+					return false;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to check if bot is in server",
 					cause: error,
 				});
 			}

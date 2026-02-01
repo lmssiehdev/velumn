@@ -3,8 +3,6 @@
 	"type": "module",
 	"scripts": {
 		"with-env": "bun --env-file=../../.env",
-		"dev": "bun with-env run src/index.ts",
-		"build": "tsc",
 		"db:generate": "bun with-env drizzle-kit generate --config=drizzle.config.ts",
 		"db:migrate": "bun with-env drizzle-kit migrate --config=drizzle.config.ts",
 		"db:seed": "tsx src/seed.ts",

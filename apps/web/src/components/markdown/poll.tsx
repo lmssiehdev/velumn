@@ -36,10 +36,10 @@ export function Poll({ poll }: { poll: DBMessage["poll"] }) {
 											className={"size-6"}
 											emojiId={emoji.id}
 											key={key}
-											name={emoji.name}
+											name={emoji.name!}
 										/>
 									) : (
-										<Twemoji className="size-6" name={emoji.name} />
+										<Twemoji className="size-6" name={emoji.name!} />
 									)}
 								</span>
 							)}

@@ -1,22 +1,28 @@
 import { getDiscordAccountIdForUser } from "@repo/db/helpers/dashboard";
+import { getBulkServers } from "@repo/db/helpers/servers";
+import { getUserServers } from "@repo/db/helpers/user";
 import { PermissionFlagsBits } from "discord-api-types/v8";
-import { unstable_cache } from "next/cache";
 
-export const getGuildsCache = (userId: string) =>
-	unstable_cache(() => getGuilds(userId), ["user-guilds", userId], {
-		tags: ["user-guilds"],
-		revalidate: 10,
-	})();
-export type Guild = {
+export type RawDiscordGuild = {
 	id: string;
 	name: string;
 	icon: string;
 	owner: boolean;
 	permissions: number;
+	alreadyAdded?: boolean;
 };
 
-async function getGuilds(userId: string) {
+export async function getGuilds(userId: string) {
 	try {
+		const userServers = await getUserServers(userId);
+		const existingServers = await getBulkServers(
+			userServers.map((us) => us.serverId),
+		);
+
+		const existingServerIdsSet = new Set(existingServers.map((s) => s.id));
+		const finishedOnboardingServers = new Map<string, boolean>(
+			userServers.map((us) => [us.serverId, us.finishedOnboarding]),
+		);
 		const accountData = await getDiscordAccountIdForUser(userId);
 
 		if (!accountData?.accessToken) {
@@ -33,7 +39,7 @@ async function getGuilds(userId: string) {
 			return { error: "Failed to fetch guilds" };
 		}
 
-		const guilds: Guild[] = await response.json();
+		const guilds: RawDiscordGuild[] = await response.json();
 		return guilds
 			.filter((guild) => {
 				const permissions = BigInt(guild.permissions);
@@ -42,6 +48,12 @@ async function getGuilds(userId: string) {
 					PermissionFlagsBits.ManageGuild
 				);
 			})
+			.map((guild) => ({
+				...guild,
+				alreadyAdded:
+					existingServerIdsSet.has(guild.id) &&
+					finishedOnboardingServers.get(guild.id),
+			}))
 			.sort((a, b) => getPermissionRank(a) - getPermissionRank(b));
 	} catch (err) {
 		console.log(err);
@@ -49,7 +61,7 @@ async function getGuilds(userId: string) {
 	}
 }
 
-function getPermissionRank(guild: Guild) {
+function getPermissionRank(guild: RawDiscordGuild) {
 	if (guild.owner) {
 		return 0;
 	}

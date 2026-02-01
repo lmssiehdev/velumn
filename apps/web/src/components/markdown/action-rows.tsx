@@ -1,3 +1,5 @@
+"use client";
+
 import type { DBMessage } from "@repo/db/schema/discord";
 import { ComponentType } from "discord-api-types/v10";
 import { cn } from "@/lib/utils";
@@ -40,7 +42,12 @@ function ButtonRow({
 	component: DBDiscordComponent["components"][number];
 }) {
 	return (
-		<div
+		<button
+			onClick={() => {
+				if (!component.url) return;
+				window.open(component.url, "_blank");
+			}}
+			disabled={component.disabled}
 			className={buttonVariants({
 				variant: "outline",
 				size: "sm",
@@ -61,6 +68,6 @@ function ButtonRow({
 				/>
 			)}
 			{component.label && <span className="truncate">{component.label}</span>}
-		</div>
+		</button>
 	);
 }

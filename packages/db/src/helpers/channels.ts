@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../index";
 import { type DBChannel, dbChannel } from "../schema";
 
@@ -34,7 +34,7 @@ export async function setBulkIndexingStatus(
 		await db
 			.update(dbChannel)
 			.set({ indexingEnabled: false })
-			.where(inArray(dbChannel.id, disableIds));
+			.where(and(inArray(dbChannel.id, disableIds)));
 	}
 }
 

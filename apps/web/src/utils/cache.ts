@@ -14,7 +14,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 // sanity check for now
-const VERCEL_CACHE_TTL = process.env.NODE_ENV === "development" ? 1 : 60; // 86_400;
+const VERCEL_CACHE_TTL = 20; // 86_400;
 
 // :P
 export function stable_cache<T extends unknown[], R>(
@@ -47,7 +47,7 @@ export const getAllMessagesInThreadsCache = stable_cache(
 	getAllMessagesInThreads,
 	{
 		keyParts: (id) => [`messages-thread-${id}`],
-		tags: (id) => [CacheTags.thread(id), CacheTags.allThreads()],
+		tags: (id) => [CacheTags.thread(id)],
 	},
 );
 
@@ -55,18 +55,18 @@ export const getServerInfoByChannelIdCache = stable_cache(
 	getServerInfoByChannelId,
 	{
 		keyParts: (id) => [`server-info-${id}`],
-		tags: (id) => [CacheTags.server(id), CacheTags.allServers()],
+		tags: (id) => [CacheTags.server(id)],
 	},
 );
 
 export const getServerInfoCached = stable_cache(getServerInfo, {
 	keyParts: (id) => [`server-info-${id}`],
-	tags: (id) => [CacheTags.server(id), CacheTags.allServers()],
+	tags: (id) => [CacheTags.server(id)],
 });
 
 export const getChannelInfoCached = stable_cache(getChannelInfo, {
 	keyParts: (id) => [`server-info-${id}`],
-	tags: (id) => [CacheTags.channelInfo(id), CacheTags.allChannelsInfo()],
+	tags: (id) => [CacheTags.channelInfo(id)],
 });
 
 export const getAllThreadsCached = stable_cache(getAllThreads, {
@@ -75,11 +75,10 @@ export const getAllThreadsCached = stable_cache(getAllThreads, {
 	],
 	tags: (_, config) => [
 		CacheTags.getAllThreads(config.id),
-		CacheTags.clearAllGetThreads(),
 	],
 });
 
 export const getTopicsInServerCached = stable_cache(getTopicsInServer, {
 	keyParts: (id) => [`topics-in-server-${id}`],
-	tags: (id) => [CacheTags.topicsInServer(id), CacheTags.allTopicsInServer()],
+	tags: (id) => [CacheTags.topicsInServer(id)],
 });

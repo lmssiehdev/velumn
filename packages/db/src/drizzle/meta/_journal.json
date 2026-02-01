@@ -19,8 +19,22 @@
     {
       "idx": 2,
       "version": "7",
-      "when": 1765909362998,
-      "tag": "0002_previous_iron_man",
+      "when": 1766696013616,
+      "tag": "0002_awesome_joshua_kane",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1767297671948,
+      "tag": "0003_first_red_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1769175822092,
+      "tag": "0004_slow_skrulls",
       "breakpoints": true
     }
   ]

@@ -19,7 +19,7 @@ export async function getThreadsCountTotal() {
 
 export async function getThreadsForSitemap(start: number, limit: number) {
 	return await db
-		.select({ id: dbChannel.id })
+		.select({ id: dbChannel.id, name: dbChannel.channelName })
 		.from(dbChannel)
 		.where(eq(dbChannel.type, ChannelType.PublicThread))
 		.offset(start)

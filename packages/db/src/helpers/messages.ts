@@ -1,5 +1,5 @@
 import { logger } from "@repo/logger";
-import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
+import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "..";
 import {
@@ -14,7 +14,20 @@ import { uploadFileFromUrl } from "./upload";
 import type { DBAttachments } from "./validation";
 
 export async function deleteMessageById(messageId: string) {
-	return await db.delete(dbMessage).where(eq(dbMessage.id, messageId));
+	return await db.transaction(async (tx) => {
+		const attachmentsToDelete = await tx
+			.select({ id: dbAttachments.id })
+			.from(dbAttachments)
+			.where(eq(dbAttachments.messageId, messageId));
+
+		if (attachmentsToDelete.length) {
+			await tx
+				.delete(dbAttachments)
+				.where(eq(dbAttachments.messageId, messageId));
+		}
+
+		return await tx.delete(dbMessage).where(eq(dbMessage.id, messageId));
+	});
 }
 
 export async function deleteManyMessagesById(messageIds: string[]) {
@@ -46,7 +59,10 @@ export async function upsertManyBacklinks(data: DBThreadBacklink[]) {
 	await db.insert(dbThreadBacklink).values(data).onConflictDoNothing();
 }
 
-export async function upsertManyMessages(data: DBMessageWithRelations[]) {
+export async function upsertManyMessages(
+	data: DBMessageWithRelations[],
+	opts?: { force?: boolean },
+) {
 	if (data.length === 0) {
 		return [];
 	}
@@ -57,13 +73,16 @@ export async function upsertManyMessages(data: DBMessageWithRelations[]) {
 		chunks.push(data.slice(i, i + chunkSize));
 	}
 	for (const chunk of chunks) {
-		await fastUpsertManyMessages(chunk);
+		await fastUpsertManyMessages(chunk, opts);
 	}
 
 	return data;
 }
 
-async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
+async function fastUpsertManyMessages(
+	msgs: DBMessageWithRelations[],
+	opts?: { force?: boolean },
+) {
 	if (msgs.length === 0) {
 		return;
 	}
@@ -95,7 +114,7 @@ async function fastUpsertManyMessages(msgs: DBMessageWithRelations[]) {
 	}
 
 	if (attachments.size) {
-		await processAttachments(Array.from(attachments.values()));
+		await processAttachments(Array.from(attachments.values()), opts);
 	}
 }
 
@@ -109,13 +128,15 @@ export async function upsertAttachement(attachment: DBAttachments) {
 		.onConflictDoNothing();
 }
 
-async function processAttachments(attachments: DBAttachments[]) {
+async function processAttachments(
+	attachments: DBAttachments[],
+	opts?: { force?: boolean },
+) {
 	if (attachments.length === 0) {
 		return;
 	}
 	const nonUploadableAttachments = attachments.filter(
-		({ contentType, proxyURL }) =>
-			!isEmbeddableAttachment({ contentType, proxyURL }),
+		(a) => !getEmbedFileInfo(a).isUploadable,
 	);
 
 	if (nonUploadableAttachments.length) {
@@ -126,10 +147,10 @@ async function processAttachments(attachments: DBAttachments[]) {
 	}
 
 	const uploadableAttachments = attachments.filter(
-		({ contentType, proxyURL }) =>
-			isEmbeddableAttachment({ contentType, proxyURL }),
+		(a) => getEmbedFileInfo(a).isUploadable,
 	);
 
+	// TODO: handle pricing
 	if (!uploadableAttachments.length) {
 		return;
 	}
@@ -146,27 +167,37 @@ async function processAttachments(attachments: DBAttachments[]) {
 
 	const existingAttachmentIds = new Set(existingAttachments.map((a) => a.id));
 
-	const newAttachments = uploadableAttachments.filter(
-		(attachment) => !existingAttachmentIds.has(attachment.id),
-	);
+	const newAttachments = opts?.force
+		? uploadableAttachments
+		: uploadableAttachments.filter(
+				(attachment) => !existingAttachmentIds.has(attachment.id),
+			);
 
 	if (newAttachments.length === 0) {
 		return;
 	}
-
 	const uploadPromises = newAttachments.map(async (attachment) => {
 		const { id, name, contentType, url } = attachment;
-		try {
-			const file = await uploadFileFromUrl({
+
+		const result = await uploadFileFromUrl({
+			id,
+			name,
+			contentType: contentType ?? undefined,
+			url,
+		});
+
+		if (!result) {
+			logger.warn("attachment_upload_failed", {
 				id,
 				name,
-				contentType: contentType ?? undefined,
 				url,
 			});
-			if (!file?.Location) {
-				return;
-			}
-			const proxyURL = `https://cdn.velumn.com/${id}/${name}`;
+			return;
+		}
+
+		const proxyURL = `https://cdn.velumn.com/${id}/${name}`;
+
+		try {
 			await db
 				.insert(dbAttachments)
 				.values({
@@ -179,13 +210,11 @@ async function processAttachments(attachments: DBAttachments[]) {
 				error,
 				id,
 				name,
-				contentType,
-				url,
+				proxyURL,
 			});
-			return;
 		}
 	});
 
 	// Don't await, we run this in the background
-	Promise.allSettled(uploadPromises);
+	return Promise.allSettled(uploadPromises);
 }

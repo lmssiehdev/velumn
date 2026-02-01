@@ -5,7 +5,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import type { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
-import { isEmbeddableAttachment } from "@repo/utils/helpers/misc";
+import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import {
 	getSlugFromTitle,
 	slugifyThreadUrl,
@@ -28,13 +28,13 @@ import { anonymizeName, MessagePost } from "./_components/thread-message";
 
 export const revalidate = 86_400;
 
-export async function generateMetadata({
-	params,
-}: {
-	params: Promise<{ id: [string, string?] }>;
-}) {
+type PageProps = {
+	params: Promise<{ id: [string, string?, string?] }>;
+};
+
+export async function generateMetadata({ params }: PageProps) {
 	const {
-		id: [threadId],
+		id: [threadId, slug],
 	} = await params;
 
 	const thread = await getAllMessagesInThreadsCache(threadId);
@@ -52,6 +52,9 @@ export async function generateMetadata({
 	}
 
 	const url = slugifyThreadUrl({ id: threadId, name: thread.channelName! });
+
+	const hasSlug = slug && slug === getSlugFromTitle(thread.channelName!);
+
 	return {
 		title: thread.channelName,
 		// TODO: check for answer first then fallback to original post
@@ -66,17 +69,21 @@ export async function generateMetadata({
 		alternates: {
 			canonical: url,
 		},
+		robots: {
+			index: hasSlug,
+			follow: true,
+		},
 	};
 }
 
-export default async function Page({
-	params,
-}: {
-	params: Promise<{ id: [string, string?] }>;
-}) {
+export default async function Page({ params }: PageProps) {
 	const {
-		id: [threadId, slug],
+		id: [threadId, slug, markdown],
 	} = await params;
+
+	if (markdown) {
+		redirect(`/markdown/${threadId}`);
+	}
 
 	if (!threadId) {
 		return <div>Invalid thread ID</div>;
@@ -118,7 +125,7 @@ export default async function Page({
 	const op = originalPost.user!;
 	const title = thread.channelName ?? originalPost.content?.slice(0, 100);
 	const firstImage = originalPost.attachments
-		.filter(isEmbeddableAttachment)
+		.filter((a) => getEmbedFileInfo(a).type === "image")
 		.at(0);
 
 	// TODO: handle empty messages;

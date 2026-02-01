@@ -2,6 +2,7 @@ import {
 	ComponentType,
 	EmbedType,
 	PollLayoutType,
+	StickerFormatType,
 } from "discord-api-types/v10";
 import z from "zod";
 import {
@@ -183,6 +184,18 @@ export const dbAttachmentsSchema = z.object({
 	isSnapshot: z.boolean().default(false),
 });
 
+// STICKERS
+
+export const stickerSchema = collectionToArray(
+	z.object({
+		id: z.string(),
+		name: z.string(),
+		format: z.enum(StickerFormatType),
+	}),
+);
+
+export type StickerSchema = z.infer<typeof stickerSchema>;
+
 //
 // Snapshots
 //
@@ -198,7 +211,8 @@ export const snapShotSchema = z.object({
 	createdTimestamp: z.number(),
 	editedTimestamp: z.number().nullable(),
 	attachments: collectionToArray(dbAttachmentsSchema),
-	components: z.array(rowsSchema),
+	components: z.array(rowsSchema).nullable(),
+	stickers: stickerSchema.nullable(),
 	embeds: z
 		.array(
 			z

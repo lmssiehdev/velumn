@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
 			},
 		];
 	},
+	async rewrites() {
+		return [
+			{
+				source: "/assets/stickers/:stickerId.json",
+				destination: "https://cdn.discordapp.com/stickers/:stickerId.json",
+			},
+		];
+	},
 	productionBrowserSourceMaps: true,
 	transpilePackages: ["db", "utils"],
 	typescript: {

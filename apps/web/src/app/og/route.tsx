@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
 						display: "flex",
 					}}
 				>
-					in #reports
+					in #{thread?.parent?.channelName ?? "unknown"}
 				</div>
 			</div>
 			<div

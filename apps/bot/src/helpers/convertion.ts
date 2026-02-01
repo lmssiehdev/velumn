@@ -1,5 +1,6 @@
 import {
 	type DBSnapshotSchema,
+	dbAttachmentsSchema,
 	embedSchema,
 	internalLinksSchema,
 	type MessageMetadataSchema,
@@ -8,6 +9,7 @@ import {
 	type RowsSchema,
 	rowsSchema,
 	snapShotSchema,
+	stickerSchema,
 } from "@repo/db/helpers/validation";
 import type {
 	DBChannel,
@@ -35,6 +37,7 @@ import {
 	type User,
 } from "discord.js";
 import z from "zod";
+import { logParsingError } from "../indexing/indexing-logger";
 import { MessageLinkRegex } from "./regex";
 
 export async function toDbChannel(
@@ -96,6 +99,19 @@ function toDbPoll(message: Message) {
 			"Failed to parse poll data:",
 			error.issues.map((x) => x.message),
 		);
+
+		if (message.guildId) {
+			logParsingError(error, "poll", {
+				messageId: message.id,
+				channelId: message.channelId,
+				guildId: message.guildId,
+				threadId: message.channel.isThread() ? message.channel.id : undefined,
+				validationErrors: error.issues.map(
+					(x) => `${x.path.join(".")}: ${x.message}`,
+				),
+			});
+		}
+
 		return null;
 	}
 	return data;
@@ -162,6 +178,22 @@ async function toDbInternalLink(message: Message | MessageSnapshot) {
 				return internalLinksSchema.parse(data);
 			} catch (error) {
 				console.error("Failed to fetch channel/message:", error);
+				if (message.guildId) {
+					logParsingError(error, "metadata", {
+						messageId: message.id,
+						channelId: message.channelId,
+						guildId: message.guildId,
+						threadId: message.channel?.isThread()
+							? message.channel.id
+							: undefined,
+						rawData: {
+							original: g.original,
+							channelId: g.channelId,
+							messageId: g.messageId,
+						},
+					});
+				}
+
 				return null;
 			}
 		}),
@@ -178,14 +210,24 @@ export async function toDbMetadata(
 	const { users, channels, roles } = message.mentions;
 	const internalLinks = await toDbInternalLink(message);
 
-	const { success, data } = messageMetadataSchema.safeParse({
+	const { success, data, error } = messageMetadataSchema.safeParse({
 		users,
 		channels,
 		roles,
 		internalLinks,
 	});
 	if (!success) {
-		console.error("failed_to_parse_message_medata");
+		if (message.guildId) {
+			logParsingError(error, "metadata", {
+				messageId: message.id,
+				channelId: message.channelId,
+				guildId: message.guildId as string,
+				threadId: message.channel?.isThread() ? message.channel.id : undefined,
+				validationErrors: error.issues.map(
+					(x) => `${x.path.join(".")}: ${x.message}`,
+				),
+			});
+		}
 		return null;
 	}
 	return data;
@@ -308,6 +350,7 @@ export async function toDBMessage(
 		serverId: fullMessage.guildId,
 		// questionId: null,
 		childThreadId: fullMessage.thread?.id ?? null,
+		stickers: toDbStickers(fullMessage),
 		poll: toDbPoll(fullMessage),
 		metadata,
 		snapshot,
@@ -402,7 +445,25 @@ function toDbEmbeds(message: Message | MessageSnapshot) {
 	return message.embeds.flatMap((e) => {
 		const result = embedSchema.safeParse(e.data);
 		if (!result.success) {
-			console.error("Invalid embed:", e.data, result.data, result.error);
+			if (message.guildId) {
+				logParsingError(result.error, "embed", {
+					messageId: message.id,
+					channelId: message.channelId,
+					guildId: message.guildId as string,
+					threadId: message.channel?.isThread()
+						? message.channel.id
+						: undefined,
+					validationErrors: result.error.issues.map(
+						(x) => `${x.path.join(".")}: ${x.message}`,
+					),
+					rawData: {
+						type: e.data.type,
+						title: e.data.title?.substring(0, 100),
+						description: e.data.description?.substring(0, 100),
+					},
+				});
+			}
+
 			return [];
 		}
 		return [result.data];
@@ -410,21 +471,51 @@ function toDbEmbeds(message: Message | MessageSnapshot) {
 }
 
 function toDbAttachments(message: Message | MessageSnapshot) {
-	// !! TODO: use the zod schema
-	return message.attachments.map((attachment) => ({
-		id: attachment.id,
-		url: attachment.url,
-		messageId: message.id!,
-		proxyURL: attachment.proxyURL,
-		name: attachment.name ?? "",
-		size: attachment.size,
-		height: attachment.height,
-		width: attachment.width,
-		contentType: attachment.contentType,
-		description: attachment.description,
-		ephemeral: attachment.ephemeral ?? false,
-		isSnapshot: false,
-	}));
+	return message.attachments
+		.map((attachment) => {
+			const attachmentData = {
+				id: attachment.id,
+				url: attachment.url,
+				messageId: message.id!,
+				proxyURL: attachment.proxyURL,
+				name: attachment.name ?? "",
+				size: attachment.size,
+				height: attachment.height,
+				width: attachment.width,
+				contentType: attachment.contentType,
+				description: attachment.description,
+				isSnapshot: false,
+			};
+
+			const result = dbAttachmentsSchema.safeParse(attachmentData);
+			if (!result.success) {
+				if (message.guildId) {
+					logParsingError(result.error, "attachment", {
+						messageId: message.id,
+						channelId: message.channelId,
+						guildId: message.guildId as string,
+						threadId: message.channel?.isThread()
+							? message.channel.id
+							: undefined,
+						validationErrors: result.error.issues.map(
+							(x) => `${x.path.join(".")}: ${x.message}`,
+						),
+						rawData: {
+							filename: attachment.name,
+							contentType: attachment.contentType,
+							size: attachment.size,
+						},
+					});
+				}
+
+				return null;
+			}
+			return result.data;
+		})
+		.filter(
+			(attachment): attachment is NonNullable<typeof attachment> =>
+				attachment !== null,
+		);
 }
 
 export async function toDBSnapshot(
@@ -452,7 +543,18 @@ export async function toDBSnapshot(
 		snapShotSchema.safeParse(snapshotWithMetadata);
 
 	if (!success) {
-		console.error("Failed to parse snapshot:", error);
+		if (message.guildId) {
+			logParsingError(error, "snapshot", {
+				messageId: message.id,
+				channelId: message.channelId,
+				guildId: message.guildId as string,
+				threadId: message.channel?.isThread() ? message.channel.id : undefined,
+				validationErrors: error.issues.map(
+					(x) => `${x.path.join(".")}: ${x.message}`,
+				),
+			});
+		}
+
 		return null;
 	}
 
@@ -461,4 +563,29 @@ export async function toDBSnapshot(
 		metadata: await toDbMetadata(snapshot),
 		forwardedInMessageId: message.id,
 	};
+}
+
+function toDbStickers(message: Message) {
+	if (!message.stickers?.size) {
+		return null;
+	}
+
+	const parsed = stickerSchema.safeParse(message.stickers);
+	if (!parsed.success) {
+		console.error("Failed to parse stickers:", parsed.error);
+		if (message.guildId) {
+			logParsingError(parsed.error, "sticker", {
+				messageId: message.id,
+				channelId: message.channelId,
+				guildId: message.guildId as string,
+				threadId: message.channel?.isThread() ? message.channel.id : undefined,
+				validationErrors: parsed.error.issues.map(
+					(x) => `${x.path.join(".")}: ${x.message}`,
+				),
+			});
+		}
+
+		return null;
+	}
+	return parsed.data;
 }
