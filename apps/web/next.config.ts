@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import "./src/utils/env";
 
 const nextConfig: NextConfig = {
 	async redirects() {
@@ -16,8 +17,17 @@ const nextConfig: NextConfig = {
 				source: "/assets/stickers/:stickerId.json",
 				destination: "https://cdn.discordapp.com/stickers/:stickerId.json",
 			},
+			{
+				source: "/hog/static/:path*",
+				destination: "https://us-assets.i.posthog.com/static/:path*",
+			},
+			{
+				source: "/hog/:path*",
+				destination: "https://us.i.posthog.com/:path*",
+			},
 		];
 	},
+	skipTrailingSlashRedirect: true,
 	productionBrowserSourceMaps: true,
 	transpilePackages: ["db", "utils"],
 	typescript: {

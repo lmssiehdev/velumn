@@ -39,6 +39,7 @@
 		"lucide-react": "^0.542.0",
 		"motion": "^12.23.26",
 		"next": "16.0.10",
+		"posthog-js": "^1.342.1",
 		"react": "19.2.1",
 		"react-dom": "19.2.1",
 		"react-emoji-render": "^2.0.1",
