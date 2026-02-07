@@ -1,6 +1,10 @@
+"use client";
+
 import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr";
+import { TrackLink } from "@/components/analytics/track-link";
 import { Twemoji } from "@/components/markdown/emoji";
 import { rainbowButtonVariants } from "@/components/ui/rainbow-button";
+import { useThread } from "@/providers/use-thread";
 
 export function ContinueDiscussion({
 	url,
@@ -9,6 +13,7 @@ export function ContinueDiscussion({
 	url: string;
 	noReplies: boolean;
 }) {
+	const { thread } = useThread();
 	const icon = noReplies ? "👋" : "💬";
 	return (
 		<div className="mt-2 rounded-lg border border-neutral-200 p-5 shadow-sm transition-shadow">
@@ -35,7 +40,14 @@ export function ContinueDiscussion({
 					</div>
 				</div>
 
-				<a
+				<TrackLink
+					eventKey="openThreadOnDiscord"
+					eventData={{
+						threadId: thread.id,
+						channelId: thread.parentChannelId!,
+						serverId: thread.serverId,
+					}}
+					as="a"
 					className={rainbowButtonVariants({
 						variant: "outline",
 						class: "group",
@@ -46,7 +58,7 @@ export function ContinueDiscussion({
 				>
 					Open in Discord{" "}
 					<CaretRightIcon className="transition-transform duration-300 group-hover:translate-x-0.5" />
-				</a>
+				</TrackLink>
 			</div>
 		</div>
 	);

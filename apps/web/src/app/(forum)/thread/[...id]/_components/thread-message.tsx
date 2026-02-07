@@ -17,7 +17,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { MessageWithMetadata } from "../page";
+import type { ThreadMessagesWithMetadata } from "../page";
 import { MessageHighlight } from "./message-highlight";
 
 export function MessagePost({
@@ -26,9 +26,9 @@ export function MessagePost({
 	referenceMessage,
 	isOriginalPost = false,
 }: {
-	message: MessageWithMetadata;
+	message: ThreadMessagesWithMetadata;
 	authorId: string;
-	referenceMessage?: MessageWithMetadata;
+	referenceMessage?: ThreadMessagesWithMetadata;
 	isOriginalPost?: boolean;
 }) {
 	const authorName = anonymizeName(message.user!);
@@ -75,7 +75,6 @@ export function MessagePost({
 									{snowflakeToReadableDate(message.id)}
 								</span>
 							</div>
-							{false}
 						</div>
 					</div>
 					<div>
@@ -87,7 +86,11 @@ export function MessagePost({
 	);
 }
 
-function ReferenceMessage({ message }: { message: MessageWithMetadata }) {
+function ReferenceMessage({
+	message,
+}: {
+	message: ThreadMessagesWithMetadata;
+}) {
 	const user = message?.user!;
 
 	if (!(message?.content || message?.attachments.length)) {

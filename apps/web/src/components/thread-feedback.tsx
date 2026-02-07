@@ -2,13 +2,17 @@
 import { useEffect, useMemo, useState } from "react";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
+import { useThread } from "@/providers/use-thread";
 import { botClient } from "@/utils/trpc-client";
+import { TrackButton } from "./analytics/track-button";
 import { Twemoji } from "./markdown/emoji";
-import { Button } from "./ui/button";
 
 // @TODO: this is hacky, but it works for now
-export default function ThreadFeedback({ threadId }: { threadId: string }) {
+export default function ThreadFeedback() {
+	const { thread } = useThread();
+	const threadId = thread.id;
 	const [mounted, setMounted] = useState(false);
+
 	const [votedThreads, setVotedThreads] = useLocalStorage<
 		Record<string, "upvote" | "downvote" | undefined>
 	>("votedThreads", {});
@@ -55,7 +59,14 @@ export default function ThreadFeedback({ threadId }: { threadId: string }) {
 		<div className="mb-20 flex w-full max-w-sm flex-col items-center rounded border border-neutral-300 p-4">
 			<p className="p-2">Did this answer your question?</p>
 			<div className="flex gap-5">
-				<Button
+				<TrackButton
+					eventKey="helpfulThreadVote"
+					eventData={{
+						threadId: thread.id,
+						channelId: thread.parentChannelId!,
+						serverId: thread.serverId,
+						helpful: "yes",
+					}}
 					className={cn("flex gap-2 hover:scale-110", styles.upvote)}
 					disabled={threadVote === "upvote"}
 					onClick={() => {
@@ -66,8 +77,15 @@ export default function ThreadFeedback({ threadId }: { threadId: string }) {
 				>
 					<Twemoji className="size-5" name="👍" />
 					Yes
-				</Button>
-				<Button
+				</TrackButton>
+				<TrackButton
+					eventKey="helpfulThreadVote"
+					eventData={{
+						threadId: thread.id,
+						channelId: thread.parentChannelId!,
+						serverId: thread.serverId,
+						helpful: "no",
+					}}
 					className={cn("flex gap-2 hover:scale-110", styles.downvote)}
 					disabled={threadVote === "downvote"}
 					onClick={() => {
@@ -78,7 +96,7 @@ export default function ThreadFeedback({ threadId }: { threadId: string }) {
 				>
 					<Twemoji className="size-5" name="👎" />
 					No
-				</Button>
+				</TrackButton>
 			</div>
 		</div>
 	);

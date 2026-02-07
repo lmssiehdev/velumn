@@ -67,9 +67,7 @@ export const getAllThreadsCached = stable_cache(getAllThreads, {
 	keyParts: (getBy, config) => [
 		`get-all-threads-${getBy}-${config.id}-${config.pinned ?? "all"}-${config.page ?? 1}`,
 	],
-	tags: (_, config) => [
-		CacheTags.getAllThreads(config.id),
-	],
+	tags: (_, config) => [CacheTags.getAllThreads(config.id)],
 });
 
 export const getTopicsInServerCached = stable_cache(getTopicsInServer, {

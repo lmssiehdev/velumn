@@ -2,6 +2,7 @@ import { ChatsCircleIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
 import type { DBServer } from "@repo/db/schema/index";
 import { ChannelType } from "discord-api-types/v10";
 import Link from "next/link";
+import { TrackLink } from "@/components/analytics/track-link";
 import { SearchPortal } from "@/components/search/search-input";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -62,7 +63,7 @@ export function ServerInfo({ server }: { server?: DBServer }) {
 				</div>
 			</div>
 			<p className="my-3">{server.description}</p>
-			<a
+			<TrackLink
 				className={buttonVariants({
 					className:
 						"pointer cursor-pointer bg-purple-100 text-purple-600 transition-all hover:bg-purple-200",
@@ -70,9 +71,15 @@ export function ServerInfo({ server }: { server?: DBServer }) {
 				href={`https://discord.gg/${server.serverInvite!}`}
 				rel="noopener noreferrer"
 				target="_blank"
+				as="a"
+				eventKey="joinServer"
+				eventData={{
+					serverId: server.id,
+					serverInvite: server.serverInvite!,
+				}}
 			>
 				Join Server
-			</a>
+			</TrackLink>
 			<SearchPortal serverId={server.id} />
 		</div>
 	);
