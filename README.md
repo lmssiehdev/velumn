@@ -8,7 +8,7 @@ Velumn</h1>
     <br />
     <a href="https://velumn.com"><strong>Learn more »</strong></a>
     ·
-    <a href="https://velumn.com/demo"><strong>View Demo »</strong></a>
+    <a href="https://velumn.com/thread/1436230598959300718/a_demo_thread"><strong>View Demo »</strong></a>
     <br />
 </p>
 
