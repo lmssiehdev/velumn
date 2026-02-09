@@ -230,7 +230,7 @@ function BottomCTA() {
 				Ready to make your Discord searchable?
 			</h3>
 			<p className="text-neutral-600">
-				Try Velumn free for 7 days. No credit card required.
+				Try Velumn for free. No credit card required.
 			</p>
 			<TrackLink
 				eventKey="addServer"
