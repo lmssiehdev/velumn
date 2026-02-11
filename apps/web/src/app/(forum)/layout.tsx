@@ -71,7 +71,6 @@ export function ServerInfo({ server }: { server?: DBServer }) {
 				href={`https://discord.gg/${server.serverInvite!}`}
 				rel="noopener noreferrer"
 				target="_blank"
-				as="a"
 				eventKey="joinServer"
 				eventData={{
 					serverId: server.id,

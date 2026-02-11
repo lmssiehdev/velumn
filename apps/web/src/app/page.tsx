@@ -76,7 +76,6 @@ export default function Home() {
 							<TrackLink
 								eventKey="clickedDemoLink"
 								eventData={undefined}
-								as="a"
 								className={buttonVariants({ size: "lg", variant: "outline" })}
 								href="/thread/1436230598959300718"
 							>

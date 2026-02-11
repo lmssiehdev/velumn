@@ -47,7 +47,6 @@ export function ContinueDiscussion({
 						channelId: thread.parentChannelId!,
 						serverId: thread.serverId,
 					}}
-					as="a"
 					className={rainbowButtonVariants({
 						variant: "outline",
 						class: "group",
