@@ -18,11 +18,11 @@ const nextConfig: NextConfig = {
 				destination: "https://cdn.discordapp.com/stickers/:stickerId.json",
 			},
 			{
-				source: "/hog/static/:path*",
+				source: "/api/hog/static/:path*",
 				destination: "https://us-assets.i.posthog.com/static/:path*",
 			},
 			{
-				source: "/hog/:path*",
+				source: "/api/hog/:path*",
 				destination: "https://us.i.posthog.com/:path*",
 			},
 		];
