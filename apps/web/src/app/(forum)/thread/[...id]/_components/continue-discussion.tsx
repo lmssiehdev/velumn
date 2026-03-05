@@ -44,7 +44,7 @@ export function ContinueDiscussion({
 					eventKey="openThreadOnDiscord"
 					eventData={{
 						threadId: thread.id,
-						channelId: thread.parentChannelId!,
+						channelId: thread.parentId!,
 						serverId: thread.serverId,
 					}}
 					className={rainbowButtonVariants({

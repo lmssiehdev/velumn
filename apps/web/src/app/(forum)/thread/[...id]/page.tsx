@@ -288,6 +288,10 @@ export default async function Page({ params }: PageProps) {
 	);
 }
 
+export type ThreadWithMetadata = NonNullable<
+	Awaited<ReturnType<typeof getAllMessagesInThreads>>
+>;
+
 export type ThreadMessagesWithMetadata = NonNullable<
 	Awaited<ReturnType<typeof getAllMessagesInThreads>>
 >["messages"][number];

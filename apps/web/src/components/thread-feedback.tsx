@@ -63,7 +63,7 @@ export default function ThreadFeedback() {
 					eventKey="helpfulThreadVote"
 					eventData={{
 						threadId: thread.id,
-						channelId: thread.parentChannelId!,
+						channelId: thread.parentId!,
 						serverId: thread.serverId,
 						helpful: "yes",
 					}}
@@ -82,7 +82,7 @@ export default function ThreadFeedback() {
 					eventKey="helpfulThreadVote"
 					eventData={{
 						threadId: thread.id,
-						channelId: thread.parentChannelId!,
+						channelId: thread.parentId!,
 						serverId: thread.serverId,
 						helpful: "no",
 					}}
