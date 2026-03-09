@@ -28,8 +28,6 @@ import { ContinueDiscussion } from "./_components/continue-discussion";
 import { HashProvider } from "./_components/message-highlight";
 import { anonymizeName, MessagePost } from "./_components/thread-message";
 
-export const revalidate = 86_400;
-
 type PageProps = {
 	params: Promise<{ id: [string, string?, string?] }>;
 };

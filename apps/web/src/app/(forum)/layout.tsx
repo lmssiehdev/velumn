@@ -92,7 +92,7 @@ async function Boards({
 	activeChannelId?: string;
 }) {
 	// display forum channels first
-	const topics = (await getTopicsInServerCached(serverId)).sort((a, b) =>
+	const topics = [...(await getTopicsInServerCached(serverId))].sort((a, b) =>
 		a.type > b.type ? -1 : 1,
 	);
 

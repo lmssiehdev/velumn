@@ -186,32 +186,104 @@ export type ThreadWithMetadata = Awaited<
 	ReturnType<typeof getAllThreads>
 >["threads"][number];
 
+export const threadPinFilters = ["all", "pinned", "unpinned"] as const;
+export type ThreadPinFilter = (typeof threadPinFilters)[number];
+
 export async function getAllThreads(
 	getBy: "server" | "channel",
 	config: {
 		id: string;
-		pinned?: boolean;
+		pinFilter?: ThreadPinFilter;
 		page?: number;
 	},
 ) {
-	const { id, pinned = false, page = 1 } = config;
-	const LIMIT_PER_PAGE = pinned ? 1 : 10;
-	const result = await db.query.dbChannel.findMany({
-		where:
-			getBy === "server"
-				? {
-						serverId: id,
-						pinned,
-						parentId: {
-							isNotNull: true,
-						},
-					}
-				: {
-						parentId: id,
-						pinned,
+	const { id, pinFilter = "all", page = 1 } = config;
+	const LIMIT_PER_PAGE = 10;
+	const pinPredicate =
+		pinFilter === "pinned"
+			? { pinned: true }
+			: pinFilter === "unpinned"
+				? { pinned: false }
+				: {};
+	const where =
+		getBy === "server"
+			? {
+					serverId: id,
+					parentId: {
+						isNotNull: true as const,
 					},
+					...pinPredicate,
+				}
+			: {
+					parentId: id,
+					...pinPredicate,
+				};
+
+	if (pinFilter === "pinned") {
+		const result = await db.query.dbChannel.findMany({
+			where,
+			with: {
+				author: true,
+				messages: {
+					columns: {
+						id: true,
+					},
+					limit: 1,
+					orderBy: {
+						id: "asc",
+					},
+					with: {
+						user: {
+							columns: {
+								id: true,
+								displayName: true,
+								anonymizeName: true,
+								isIgnored: true,
+							},
+						},
+					},
+				},
+				parent: true,
+			},
+			extras: {
+				messagesCount: (t) =>
+					db.$count(dbMessage, eq(dbMessage.primaryChannelId, t.id)),
+			},
+			orderBy: {
+				id: "desc",
+			},
+		});
+
+		return {
+			hasMore: false,
+			threads: result,
+			page,
+		};
+	}
+
+	const result = await db.query.dbChannel.findMany({
+		where,
 		with: {
 			author: true,
+			messages: {
+				columns: {
+					id: true,
+				},
+				limit: 1,
+				orderBy: {
+					id: "asc",
+				},
+				with: {
+					user: {
+						columns: {
+							id: true,
+							displayName: true,
+							anonymizeName: true,
+							isIgnored: true,
+						},
+					},
+				},
+			},
 			parent: true,
 		},
 		extras: {
@@ -224,6 +296,7 @@ export async function getAllThreads(
 			id: "desc",
 		},
 	});
+
 	return {
 		hasMore: result.length > LIMIT_PER_PAGE,
 		threads: result.splice(0, LIMIT_PER_PAGE),

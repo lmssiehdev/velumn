@@ -1,5 +1,6 @@
 import { ThreadList } from "@/app/(forum)/server/[id]/page";
 import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
+import { parseForumPage, type ForumSearchParams } from "../../_lib/pagination";
 import { FrontPageSidebar } from "../../layout";
 
 export async function generateMetadata({
@@ -35,12 +36,12 @@ export default async function Page({
 	searchParams,
 }: {
 	params: Promise<{ id: string }>;
-	searchParams: { page: string };
+	searchParams: Promise<ForumSearchParams>;
 }) {
 	const { id: channelId } = await params;
 	// !! TODO: do these in one join
 	const channel = await getChannelInfoCached(channelId);
-	const searchParamsPage = Number((await searchParams).page ?? 1);
+	const searchParamsPage = await parseForumPage(searchParams);
 
 	if (!channel?.server) {
 		return <div>Channel doesn't exist</div>;
@@ -49,11 +50,12 @@ export default async function Page({
 	const [regularResult, pinnedResult] = await Promise.all([
 		getAllThreadsCached("channel", {
 			id: channelId,
+			pinFilter: "unpinned",
 			page: searchParamsPage,
 		}),
 		getAllThreadsCached("channel", {
 			id: channelId,
-			pinned: true,
+			pinFilter: "pinned",
 		}),
 	]);
 
@@ -68,8 +70,8 @@ export default async function Page({
 			<div className="flex gap-6">
 				<ThreadList
 					hasMore={hasMore}
+					hrefBase={`/channel/${channelId}`}
 					page={page}
-					serverId={channelId}
 					threads={threads.concat(pinnedThread)}
 				/>
 				<FrontPageSidebar

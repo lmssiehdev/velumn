@@ -3,6 +3,7 @@ import {
 	findChannelById,
 	upsertChannel,
 } from "@repo/db/helpers/channels";
+import type { DBChannel } from "@repo/db/schema/discord";
 import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
@@ -19,6 +20,31 @@ import { invalidateTags } from "../../helpers/invalidate-cache";
 import { indexThread } from "../../indexing/channel";
 import { deleteSearchThread, updateSearchThread } from "../../indexing/search";
 
+function getBoardTags(channel: Pick<DBChannel, "id" | "serverId">) {
+	return [
+		CacheTags.channelInfo(channel.id),
+		CacheTags.topicsInServer(channel.serverId),
+		CacheTags.getAllThreads(channel.serverId),
+	];
+}
+
+function getThreadTags({
+	threadId,
+	parentChannelId,
+	guildId,
+}: {
+	threadId: string;
+	parentChannelId?: string | null;
+	guildId?: string | null;
+}) {
+	return [
+		CacheTags.thread(threadId),
+		parentChannelId ? CacheTags.getAllThreads(parentChannelId) : null,
+		guildId ? CacheTags.getAllThreads(guildId) : null,
+		guildId ? CacheTags.topicsInServer(guildId) : null,
+	].filter((tag): tag is string => tag !== null);
+}
+
 @ApplyOptions<Listener.Options>({
 	event: Events.ChannelDelete,
 	name: "delete-channel",
@@ -26,8 +52,14 @@ import { deleteSearchThread, updateSearchThread } from "../../indexing/search";
 export class DeleteChannel extends Listener {
 	async run(channel: Channel) {
 		try {
-			await deleteChannel(channel.id);
-			// TODO: figure out what to do here
+			const existingChannel = await findChannelById(channel.id);
+			const result = await deleteChannel(channel.id);
+
+			if (!result.rowCount || !existingChannel || existingChannel.parentId) {
+				return;
+			}
+
+			await invalidateTags(getBoardTags(existingChannel));
 		} catch (error) {
 			this.container.logger.error("Failed to delete channel", error);
 		}
@@ -52,6 +84,7 @@ export class UpdateChannel extends Listener {
 					channelName: newChannel.name,
 				},
 			});
+			await invalidateTags(getBoardTags(channel));
 		} catch (error) {
 			this.container.logger.error("Failed to update channel", error);
 		}
@@ -76,6 +109,13 @@ export class ThreadCreate extends Listener {
 			// @hacky: from what i remember discord sends seperate messages for the thread and the message, this is an easy work around that works well
 			setTimeout(async () => {
 				await indexThread(thread as PublicThreadChannel);
+				await invalidateTags(
+					getThreadTags({
+						threadId: thread.id,
+						parentChannelId: thread.parentId,
+						guildId: thread.guildId,
+					}),
+				);
 			}, 5000);
 		} catch (error) {
 			this.container.logger.error("Failed to create channel", error);
@@ -92,7 +132,13 @@ export class ThreadDelete extends Listener {
 		try {
 			const result = await deleteChannel(thread.id);
 			if (result.rowCount) {
-				await invalidateTags(CacheTags.thread(thread.id));
+				await invalidateTags(
+					getThreadTags({
+						threadId: thread.id,
+						parentChannelId: thread.parentId,
+						guildId: thread.guildId,
+					}),
+				);
 				await deleteSearchThread({ id: thread.id });
 			}
 		} catch (error) {
@@ -110,11 +156,11 @@ export class UpdateThread extends Listener {
 		try {
 			const channelToUpdate = await toDbChannel(newThread);
 
-			const { id, channelName, pinned } = channelToUpdate;
+			const { id, authorId, channelName, pinned } = channelToUpdate;
 
 			const result = await upsertChannel({
 				create: channelToUpdate,
-				update: { id, channelName, pinned },
+				update: { id, authorId, channelName, pinned },
 			});
 
 			if (result.rowCount) {
@@ -122,7 +168,13 @@ export class UpdateThread extends Listener {
 					threadId: newThread.id,
 					threadTitle: channelName!,
 				});
-				await invalidateTags(CacheTags.thread(newThread.id));
+				await invalidateTags(
+					getThreadTags({
+						threadId: newThread.id,
+						parentChannelId: newThread.parentId,
+						guildId: newThread.guildId,
+					}),
+				);
 			}
 		} catch (error) {
 			this.container.logger.error("Failed to update thread", error);
