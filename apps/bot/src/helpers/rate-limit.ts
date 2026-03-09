@@ -3,32 +3,56 @@ import { redis } from "bun";
 import type { Context } from "hono";
 import { getConnInfo } from "hono/bun";
 
+const HOUR_IN_SECONDS = 3600;
+const MINUTE_IN_SECONDS = 60;
+const MAX_SEARCH_REQUESTS_PER_MINUTE = 30;
+
+function normalizeIp(rawIp: string): string | undefined {
+	let ip = rawIp.trim();
+
+	if (!ip) {
+		return;
+	}
+
+	if (ip === "::1") {
+		ip = "127.0.0.1";
+	}
+
+	if (ip.startsWith("::ffff:")) {
+		ip = ip.slice("::ffff:".length);
+	}
+
+	if (isIP(ip) === 0) {
+		return;
+	}
+
+	return ip;
+}
+
+function parseForwardedFor(value: string): string | undefined {
+	const [firstIp] = value.split(",");
+	if (!firstIp) {
+		return;
+	}
+
+	return normalizeIp(firstIp);
+}
+
 export function getHonoIp(c: Context): string | undefined {
 	const forwardedFor = c.req.header("x-forwarded-for");
 	if (forwardedFor) {
-		if (isIP(forwardedFor) !== 0) {
-			return forwardedFor.includes("::ffff:")
-				? forwardedFor.split("::ffff:")[1]
-				: forwardedFor;
+		const forwardedIp = parseForwardedFor(forwardedFor);
+		if (forwardedIp) {
+			return forwardedIp;
 		}
 	}
 
 	try {
 		const connInfo = getConnInfo(c);
-		let ip = connInfo?.remote?.address;
+		const ip = connInfo?.remote?.address;
 
 		if (ip) {
-			if (ip === "::1") {
-				ip = "127.0.0.1";
-			}
-
-			if (ip.includes("::ffff:")) {
-				ip = ip.split("::ffff:")[1];
-			}
-
-			if (ip && isIP(ip) !== 0) {
-				return ip;
-			}
+			return normalizeIp(ip);
 		}
 	} catch {}
 	return;
@@ -51,11 +75,14 @@ export async function isRateLimited(threadId: string, ip?: string) {
 	const votesInAnHour = `vote:hourly:${ip}`;
 	const voteCount = await redis.get(votesInAnHour);
 
-	return voteCount && Number(voteCount) >= 5;
+	return Number(voteCount ?? "0") >= 5;
 }
 
-const HOUR_IN_SECONDS = 3600;
 export async function trackVote(threadId: string, ip?: string): Promise<void> {
+	if (!ip) {
+		return;
+	}
+
 	const threadVoteKey = `vote:thread:${threadId}:ip:${ip}`;
 	await redis.set(threadVoteKey, "1");
 
@@ -64,5 +91,21 @@ export async function trackVote(threadId: string, ip?: string): Promise<void> {
 
 	if (current === 1) {
 		await redis.expire(votesInAnHour, HOUR_IN_SECONDS); // 1 hour in seconds
+	}
+}
+
+export async function isSearchRateLimited(ip?: string) {
+	const searchWindowKey = `search:minute:ip:${ip ?? "unknown"}`;
+	const searchCount = await redis.get(searchWindowKey);
+
+	return !!searchCount && Number(searchCount) >= MAX_SEARCH_REQUESTS_PER_MINUTE;
+}
+
+export async function trackSearch(ip?: string): Promise<void> {
+	const searchWindowKey = `search:minute:ip:${ip ?? "unknown"}`;
+	const current = await redis.incr(searchWindowKey);
+
+	if (current === 1) {
+		await redis.expire(searchWindowKey, MINUTE_IN_SECONDS);
 	}
 }

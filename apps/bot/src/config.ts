@@ -7,6 +7,8 @@ export const botEnv = createEnv({
 		MEILISEARCH_HOST: z.string().min(1).optional(),
 		MEILISEARCH_MASTER_KEY: z.string().min(1).optional(),
 		MEILISEARCH_API_KEY: z.string().min(1),
+		NEXT_PUBLIC_VELUMN_URL: z.string().min(1),
+		NEXT_PUBLIC_VELUMN_DASHBOARD_URL: z.string().min(1),
 	},
 	runtimeEnv: process.env,
 });

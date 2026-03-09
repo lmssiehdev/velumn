@@ -1,7 +1,6 @@
 import { updateVote } from "@repo/db/helpers/channels";
 import { apiLogger } from "@repo/logger";
 import { initTRPC, TRPCError } from "@trpc/server";
-import { redis } from "bun";
 import { ChannelType, RESTJSONErrorCodes } from "discord.js";
 import { z } from "zod";
 import { sapphireClient } from "..";
@@ -10,7 +9,12 @@ import { indexThread } from "../indexing/channel";
 import { client, searchMessages } from "../indexing/search";
 import { indexServer } from "../indexing/server";
 import { toDBMessage } from "./convertion";
-import { isRateLimited, trackVote } from "./rate-limit";
+import {
+	isRateLimited,
+	isSearchRateLimited,
+	trackSearch,
+	trackVote,
+} from "./rate-limit";
 
 interface Context {
 	secret?: string;
@@ -35,10 +39,6 @@ const protectedProcedure = t.procedure.use(isAuthenticated);
 export const botRouter = t.router({
 	health: protectedProcedure.query(() => {
 		return "OK";
-	}),
-	clear: publicProcedure.query(async () => {
-		const keys = await redis.keys("*");
-		return { keys };
 	}),
 	reindexServer: protectedProcedure
 		.input(
@@ -222,15 +222,33 @@ export const botRouter = t.router({
 		.input(
 			z.object({
 				serverId: z.string(),
-				query: z.string(),
+				query: z.string().trim().min(1).max(120),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
+				if (await isSearchRateLimited(ctx.ip)) {
+					throw new TRPCError({
+						code: "TOO_MANY_REQUESTS",
+						message: "You're searching too quickly. Please slow down.",
+					});
+				}
+
+				await trackSearch(ctx.ip);
 				const results = await searchMessages(input);
 				return results;
 			} catch (error) {
-				console.error("search_messages_failed", error);
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+
+				apiLogger.error("search_messages_failed", {
+					error,
+					ip: ctx.ip,
+					serverId: input.serverId,
+					query: input.query,
+				});
+
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to search messages",

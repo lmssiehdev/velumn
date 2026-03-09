@@ -3,6 +3,7 @@ import { apiLogger } from "@repo/logger";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { botEnv } from "./config";
 import { getHonoIp } from "./helpers/rate-limit";
 import { botRouter } from "./helpers/trpc";
 
@@ -12,15 +13,20 @@ export const customLogger = (message: string, ...rest: string[]) => {
 	});
 };
 
+const DEFAULT_ALLOWED_ORIGINS = [
+	botEnv.NEXT_PUBLIC_VELUMN_URL,
+	botEnv.NEXT_PUBLIC_VELUMN_DASHBOARD_URL,
+];
+
 export const BotApi = new Hono()
 	.use(logger(customLogger))
 	.use(
 		"/*",
 		cors({
-			origin: "*",
-			credentials: true,
-			allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-			allowHeaders: ["Origin", "Content-Type", "Accept", "X-Requested-With"],
+			origin: DEFAULT_ALLOWED_ORIGINS,
+			credentials: false,
+			allowMethods: ["GET", "POST", "OPTIONS"],
+			allowHeaders: ["content-type", "x-velumn-secret"],
 			maxAge: 3600,
 		}),
 	)
