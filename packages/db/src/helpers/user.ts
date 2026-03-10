@@ -53,6 +53,8 @@ export async function getUserServers(userId: string) {
 				serverInvite: dbServer.serverInvite,
 				invitedBy: dbServer.invitedBy,
 				anonymizeUsers: dbServer.anonymizeUsers,
+				customDomain: dbServer.customDomain,
+				domainVerified: dbServer.domainVerified,
 			},
 		})
 		.from(userServers)

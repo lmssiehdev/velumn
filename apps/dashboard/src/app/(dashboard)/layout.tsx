@@ -21,16 +21,6 @@ export default async function RootLayout({
 		redirect("/onboarding");
 	}
 
-	if (!user?.serverId) {
-		return <div>Finished onboarding, but no server linked.</div>;
-	}
-
-	const server = await getUserServer(user.serverId);
-
-	if (!server) {
-		return <div>Server Not Found</div>;
-	}
-
 	return (
 		<Providers>
 			<ServerProvider servers={servers}>

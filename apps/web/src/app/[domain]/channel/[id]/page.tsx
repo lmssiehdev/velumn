@@ -1,32 +1,27 @@
-import { ThreadList } from "@/app/[domain]/server/[id]/page";
-import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
-import { parseForumPage, type ForumSearchParams } from "../../_lib/pagination";
-import { FrontPageSidebar } from "../../layout";
+import { FrontPageSidebar } from "@/components/forum/shell";
+import { ThreadList } from "@/components/forum/thread-list";
+import { getCustomDomainUrl } from "@/lib/domains";
+import { getAllThreadsCached } from "@/utils/cache";
+import { parseForumPage, type ForumSearchParams } from "@/app/(forum)/_lib/pagination";
+import { getTenantChannelOrNotFound } from "../../_lib/tenant";
 
 export async function generateMetadata({
 	params,
 }: {
-	params: Promise<{ id: string }>;
+	params: Promise<{ domain: string; id: string }>;
 }) {
-	const { id } = await params;
+	const { domain, id } = await params;
+	const { server, channel } = await getTenantChannelOrNotFound(domain, id);
+	const canonicalUrl = getCustomDomainUrl(server, `/channel/${id}`);
 
-	const channel = await getChannelInfoCached(id);
-
-	if (!channel) {
-		return {
-			title: "Channel Not Found",
-			openGraph: {
-				title: "Channel Not Found",
-			},
-		};
-	}
 	return {
-		title: channel?.channelName,
-		// TODO: sync description?
-		// describe: channel?.description,
+		title: channel.channelName,
+		alternates: {
+			canonical: canonicalUrl,
+		},
 		openGraph: {
-			title: channel?.channelName,
-			// description: channel?.description,
+			title: channel.channelName,
+			url: canonicalUrl,
 		},
 	};
 }
@@ -35,17 +30,12 @@ export default async function Page({
 	params,
 	searchParams,
 }: {
-	params: Promise<{ id: string }>;
+	params: Promise<{ domain: string; id: string }>;
 	searchParams: Promise<ForumSearchParams>;
 }) {
-	const { id: channelId } = await params;
-	// !! TODO: do these in one join
-	const channel = await getChannelInfoCached(channelId);
+	const { domain, id: channelId } = await params;
+	const { server, channel } = await getTenantChannelOrNotFound(domain, channelId);
 	const searchParamsPage = await parseForumPage(searchParams);
-
-	if (!channel?.server) {
-		return <div>Channel doesn't exist</div>;
-	}
 
 	const [regularResult, pinnedResult] = await Promise.all([
 		getAllThreadsCached("channel", {
@@ -76,7 +66,8 @@ export default async function Page({
 				/>
 				<FrontPageSidebar
 					activeChannelId={channel.id}
-					server={channel.server}
+					homeHref="/"
+					server={server}
 				/>
 			</div>
 		</div>

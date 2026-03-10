@@ -2,14 +2,6 @@ import { getChannelsInServer } from "@repo/db/helpers/servers";
 import { Settings } from "lucide-react";
 import Link from "next/link";
 import ChannelsTable from "@/components/channels-table";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { requireServerForPage } from "@/lib/authorization";
 import { getCurrentUserOrRedirect } from "@/server/user";
@@ -58,33 +50,8 @@ export default async function ServerChannelsPage({
 	}
 
 	return (
-		<>
-			<ServerChannelsBreadcrumb />
-			<div className="mx-auto w-full max-w-md mt-10">
-				<ChannelsTable channels={channels} serverId={server.id} />
-			</div>
-		</>
-	);
-}
-
-function ServerChannelsBreadcrumb() {
-	return (
-		<Breadcrumb className="p-2">
-			<BreadcrumbList>
-				<BreadcrumbItem>
-					<BreadcrumbLink href="#" className="flex items-center gap-2">
-						Home
-					</BreadcrumbLink>
-				</BreadcrumbItem>
-				<BreadcrumbSeparator> / </BreadcrumbSeparator>
-				<BreadcrumbItem>
-					<BreadcrumbLink href="#">Documents</BreadcrumbLink>
-				</BreadcrumbItem>
-				<BreadcrumbSeparator> / </BreadcrumbSeparator>
-				<BreadcrumbItem>
-					<BreadcrumbPage>Channels</BreadcrumbPage>
-				</BreadcrumbItem>
-			</BreadcrumbList>
-		</Breadcrumb>
+		<div className="mx-auto mt-6 w-full max-w-md">
+			<ChannelsTable channels={channels} serverId={server.id} />
+		</div>
 	);
 }

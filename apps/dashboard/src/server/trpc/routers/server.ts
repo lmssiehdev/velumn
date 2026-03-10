@@ -63,7 +63,8 @@ export const serverRouter = router({
 				// TODO: schedule retry?
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Server ID not found",
+					message: "Failed to complete onboarding",
+					cause: err,
 				});
 			}
 

@@ -1,21 +1,24 @@
-import { updateDomainLinkToServer } from "@repo/db/helpers/domains";
-import { getServerInfo } from "@repo/db/helpers/servers";
-import { getAuthUser } from "@repo/db/helpers/user";
+import { getServerByCustomDomain, updateDomainLinkToServer } from "@repo/db/helpers/domains";
+import {
+	checkIfServerExistsForUser,
+	getServerInfo,
+} from "@repo/db/helpers/servers";
+import { normalizeDomain } from "@repo/utils/helpers/domains";
 import { TRPCError } from "@trpc/server";
-import { Vercel } from "@vercel/sdk";
-import { domainsDeleteDomain } from "@vercel/sdk/funcs/domainsDeleteDomain.js";
-import { projectsAddProjectDomain } from "@vercel/sdk/funcs/projectsAddProjectDomain.js";
-import { projectsRemoveProjectDomain } from "@vercel/sdk/funcs/projectsRemoveProjectDomain.js";
 import { z } from "zod";
 import { parseError } from "@/lib/error";
+import { log } from "@/lib/log";
 import { privateProcedure, router } from "@/server/trpc";
-import { logger } from "../../../../../../packages/logger/src/logger";
+import { dashboardEnv } from "@/utils/env";
+import { revalidateDomainCaches } from "../../revalidate-web-cache";
 
-const idOrName = process.env.VERCEL_PROJECT_ID!;
-const teamId = process.env.VERCEL_TEAM_ID;
+const domainInputSchema = z.object({
+	serverId: z.string().min(1),
+	domain: z.string().min(1),
+});
 
-const vercel = new Vercel({
-	bearerToken: process.env.VERCEL_BEARER_TOKEN,
+const serverInputSchema = z.object({
+	serverId: z.string().min(1),
 });
 
 export type DNSRecord = {
@@ -25,249 +28,373 @@ export type DNSRecord = {
 	ttl?: number;
 };
 
-type DomainStatus =
-	| {
-			status: "unhandled_error" | "valid_configuration";
-			message: string;
-			dnsData: null;
-	  }
-	| {
-			status: "pending_verification";
-			dnsData: {
-				type: "verification" | "misconfiguration";
-				dnsRecord: DNSRecord;
-			}[];
-			message: string;
-	  };
+type DomainCheckResult = {
+	domain: string;
+	verified: boolean;
+	status: "valid_configuration" | "pending_verification" | "unhandled_error";
+	message: string;
+	dnsRecords: DNSRecord[];
+};
+
+type ProjectDomainVerificationRecord = {
+	type?: string;
+	domain?: string;
+	value?: string;
+};
+
+type ProjectDomainResponse = {
+	name: string;
+	apexName: string;
+	verified?: boolean;
+	verification?: ProjectDomainVerificationRecord[];
+};
+
+type VercelRecommendedRecord = {
+	name?: string;
+	type?: string;
+	value?: string;
+};
+
+type DomainConfigResponse = {
+	misconfigured?: boolean;
+	recommendedIPv4?: VercelRecommendedRecord[];
+	recommendedCNAME?: VercelRecommendedRecord[];
+};
+
+type VerifyDomainResponse = {
+	verified?: boolean;
+};
 
 export const domainsRouter = router({
 	addDomain: privateProcedure
-		.input(z.object({ domain: z.string() }))
+		.input(domainInputSchema)
 		.mutation(async ({ input, ctx }) => {
-			const authUser = await getAuthUser(ctx.user.id);
+			const server = await getOwnedServer(ctx.user.id, input.serverId);
+			const normalizedDomain = safeNormalizeDomain(input.domain);
 
-			if (!authUser?.serverId) {
-				return { success: false, message: "No server linked" };
+			if (server.customDomain) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Server already has a custom domain linked.",
+				});
 			}
 
-			const server = await getServerInfo(authUser.serverId);
-
-			if (server?.customDomain) {
+			const existingDomainOwner = await getServerByCustomDomain(normalizedDomain);
+			if (existingDomainOwner && existingDomainOwner.id !== server.id) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Server already has a domain linked",
+					code: "CONFLICT",
+					message: "This domain is already linked to another server.",
 				});
 			}
 
 			try {
-				await projectsAddProjectDomain(vercel, {
-					idOrName,
-					teamId,
-					requestBody: {
-						name: input.domain,
+				await vercelRequest(
+					`/v10/projects/${encodeURIComponent(dashboardEnv.VERCEL_PROJECT_ID)}/domains`,
+					{
+						method: "POST",
+						body: JSON.stringify({
+							name: normalizedDomain,
+						}),
 					},
-				});
+				);
+
 				await updateDomainLinkToServer({
-					serverId: authUser.serverId!,
+					serverId: server.id,
 					payload: {
+						customDomain: normalizedDomain,
 						domainVerified: false,
-						customDomain: input.domain,
 					},
 				});
-				return { success: true };
-			} catch (err) {
-				logger.error("adding_domain_failed", {
-					domain: input.domain,
-					serverId: authUser.serverId,
-					err: parseError(err),
+
+				await revalidateDomainCaches({
+					serverId: server.id,
+					domain: normalizedDomain,
+				});
+
+				return {
+					success: true,
+					domain: normalizedDomain,
+				};
+			} catch (error) {
+				log.error("dashboard_add_domain_failed", {
+					serverId: server.id,
+					domain: normalizedDomain,
+					error: parseError(error),
 				});
 
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to add domain to Vercel",
-					cause: err,
+					message: "Failed to add the domain to Vercel.",
 				});
 			}
 		}),
-	removeDomain: privateProcedure.mutation(async ({ ctx }) => {
-		const authUser = await getAuthUser(ctx.user.id);
+	removeDomain: privateProcedure
+		.input(serverInputSchema)
+		.mutation(async ({ input, ctx }) => {
+			const server = await getOwnedServer(ctx.user.id, input.serverId);
+			const previousDomain = server.customDomain;
 
-		if (!authUser?.serverId) {
-			return { success: false, message: "No server linked" };
-		}
-
-		const server = await getServerInfo(authUser.serverId);
-
-		if (!server?.customDomain) {
-			return { success: false, message: "No custom domain linked" };
-		}
-
-		const results = await Promise.allSettled([
-			projectsRemoveProjectDomain(vercel, {
-				idOrName,
-				teamId,
-				domain: server.customDomain,
-			}),
-			domainsDeleteDomain(vercel, {
-				domain: server.customDomain,
-			}),
-		]);
-
-		results.forEach((result) => {
-			if (result.status === "rejected") {
-				// these might require manual deletion
-				logger.error("deleting_domain_failed", {
-					domain: server.customDomain,
-					serverId: authUser.serverId,
-					err: parseError(result.reason),
+			if (!previousDomain) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No custom domain is linked to this server.",
 				});
 			}
-		});
 
-		await updateDomainLinkToServer({
-			serverId: authUser.serverId!,
-			payload: {
-				domainVerified: false,
-				customDomain: null,
-			},
-		});
+			const results = await Promise.allSettled([
+				vercelRequest(
+					`/v9/projects/${encodeURIComponent(dashboardEnv.VERCEL_PROJECT_ID)}/domains/${encodeURIComponent(previousDomain)}`,
+					{
+						method: "DELETE",
+					},
+				),
+				vercelRequest(`/v6/domains/${encodeURIComponent(previousDomain)}`, {
+					method: "DELETE",
+				}),
+			]);
 
-		return { success: true };
-	}),
-	checkDomain: privateProcedure.query(async ({ ctx }) => {
-		const authUser = await getAuthUser(ctx.user.id);
+			for (const result of results) {
+				if (result.status === "rejected") {
+					log.error("dashboard_remove_domain_failed", {
+						serverId: server.id,
+						domain: previousDomain,
+						error: parseError(result.reason),
+					});
+				}
+			}
 
-		if (!authUser?.serverId) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "No server linked",
+			await updateDomainLinkToServer({
+				serverId: server.id,
+				payload: {
+					customDomain: null,
+					domainVerified: false,
+				},
 			});
-		}
 
-		const server = await getServerInfo(authUser.serverId);
-
-		if (!server?.customDomain) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "No custom domain linked",
+			await revalidateDomainCaches({
+				serverId: server.id,
+				previousDomain,
 			});
-		}
 
-		return await checkAndVerifiyDomain(server.customDomain, {
-			serverId: server.id,
-		});
-	}),
+			return { success: true };
+		}),
+	checkDomain: privateProcedure
+		.input(serverInputSchema)
+		.query(async ({ input, ctx }) => {
+			const server = await getOwnedServer(ctx.user.id, input.serverId);
+
+			if (!server.customDomain) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No custom domain is linked to this server.",
+				});
+			}
+
+			const result = await checkAndVerifyDomain(server.customDomain);
+
+			await updateDomainLinkToServer({
+				serverId: server.id,
+				payload: {
+					customDomain: server.customDomain,
+					domainVerified: result.verified,
+				},
+			});
+
+			await revalidateDomainCaches({
+				serverId: server.id,
+				domain: server.customDomain,
+			});
+
+			return result;
+		}),
 });
 
-async function checkAndVerifiyDomain(
-	domain: string,
-	options: {
-		serverId: string;
-	},
-): Promise<DomainStatus> {
-	const [projectDomainRes, configRes] = await Promise.allSettled([
-		vercel.projects.getProjectDomain({
-			idOrName,
-			teamId,
-			domain,
-		}),
-		vercel.domains.getDomainConfig({
-			teamId,
-			domain,
-		}),
-		vercel.projects.verifyProjectDomain({
-			idOrName,
-			teamId,
-			domain,
-		}),
-	]);
-
-	console.log({
-		projectDomainRes: projectDomainRes,
-		configRes: configRes,
+async function getOwnedServer(userId: string, serverId: string) {
+	const ownedServer = await checkIfServerExistsForUser({
+		userId,
+		serverId,
 	});
 
-	if (projectDomainRes.status === "rejected") {
-		logger.error("project_domain_rejected", {
-			domain,
-			serverId: options.serverId,
-			err: parseError(projectDomainRes.reason),
+	if (!ownedServer?.server) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You don't have access to this server.",
 		});
-		return {
-			status: "unhandled_error",
-			message: "Failed to fetch project domain",
-			dnsData: null,
-		};
-	}
-	if (configRes.status === "rejected") {
-		logger.error("config_rejected", {
-			domain,
-			serverId: options.serverId,
-			err: parseError(configRes.reason),
-		});
-		return {
-			status: "unhandled_error",
-			message: "Failed to fetch domain config",
-			dnsData: null,
-		};
 	}
 
-	const dnsData: DomainStatus["dnsData"] = [];
+	const server = await getServerInfo(serverId);
+	if (!server) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found.",
+		});
+	}
 
-	const txtValue = projectDomainRes.value.verification?.at(0)?.value ?? null;
+	return server;
+}
 
-	if (txtValue) {
-		dnsData.push({
-			type: "verification",
-			dnsRecord: {
-				name: "_vercel",
-				type: "TXT",
-				value: txtValue,
+async function checkAndVerifyDomain(domain: string): Promise<DomainCheckResult> {
+	try {
+		const [projectDomain, domainConfig, verifyResult] = await Promise.all([
+			vercelRequest<ProjectDomainResponse>(
+				`/v9/projects/${encodeURIComponent(dashboardEnv.VERCEL_PROJECT_ID)}/domains/${encodeURIComponent(domain)}`,
+			),
+			vercelRequest<DomainConfigResponse>(
+				`/v6/domains/${encodeURIComponent(domain)}/config`,
+				{
+					query: {
+						projectIdOrName: dashboardEnv.VERCEL_PROJECT_ID,
+					},
+				},
+			),
+			vercelRequest<VerifyDomainResponse>(
+				`/v9/projects/${encodeURIComponent(dashboardEnv.VERCEL_PROJECT_ID)}/domains/${encodeURIComponent(domain)}/verify`,
+				{
+					method: "POST",
+				},
+			),
+		]);
+
+		const dnsRecords = [
+			...toVerificationRecords(projectDomain.verification),
+			...toMisconfigurationRecords(domain, projectDomain, domainConfig),
+		];
+		const verified =
+			!dnsRecords.length &&
+			!domainConfig.misconfigured &&
+			Boolean(
+				verifyResult.verified ??
+					projectDomain.verified ??
+					projectDomain.verification?.length === 0,
+			);
+
+		return {
+			domain,
+			verified,
+			status: verified ? "valid_configuration" : "pending_verification",
+			message: verified
+				? "Domain is fully configured and ready to serve."
+				: "Add the following DNS records to complete setup.",
+			dnsRecords,
+		};
+	} catch (error) {
+		log.error("dashboard_check_domain_failed", {
+			domain,
+			error: parseError(error),
+		});
+
+		return {
+			domain,
+			verified: false,
+			status: "unhandled_error",
+			message: "Failed to fetch the current domain configuration.",
+			dnsRecords: [],
+		};
+	}
+}
+
+function safeNormalizeDomain(domain: string) {
+	try {
+		return normalizeDomain(domain);
+	} catch (error) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				error instanceof Error ? error.message : "Please enter a valid domain.",
+		});
+	}
+}
+
+function toVerificationRecords(records?: ProjectDomainVerificationRecord[]) {
+	return (records ?? [])
+		.filter((record) => record.value)
+		.map(
+			(record): DNSRecord => ({
+				name: record.domain ?? "_vercel",
+				type: (record.type ?? "TXT").toUpperCase(),
+				value: record.value!,
+			}),
+		);
+}
+
+function toMisconfigurationRecords(
+	domain: string,
+	projectDomain: ProjectDomainResponse,
+	domainConfig: DomainConfigResponse,
+) {
+	if (!domainConfig.misconfigured) {
+		return [];
+	}
+
+	const isApexDomain = projectDomain.apexName === domain;
+	const recommendedRecord = isApexDomain
+		? domainConfig.recommendedIPv4?.[0]
+		: domainConfig.recommendedCNAME?.[0];
+
+	if (recommendedRecord?.value) {
+		return [
+			{
+				name: recommendedRecord.name ?? (isApexDomain ? "@" : domain),
+				type: (recommendedRecord.type ?? (isApexDomain ? "A" : "CNAME")).toUpperCase(),
+				value: recommendedRecord.value,
 			},
-		});
+		];
 	}
 
-	if (configRes.value.misconfigured) {
-		const _preferredIPv4 = configRes.value.recommendedIPv4.flatMap(
-			(v) => v.value,
+	return [
+		{
+			name: isApexDomain
+				? "@"
+				: projectDomain.name.replace(`.${projectDomain.apexName}`, ""),
+			type: isApexDomain ? "A" : "CNAME",
+			value: isApexDomain ? "76.76.21.21" : "cname.vercel-dns.com",
+		},
+	];
+}
+
+async function vercelRequest<T>(
+	pathname: string,
+	options?: {
+		method?: "GET" | "POST" | "DELETE";
+		body?: string;
+		query?: Record<string, string | undefined>;
+	},
+) {
+	const query = new URLSearchParams();
+	if (dashboardEnv.VERCEL_TEAM_ID) {
+		query.set("teamId", dashboardEnv.VERCEL_TEAM_ID);
+	}
+
+	for (const [key, value] of Object.entries(options?.query ?? {})) {
+		if (value) {
+			query.set(key, value);
+		}
+	}
+
+	const url = new URL(`https://api.vercel.com${pathname}`);
+	if ([...query.keys()].length > 0) {
+		url.search = query.toString();
+	}
+
+	const response = await fetch(url, {
+		method: options?.method ?? "GET",
+		headers: {
+			Authorization: `Bearer ${dashboardEnv.VERCEL_BEARER_TOKEN}`,
+			"Content-Type": "application/json",
+		},
+		body: options?.body,
+	});
+
+	if (!response.ok) {
+		const errorBody = await response.text().catch(() => "");
+		throw new Error(
+			`Vercel API request failed (${response.status}): ${errorBody.slice(0, 512)}`,
 		);
-		const _preferredCNAME = configRes.value.recommendedCNAME.flatMap(
-			(v) => v.value,
-		);
-
-		const dnsRecord: DNSRecord =
-			projectDomainRes.value.apexName === domain
-				? {
-						name: "@",
-						type: "A",
-						value: "76.76.21.21",
-					}
-				: {
-						name: projectDomainRes.value.name.replace(
-							`.${projectDomainRes.value.apexName}`,
-							"",
-						),
-						type: "CNAME",
-						value: "cname.vercel-dns.com",
-					};
-
-		dnsData.push({
-			type: "misconfiguration",
-			dnsRecord,
-		});
 	}
 
-	if (!configRes.value.misconfigured && dnsData.length === 0) {
-		return {
-			status: "valid_configuration",
-			message: "Domain is fully configured and ready to serve!",
-			dnsData: null,
-		};
+	if (response.status === 204) {
+		return undefined as T;
 	}
 
-	return {
-		status: "pending_verification",
-		message: "Add the following DNS records to complete setup",
-		dnsData: dnsData,
-	};
+	return (await response.json()) as T;
 }

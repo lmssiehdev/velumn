@@ -14,3 +14,11 @@ export async function updateDomainLinkToServer({
 		.set(payload)
 		.where(eq(dbServer.id, serverId));
 }
+
+export async function getServerByCustomDomain(domain: string) {
+	return await db.query.dbServer.findFirst({
+		where: {
+			customDomain: domain,
+		},
+	});
+}

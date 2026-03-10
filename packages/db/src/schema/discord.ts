@@ -10,6 +10,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	uniqueIndex,
 	varchar,
 } from "drizzle-orm/pg-core";
 import type {
@@ -55,20 +56,24 @@ export const planEnum = pgEnum("plan", ["FREE", "OPEN_SOURCE", "PAID"]);
 
 export type ServerPlan = (typeof planEnum.enumValues)[number];
 
-export const dbServer = pgTable("db_server", {
-	id: snowflake("id").primaryKey(),
-	name: varchar("name").notNull(),
-	description: varchar("description"),
-	memberCount: integer("member_count").notNull(),
-	kickedAt: timestamp("kicked_at", { mode: "date" }),
-	plan: planEnum("plan").notNull().default("FREE"),
-	serverInvite: text("server_invite"),
-	invitedBy: text("invitedBy"),
-	anonymizeUsers: boolean("anonymize_users").default(false).notNull(),
-	icon: text("icon").default(""),
-	customDomain: text("custom_domain").$type<string | null>().default(null),
-	domainVerified: boolean("domain_verified").default(false).notNull(),
-});
+export const dbServer = pgTable(
+	"db_server",
+	{
+		id: snowflake("id").primaryKey(),
+		name: varchar("name").notNull(),
+		description: varchar("description"),
+		memberCount: integer("member_count").notNull(),
+		kickedAt: timestamp("kicked_at", { mode: "date" }),
+		plan: planEnum("plan").notNull().default("FREE"),
+		serverInvite: text("server_invite"),
+		invitedBy: text("invitedBy"),
+		anonymizeUsers: boolean("anonymize_users").default(false).notNull(),
+		icon: text("icon").default(""),
+		customDomain: text("custom_domain").$type<string | null>().default(null),
+		domainVerified: boolean("domain_verified").default(false).notNull(),
+	},
+	(table) => [uniqueIndex("server_custom_domain_idx").on(table.customDomain)],
+);
 
 export type DBServerInsert = typeof dbServer.$inferInsert;
 export type DBServer = typeof dbServer.$inferSelect;
