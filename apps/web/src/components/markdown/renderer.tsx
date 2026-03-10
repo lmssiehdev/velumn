@@ -4,7 +4,7 @@ import type { DBMessage } from "@repo/db/schema/discord";
 import dayjs from "dayjs";
 import { parse } from "discord-markdown-parser";
 import type React from "react";
-import type { MessageWithMetadata } from "@/app/[domain]/thread/[...id]/page";
+import type { ThreadMessagesWithMetadata } from "@/app/[domain]/thread/[...id]/page";
 import { ActionRows } from "./action-rows";
 import { Attachments } from "./attachments";
 import { Code } from "./code";
@@ -178,7 +178,7 @@ export const DiscordMarkdown = ({
 export function DiscordUIMessage({
 	message,
 }: {
-	message: MessageWithMetadata;
+	message: ThreadMessagesWithMetadata;
 }) {
 	if (message.user?.isIgnored || message.isIgnored) {
 		return (
@@ -194,7 +194,7 @@ export function DiscordUIMessage({
 	const MessageContent = ({
 		message,
 	}: {
-		message: MessageWithMetadata | DBSnapshotSchema;
+		message: ThreadMessagesWithMetadata | DBSnapshotSchema;
 	}) => {
 		if (!message) {
 			return null;

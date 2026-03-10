@@ -10,6 +10,7 @@ import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
+import { parseForumPage, type ForumSearchParams } from "../../_lib/pagination";
 import { FrontPageSidebar } from "../../layout";
 import { anonymizeName } from "../../thread/[...id]/_components/thread-message";
 
@@ -45,11 +46,11 @@ export default async function Page({
 	searchParams,
 }: {
 	params: Promise<{ id: string }>;
-	searchParams: { page: string };
+	searchParams: Promise<ForumSearchParams>;
 }) {
 	const { id } = await params;
 
-	const searchParamsPage = Number(searchParams.page ?? 1);
+	const searchParamsPage = await parseForumPage(searchParams);
 
 	const server = await getServerInfoCached(id);
 
@@ -59,6 +60,7 @@ export default async function Page({
 
 	const { threads, hasMore, page } = await getAllThreadsCached("server", {
 		id,
+		pinFilter: "all",
 		page: searchParamsPage,
 	});
 
@@ -70,8 +72,8 @@ export default async function Page({
 			<div className="flex gap-6">
 				<ThreadList
 					hasMore={hasMore}
+					hrefBase={`/server/${id}`}
 					page={page}
-					serverId={id}
 					threads={threads}
 				/>
 				<FrontPageSidebar server={server} />
@@ -85,9 +87,9 @@ export async function ThreadList({
 	threads,
 	page,
 	hasMore,
-	serverId,
+	hrefBase,
 }: {
-	serverId: string;
+	hrefBase: string;
 } & ThreadsData) {
 	if (threads.length === 0) {
 		return (
@@ -98,7 +100,7 @@ export async function ThreadList({
 						<Button asChild variant={"secondary"}>
 							<Link
 								className="flex items-center gap-2 text-neutral-500 underline-offset-2 hover:underline"
-								href={`/server/${serverId}`}
+								href={hrefBase}
 							>
 								Clear Filters
 							</Link>
@@ -139,7 +141,7 @@ export async function ThreadList({
 					<Button asChild variant={"ghost"}>
 						<Link
 							className="flex items-center gap-2 text-neutral-700 text-sm"
-							href={`/server/${serverId}?page=${page - 1}`}
+							href={`${hrefBase}?page=${page - 1}`}
 						>
 							<CaretLeftIcon />
 							Prev
@@ -150,7 +152,7 @@ export async function ThreadList({
 					<Button asChild variant={"ghost"}>
 						<Link
 							className="flex items-center gap-2 text-neutral-700 text-sm"
-							href={`/server/${serverId}?page=${page + 1}`}
+							href={`${hrefBase}?page=${page + 1}`}
 						>
 							Next
 							<CaretRightIcon />
@@ -163,8 +165,9 @@ export async function ThreadList({
 }
 
 export function ThreadItem({ data }: { data: ThreadsData["threads"][number] }) {
-	const { author, messagesCount, parent } = data;
-	const authorName = anonymizeName(author!);
+	const { author, messages, messagesCount, parent } = data;
+	const threadAuthor = author ?? messages[0]?.user;
+	const authorName = anonymizeName(threadAuthor!);
 
 	return (
 		<div className="flex items-center justify-between gap-4 rounded border-neutral-300 border-b py-4">

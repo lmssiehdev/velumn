@@ -4,15 +4,9 @@ import {
 	createBotInvite,
 	getAllThreads,
 	getChannelsInServer,
+	threadPinFilters,
 } from "@repo/db/helpers/servers";
-import {
-	addServerToUser,
-	getAuthUser,
-	getUserServerCount,
-	getUserServers,
-	removeServerFromUser,
-	updateServerOnboarding,
-} from "@repo/db/helpers/user";
+import { updateServerOnboarding } from "@repo/db/helpers/user";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -57,12 +51,6 @@ export const serverRouter = router({
 				});
 			}
 			const { serverId, payload: channels } = input;
-			if (!ctx.user) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "User not authenticated",
-				});
-			}
 
 			await updateServerOnboarding(ctx.user.id, serverId, true);
 
@@ -188,7 +176,7 @@ export const serverRouter = router({
 		.input(
 			z.object({
 				serverId: z.string(),
-				pinned: z.boolean().optional(),
+				pinFilter: z.enum(threadPinFilters).optional(),
 				page: z.number().optional(),
 			}),
 		)
@@ -205,7 +193,7 @@ export const serverRouter = router({
 
 				const threads = await getAllThreads("server", {
 					id: input.serverId,
-					pinned: input.pinned ?? false,
+					pinFilter: input.pinFilter ?? "all",
 					page: input.page ?? 1,
 				});
 				return threads;

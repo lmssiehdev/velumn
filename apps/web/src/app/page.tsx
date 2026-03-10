@@ -6,6 +6,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TrackLink } from "@/components/analytics/track-link";
 import { ComparisonTable } from "@/components/comparison-table";
 import { Twemoji } from "@/components/markdown/emoji";
 import { buttonVariants } from "@/components/ui/button";
@@ -60,21 +61,27 @@ export default function Home() {
 							Discord.
 						</p>
 						<div className="mt-8 flex flex-col gap-4 sm:flex-row">
-							<a
+							<TrackLink
+								eventKey="addServer"
+								eventData={{
+									source: "homepage-header",
+								}}
 								className={buttonVariants({ size: "lg" })}
 								href="https://dashboard.velumn.com"
 								rel="noopener"
 								target="_blank"
 							>
 								Get Started
-							</a>
-							<a
+							</TrackLink>
+							<TrackLink
+								eventKey="clickedDemoLink"
+								eventData={undefined}
 								className={buttonVariants({ size: "lg", variant: "outline" })}
 								href="/thread/1436230598959300718"
 							>
 								<ArrowUpRightIcon className="inline-block h-4 w-4" />
 								Check the demo
-							</a>
+							</TrackLink>
 						</div>
 					</div>
 				</header>
@@ -222,16 +229,20 @@ function BottomCTA() {
 				Ready to make your Discord searchable?
 			</h3>
 			<p className="text-neutral-600">
-				Try Velumn free for 7 days. No credit card required.
+				Try Velumn for free. No credit card required.
 			</p>
-			<a
-				className={buttonVariants({ size: "lg", variant: "default" })}
+			<TrackLink
+				eventKey="addServer"
+				eventData={{
+					source: "homepage-CTA",
+				}}
+				className={buttonVariants({ size: "lg" })}
 				href="https://dashboard.velumn.com"
 				rel="noopener"
 				target="_blank"
 			>
 				Get Started
-			</a>
+			</TrackLink>
 		</div>
 	);
 }
