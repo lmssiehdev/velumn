@@ -15,7 +15,10 @@ export function getMainSiteUrl(path: string) {
 	return buildHostUrl(getMainSiteHostname(), path);
 }
 
-export function getCustomDomainUrl(server: Pick<DBServer, "customDomain">, path: string) {
+export function getCustomDomainUrl(
+	server: Pick<DBServer, "customDomain">,
+	path: string,
+) {
 	if (!server.customDomain) {
 		throw new Error("Custom domain is required.");
 	}

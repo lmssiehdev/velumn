@@ -1,6 +1,6 @@
 import {
-	FrontPageSidebar,
 	ForumShell,
+	FrontPageSidebar,
 	ServerInfo,
 } from "@/components/forum/shell";
 

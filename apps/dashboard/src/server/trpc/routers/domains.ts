@@ -1,4 +1,7 @@
-import { getServerByCustomDomain, updateDomainLinkToServer } from "@repo/db/helpers/domains";
+import {
+	getServerByCustomDomain,
+	updateDomainLinkToServer,
+} from "@repo/db/helpers/domains";
 import {
 	checkIfServerExistsForUser,
 	getServerInfo,
@@ -79,7 +82,8 @@ export const domainsRouter = router({
 				});
 			}
 
-			const existingDomainOwner = await getServerByCustomDomain(normalizedDomain);
+			const existingDomainOwner =
+				await getServerByCustomDomain(normalizedDomain);
 			if (existingDomainOwner && existingDomainOwner.id !== server.id) {
 				throw new TRPCError({
 					code: "CONFLICT",
@@ -233,7 +237,9 @@ async function getOwnedServer(userId: string, serverId: string) {
 	return server;
 }
 
-async function checkAndVerifyDomain(domain: string): Promise<DomainCheckResult> {
+async function checkAndVerifyDomain(
+	domain: string,
+): Promise<DomainCheckResult> {
 	try {
 		const [projectDomain, domainConfig, verifyResult] = await Promise.all([
 			vercelRequest<ProjectDomainResponse>(
@@ -335,7 +341,9 @@ function toMisconfigurationRecords(
 		return [
 			{
 				name: recommendedRecord.name ?? (isApexDomain ? "@" : domain),
-				type: (recommendedRecord.type ?? (isApexDomain ? "A" : "CNAME")).toUpperCase(),
+				type: (
+					recommendedRecord.type ?? (isApexDomain ? "A" : "CNAME")
+				).toUpperCase(),
 				value: recommendedRecord.value,
 			},
 		];

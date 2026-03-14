@@ -4,8 +4,8 @@ import {
 	linkServerToUser,
 	upsertServer,
 } from "@repo/db/helpers/servers";
-import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { resetUserServerIdLink } from "@repo/db/helpers/user";
+import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
 import { Events, type Guild } from "discord.js";

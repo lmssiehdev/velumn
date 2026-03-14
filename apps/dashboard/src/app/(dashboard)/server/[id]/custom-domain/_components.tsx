@@ -212,7 +212,11 @@ function StatusPill({
 	);
 }
 
-function DomainDnsTable({ records }: { records: DomainCheckResult["dnsRecords"] }) {
+function DomainDnsTable({
+	records,
+}: {
+	records: DomainCheckResult["dnsRecords"];
+}) {
 	return (
 		<Table>
 			<TableHeader>

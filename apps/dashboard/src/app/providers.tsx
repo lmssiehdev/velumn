@@ -7,7 +7,6 @@ import { createContext, useContext, useMemo, useState } from "react";
 import type { AuthUser } from "@/lib/auth";
 import { TRPCProvider } from "@/lib/trpc";
 import type { AppRouter } from "@/server/trpc/root";
-import { dashboardEnv } from "@/utils/env";
 
 function makeQueryClient() {
 	return new QueryClient({

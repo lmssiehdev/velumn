@@ -1,1 +1,1 @@
-export { MessagePost, anonymizeName } from "@/components/forum/thread-message";
+export { anonymizeName, MessagePost } from "@/components/forum/thread-message";

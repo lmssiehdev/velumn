@@ -22,7 +22,6 @@ export async function GET() {
 		{ length: numSitemaps },
 		(_, index) => ({
 			loc: absoluteUrl(`/sitemap.xml/${index}`),
-			lastmod: new Date().toISOString(),
 		}),
 	);
 

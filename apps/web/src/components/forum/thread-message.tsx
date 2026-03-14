@@ -17,8 +17,8 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ThreadMessagesWithMetadata } from "./thread-types";
 import { MessageHighlight } from "./thread-message-highlight";
+import type { ThreadMessagesWithMetadata } from "./thread-types";
 
 export function MessagePost({
 	message,

@@ -1,6 +1,9 @@
-import { MarkdownResponse, formatThreadAsMarkdown } from "@/components/forum/markdown";
-import { getAllMessagesInThreadsCache } from "@/utils/cache";
+import {
+	formatThreadAsMarkdown,
+	MarkdownResponse,
+} from "@/components/forum/markdown";
 import { getCustomDomainUrl, hasVerifiedCustomDomain } from "@/lib/domains";
+import { getAllMessagesInThreadsCache } from "@/utils/cache";
 
 export async function GET(
 	_request: Request,

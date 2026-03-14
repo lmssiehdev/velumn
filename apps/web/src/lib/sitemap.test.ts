@@ -43,6 +43,17 @@ describe("sitemap helpers", () => {
 		expect(xml).toContain("<lastmod>2026-03-11T00:00:00.000Z</lastmod>");
 	});
 
+	it("omits lastmod in sitemap index when it is unknown", () => {
+		const xml = buildSitemapIndexXml([
+			{
+				loc: "https://velumn.com/sitemap.xml/0",
+			},
+		]);
+
+		expect(xml).toContain("<loc>https://velumn.com/sitemap.xml/0</loc>");
+		expect(xml).not.toContain("<lastmod>");
+	});
+
 	it("renders a urlset with optional changefreq and priority", () => {
 		const xml = buildUrlSetXml([
 			{

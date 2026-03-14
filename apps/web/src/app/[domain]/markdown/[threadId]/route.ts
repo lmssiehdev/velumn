@@ -1,4 +1,7 @@
-import { MarkdownResponse, formatThreadAsMarkdown } from "@/components/forum/markdown";
+import {
+	formatThreadAsMarkdown,
+	MarkdownResponse,
+} from "@/components/forum/markdown";
 import { getTenantThreadOrNotFound } from "../../_lib/tenant";
 
 export async function GET(

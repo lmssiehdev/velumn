@@ -10,7 +10,7 @@ export type SitemapUrlEntry = {
 
 type SitemapIndexEntry = {
 	loc: string;
-	lastmod: string;
+	lastmod?: string;
 };
 
 type BlogSitemapPost = {
@@ -58,7 +58,11 @@ ${entries
 	.map(
 		(entry) => `  <sitemap>
     <loc>${xmlEscape(entry.loc)}</loc>
-    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>
+			${
+				entry.lastmod
+					? `\n    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>`
+					: ""
+			}
   </sitemap>`,
 	)
 	.join("\n")}

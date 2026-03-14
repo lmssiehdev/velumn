@@ -28,7 +28,7 @@ describe("robots route", () => {
 			rules: [
 				{
 					userAgent: "*",
-					allow: ["/"],
+					allow: ["/", "/api/og/*"],
 					disallow: ["/api/"],
 				},
 			],
