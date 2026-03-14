@@ -41,10 +41,11 @@ export function SearchInput({ serverId }: { serverId: string }) {
 	return (
 		<>
 			<button
+				aria-label="Search community"
 				onClick={() => {
 					setOpen(true);
 				}}
-				className="flex h-9 items-center gap-2 border-b px-3 border border-input hover:bg-accent/80 cursor-pointer"
+				className="flex h-10 items-center gap-2 border-b px-3 border border-input hover:bg-accent/80 cursor-pointer"
 			>
 				<MagnifyingGlassIcon
 					className="size-5 shrink-0 opacity-50"

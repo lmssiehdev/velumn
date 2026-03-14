@@ -4,19 +4,18 @@ export default function MdxLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<div>
 			<div className="border-neutral-300 border-b">
-				<div
-					className="mx-auto max-w-5xl h-[52px]
-                  border-neutral-300 border-x p-2 px-4 flex
-                    items-center justify-between"
-				>
+				<div className="mx-auto flex h-[52px] max-w-5xl items-center justify-between border-x border-neutral-300 p-2 px-4">
 					<Link className="text-black text-xl" href="/">
 						Velumn
 					</Link>
-					<ul>
-						<li>
-							<Link href="/blog">All posts</Link>
-						</li>
-					</ul>
+					<nav aria-label="Blog" className="flex items-center gap-4 text-sm">
+						<Link className="hover:underline" href="/blog">
+							All posts
+						</Link>
+						<Link className="hover:underline" href="/pricing">
+							Pricing
+						</Link>
+					</nav>
 				</div>
 			</div>
 

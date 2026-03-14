@@ -4,8 +4,11 @@ import type { ComponentType } from "react";
 
 export interface PostMetadata {
 	title: string;
+	description: string;
 	publishedAt: string;
+	updatedAt?: string;
 	thumbnail?: string;
+	thumbnailAlt?: string;
 }
 
 interface PostModule {

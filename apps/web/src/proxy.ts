@@ -29,11 +29,7 @@ export function getBaseUrl(hostOverride?: string) {
 		return stripTrailingSlash(siteUrl);
 	}
 
-	if (process.env.NODE_ENV === "production") {
-		return `https://${hostOverride ?? "www.velumn.com"}`;
-	}
-
-	return "http://localhost:3000";
+	return `https://${hostOverride ?? "velumn.com"}`;
 }
 
 export function getMainSiteHostname() {

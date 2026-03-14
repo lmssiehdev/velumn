@@ -115,7 +115,7 @@ async function Boards({
 				<div>Boards</div>
 				{activeChannelId && (
 					<Link
-						className="cursor-pointer px-1 text-xs transition-all hover:bg-purple-200 hover:text-purple-500"
+						className="cursor-pointer px-2 py-2 text-xs transition-all hover:bg-purple-200 hover:text-purple-500"
 						href={homeHref}
 					>
 						show all

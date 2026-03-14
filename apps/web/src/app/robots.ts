@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { absoluteUrl } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
 	if (process.env.VERCEL_ENV !== "production") {
@@ -20,7 +21,6 @@ export default function robots(): MetadataRoute.Robots {
 				disallow: ["/api/"],
 			},
 		],
-		// !! TODO: add sitemap
-		// sitemap: 'https://acme.com/sitemap.xml',
+		sitemap: absoluteUrl("/sitemap.xml"),
 	};
 }

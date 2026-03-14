@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { absoluteUrl, buildPageMetadata } from "@/lib/seo";
 import { getAllPosts } from "./_lib/posts";
+
+export const metadata: Metadata = buildPageMetadata({
+	title: "Discord SEO and Community Growth Blog",
+	description:
+		"Read Velumn's blog for insights on Discord discoverability, community SEO, indexed forums, and growing support communities through search.",
+	canonicalUrl: absoluteUrl("/blog"),
+});
 
 export default async function BlogPage() {
 	const posts = await getAllPosts();

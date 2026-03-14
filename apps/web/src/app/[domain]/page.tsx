@@ -1,8 +1,12 @@
 import { FrontPageSidebar } from "@/components/forum/shell";
 import { ThreadList } from "@/components/forum/thread-list";
 import { getCustomDomainUrl } from "@/lib/domains";
+import { buildPageMetadata, toDescription } from "@/lib/seo";
 import { getAllThreadsCached } from "@/utils/cache";
-import { parseForumPage, type ForumSearchParams } from "../(forum)/_lib/pagination";
+import {
+	type ForumSearchParams,
+	parseForumPage,
+} from "../(forum)/_lib/pagination";
 import { getTenantServerOrNotFound } from "./_lib/tenant";
 
 export async function generateMetadata({
@@ -13,18 +17,13 @@ export async function generateMetadata({
 	const { domain } = await params;
 	const { server } = await getTenantServerOrNotFound(domain);
 
-	return {
-		title: server.name,
-		description: server.description ?? undefined,
-		alternates: {
-			canonical: getCustomDomainUrl(server, "/"),
-		},
-		openGraph: {
-			title: server.name,
-			description: server.description ?? undefined,
-			url: getCustomDomainUrl(server, "/"),
-		},
-	};
+	return buildPageMetadata({
+		title: `${server.name} Discord Discussions`,
+		description:
+			toDescription(server.description) ??
+			`Browse indexed Discord discussions, support threads, and community answers from ${server.name}.`,
+		canonicalUrl: getCustomDomainUrl(server, "/"),
+	});
 }
 
 export default async function Page({
@@ -46,9 +45,9 @@ export default async function Page({
 
 	return (
 		<div className="mx-auto p-4">
-			<h2 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
+			<h1 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
 				Join a Discussion
-			</h2>
+			</h1>
 			<div className="flex gap-6">
 				<ThreadList
 					hasMore={hasMore}

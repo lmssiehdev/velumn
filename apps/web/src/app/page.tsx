@@ -5,36 +5,80 @@ import {
 	DotsThreeVerticalIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { TrackLink } from "@/components/analytics/track-link";
 import { ComparisonTable } from "@/components/comparison-table";
 import { Twemoji } from "@/components/markdown/emoji";
+import {
+	FaqJsonLd,
+	OrganizationJsonLd,
+	WebsiteJsonLd,
+} from "@/components/seo/json-ld";
 import { buttonVariants } from "@/components/ui/button";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { absoluteUrl, buildPageMetadata } from "@/lib/seo";
 import { AnimatedBeamSection } from "./(marketing)/_components/beam";
 
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-	title: "Velumn - The community platform built for Discord",
-	description: "Make your community discoverable in search, AI, and beyond ✨",
-	icons: {
-		icon: ["/icons/favicon.svg"],
+export const metadata: Metadata = buildPageMetadata({
+	title: "Discord SEO Platform for Searchable Communities",
+	description:
+		"Velumn turns Discord channels into indexed, searchable forums that rank on Google, appear in AI answers, and grow your community organically.",
+	canonicalUrl: absoluteUrl("/"),
+});
+
+export const homepageFaqItems = [
+	{
+		question: "How does Velumn work?",
+		answer:
+			"Velumn crawls your Discord server and indexes the channels you choose, turning them into SEO-friendly forum pages while your community keeps using Discord.",
 	},
-};
+	{
+		question: "What sets Velumn apart from other forum solutions?",
+		answer:
+			"Velumn keeps your community in Discord instead of splitting conversations across a separate forum platform, while still making discussions searchable on the web.",
+	},
+	{
+		question: "How does Velumn handle privacy?",
+		answer:
+			"Velumn only indexes channels you select, syncs display names instead of Discord tags or avatars, and supports anonymized display names when privacy matters.",
+	},
+	{
+		question: "Is there a limit on members?",
+		answer: "No. Velumn can index servers of all sizes.",
+	},
+] as const;
 
 export default function Home() {
 	return (
 		<>
+			<OrganizationJsonLd />
+			<WebsiteJsonLd />
+			<FaqJsonLd items={[...homepageFaqItems]} />
 			<div className="border-neutral-300 border-x border-b">
 				<div className="mx-auto flex max-w-6xl items-center justify-between border-neutral-300 border-x p-2 px-4">
-					<Link className="text-black text-xl" href="/">
-						Velumn <span className="text-xs text-neutral-600">[beta]</span>
-					</Link>
+					<div className="flex items-center gap-6">
+						<Link className="text-black text-xl" href="/">
+							Velumn <span className="text-xs text-neutral-600">[beta]</span>
+						</Link>
+						<nav
+							aria-label="Primary"
+							className="hidden items-center gap-4 text-sm md:flex"
+						>
+							<Link className="hover:underline" href="/pricing">
+								Pricing
+							</Link>
+							<Link className="hover:underline" href="/blog">
+								Blog
+							</Link>
+						</nav>
+					</div>
 					<a
 						className={buttonVariants({ size: "sm", variant: "outline" })}
 						href="https://github.com/lmssiehdev/velumn"
@@ -77,7 +121,7 @@ export default function Home() {
 								eventKey="clickedDemoLink"
 								eventData={undefined}
 								className={buttonVariants({ size: "lg", variant: "outline" })}
-								href="/thread/1436230598959300718"
+								href="/thread/1436230598959300718/a_demo_thread"
 							>
 								<ArrowUpRightIcon className="inline-block h-4 w-4" />
 								Check the demo
@@ -92,7 +136,7 @@ export default function Home() {
 							Your Discord. Your content. Everywhere.
 						</h2>
 						<p className="text-lg text-neutral-600">
-							No extra platforms, no extra work—just Discord conversations that
+							No extra platforms, no extra work just Discord conversations that
 							reach everyone searching.
 						</p>
 					</div>
@@ -121,7 +165,19 @@ export default function Home() {
 			</div>
 			<footer className="border-neutral-300 border-x border-t">
 				<div className="mx-auto max-w-6xl border-x px-4 py-6">
-					<div className="text-center">
+					<div className="flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+						Velumn <span className="text-xs text-neutral-600">[beta]</span>
+						<nav
+							aria-label="Footer"
+							className="flex items-center justify-center gap-4 text-sm sm:justify-start"
+						>
+							<Link className="hover:underline" href="/pricing">
+								Pricing
+							</Link>
+							<Link className="hover:underline" href="/blog">
+								Blog
+							</Link>
+						</nav>
 						<p className="text-neutral-600 text-sm">
 							Built with <Twemoji className="inline size-4.5" name="💜" /> and
 							way too many Discord servers .{" "}
@@ -144,9 +200,9 @@ export default function Home() {
 export function FAQ() {
 	return (
 		<div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-			<div className="space-y-2 font-bold text-4xl md:col-span-1">
-				<div>Got questions?</div>
-				<div className="text-neutral-500">We've got answers.</div>
+			<div className="space-y-2 md:col-span-1">
+				<h2 className="font-bold text-4xl">Got questions?</h2>
+				<p className="text-neutral-500 text-4xl">We've got answers.</p>
 			</div>
 			<div className="prose mx-auto w-full max-w-full space-y-4 md:col-span-2 [*_p]:max-w-full">
 				<Collapsible>
@@ -225,9 +281,9 @@ export function FAQ() {
 function BottomCTA() {
 	return (
 		<div className="space-y-6 rounded border bg-white px-8 py-40 text-center">
-			<h3 className="font-bold text-4xl leading-tight">
+			<h2 className="font-bold text-4xl leading-tight">
 				Ready to make your Discord searchable?
-			</h3>
+			</h2>
 			<p className="text-neutral-600">
 				Try Velumn for free. No credit card required.
 			</p>
@@ -276,18 +332,34 @@ export function Preview() {
 					</div>
 				</div>
 				<div className="-scale-x-[1] -rotate-120 ml-52 size-20">
-					<img src="/assets/arrow.png" />
+					<Image
+						alt=""
+						height={97}
+						loading="lazy"
+						src="/assets/arrow.png"
+						width={202}
+					/>
 				</div>
 			</div>
 			<div className="">
-				<img
+				<Image
+					alt="Velumn forum preview"
 					className="object-cover"
+					height={1444}
+					loading="lazy"
 					src="/assets/landing/ss-demo-preview.png"
+					width={2450}
 				/>
 			</div>
 			<div className="-bottom-[20%] -right-[35%] absolute">
 				<div className="ml-33 size-20 rotate-40">
-					<img src="/assets/arrow.png" />
+					<Image
+						alt=""
+						height={97}
+						loading="lazy"
+						src="/assets/arrow.png"
+						width={202}
+					/>
 				</div>
 				<div className="w-[430px] space-y-1.5 overflow-hidden rounded border bg-[#fefcf6] p-4 text-black shadow">
 					<div className="mb-2 flex items-center gap-4 p-2">

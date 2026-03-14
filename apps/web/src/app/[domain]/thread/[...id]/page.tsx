@@ -14,19 +14,20 @@ import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import { ChannelType } from "discord-api-types/v10";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { JsonLd } from "react-schemaorg";
 import type { DiscussionForumPosting, WithContext } from "schema-dts";
 import { ContinueDiscussion } from "@/components/forum/continue-discussion";
 import { ServerInfo } from "@/components/forum/shell";
+import { anonymizeName, MessagePost } from "@/components/forum/thread-message";
 import { HashProvider } from "@/components/forum/thread-message-highlight";
-import { MessagePost, anonymizeName } from "@/components/forum/thread-message";
 import type { ThreadMessagesWithMetadata } from "@/components/forum/thread-types";
 import { ThreadIcon } from "@/components/markdown/mention";
 import ThreadFeedback from "@/components/thread-feedback";
+import { getCustomDomainUrl } from "@/lib/domains";
+import { buildDiscussionMetadata, buildRobots, toDescription } from "@/lib/seo";
 import { ThreadProvider } from "@/providers/use-thread";
 import { sanitizeJsonLd } from "@/utils/sanitize";
-import { getCustomDomainUrl } from "@/lib/domains";
 import { getTenantThreadOrNotFound } from "../../_lib/tenant";
 
 type PageProps = {
@@ -44,10 +45,10 @@ export async function generateMetadata({
 
 	if (!thread.messages.length || !thread.channelName) {
 		return {
-			title: "Not Found",
-			openGraph: {
-				title: "Not Found",
-				description: "Thread not found",
+			title: "Thread not found",
+			robots: {
+				index: false,
+				follow: false,
 			},
 		};
 	}
@@ -56,22 +57,21 @@ export async function generateMetadata({
 	const canonicalUrl = getCustomDomainUrl(server, url);
 	const hasSlug = slug && slug === getSlugFromTitle(thread.channelName);
 
-	return {
+	return buildDiscussionMetadata({
 		title: thread.channelName,
-		openGraph: {
-			title: thread.channelName,
-			description: thread.messages[0]?.cleanContent?.slice(0, 300),
-			url: canonicalUrl,
-			images: [`/og?id=${threadId}`],
+		description:
+			toDescription(thread.messages[0]?.cleanContent, 160) ??
+			`Read the indexed Discord discussion for ${thread.channelName}.`,
+		canonicalUrl,
+		image: {
+			url: new URL(`/og?id=${threadId}`, canonicalUrl).toString(),
+			alt: `${thread.channelName} discussion preview`,
 		},
-		alternates: {
-			canonical: canonicalUrl,
-		},
-		robots: {
+		robots: buildRobots({
 			index: Boolean(hasSlug),
 			follow: true,
-		},
-	};
+		}),
+	});
 }
 
 export default async function Page({ params }: PageProps) {
@@ -85,7 +85,7 @@ export default async function Page({ params }: PageProps) {
 	}
 
 	if (!threadId) {
-		return <div>Invalid thread ID</div>;
+		notFound();
 	}
 
 	const { server, thread } = await getTenantThreadOrNotFound(domain, threadId);
@@ -101,7 +101,7 @@ export default async function Page({ params }: PageProps) {
 
 	const [originalPost, ...orderedMessages] = thread.messages;
 	if (!originalPost) {
-		return <div>Thread with no post!</div>;
+		notFound();
 	}
 
 	const items = [
@@ -149,7 +149,9 @@ export default async function Page({ params }: PageProps) {
 							url: undefined,
 							identifier: op.anonymizeName ? anonymizeName(op) : op?.id,
 						},
-						image: firstImage?.proxyURL || undefined,
+						image:
+							firstImage?.proxyURL ||
+							new URL(`/og?id=${thread.id}`, canonicalUrl).toString(),
 						headline: title,
 						articleBody: originalPost.content,
 						identifier: thread.id,
@@ -198,7 +200,9 @@ export default async function Page({ params }: PageProps) {
 							/>
 							<div className="my-4 flex items-center gap-2 px-3">
 								<ChatIcon className="size-5" />
-								<span className="text-sm">{orderedMessages.length} Replies</span>
+								<span className="text-sm">
+									{orderedMessages.length} Replies
+								</span>
 							</div>
 							<div className="space-y-2">
 								{items.map((item) => {
@@ -237,7 +241,14 @@ export default async function Page({ params }: PageProps) {
 												</div>
 												<a
 													className="mt-1 inline-block font-medium text-neutral-900 underline underline-offset-2 transition-colors"
-													href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`}
+													href={
+														item.data.fromThread?.channelName
+															? `${slugifyThreadUrl({
+																	id: item.data.fromThreadId,
+																	name: item.data.fromThread.channelName,
+																})}#${item.data.fromMessageId}`
+															: `/thread/${item.data.fromThreadId}#${item.data.fromMessageId}`
+													}
 												>
 													{item.data.fromThread?.channelName}
 												</a>

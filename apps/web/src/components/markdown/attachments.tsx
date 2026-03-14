@@ -152,12 +152,15 @@ function ImageGallery({ images }: { images: DBAttachments[] }) {
 				styles[images.length],
 			)}
 		>
-			{images.map(({ id, proxyURL, name }) => (
+			{images.map(({ id, proxyURL, name, description, height, width }) => (
 				<img
-					alt={name}
+					alt={description || name}
 					className="inline-block min-h-full min-w-full rounded object-cover"
+					height={height ?? undefined}
 					key={id}
+					loading="lazy"
 					src={proxyURL}
+					width={width ?? undefined}
 				/>
 			))}
 		</div>

@@ -1,14 +1,14 @@
-import { getAllThreads } from "@repo/db/helpers/servers";
+import { notFound, permanentRedirect } from "next/navigation";
 import { FrontPageSidebar } from "@/components/forum/shell";
 import { ThreadList } from "@/components/forum/thread-list";
-import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
 import {
 	getCustomDomainUrl,
 	getMainSiteUrl,
 	hasVerifiedCustomDomain,
 } from "@/lib/domains";
-import { permanentRedirect } from "next/navigation";
-import { parseForumPage, type ForumSearchParams } from "../../_lib/pagination";
+import { buildPageMetadata, toDescription } from "@/lib/seo";
+import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
+import { type ForumSearchParams, parseForumPage } from "../../_lib/pagination";
 
 export async function generateMetadata({
 	params,
@@ -21,23 +21,20 @@ export async function generateMetadata({
 
 	if (!server) {
 		return {
-			title: "Server Not Found",
-			openGraph: {
-				title: "Server Not Found",
+			title: "Server not found",
+			robots: {
+				index: false,
+				follow: false,
 			},
 		};
 	}
-	return {
-		title: server.name,
-		description: server.description ?? undefined,
-		alternates: {
-			canonical: getMainSiteUrl(`/server/${id}`),
-		},
-		openGraph: {
-			title: server.name,
-			description: server.description,
-		},
-	};
+	return buildPageMetadata({
+		title: `${server.name} Discord Discussions`,
+		description:
+			toDescription(server.description) ??
+			`Browse indexed Discord discussions, support threads, and community answers from ${server.name}.`,
+		canonicalUrl: getMainSiteUrl(`/server/${id}`),
+	});
 }
 
 export default async function Page({
@@ -54,7 +51,7 @@ export default async function Page({
 	const server = await getServerInfoCached(id);
 
 	if (!server) {
-		return <div>Server doesn't exist</div>;
+		notFound();
 	}
 
 	if (hasVerifiedCustomDomain(server)) {
@@ -69,9 +66,9 @@ export default async function Page({
 
 	return (
 		<div className="mx-auto p-4">
-			<h2 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
+			<h1 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
 				Join a Discussion
-			</h2>
+			</h1>
 			<div className="flex gap-6">
 				<ThreadList
 					hasMore={hasMore}

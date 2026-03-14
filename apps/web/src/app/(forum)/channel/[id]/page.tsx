@@ -1,13 +1,14 @@
+import { notFound, permanentRedirect } from "next/navigation";
 import { FrontPageSidebar } from "@/components/forum/shell";
 import { ThreadList } from "@/components/forum/thread-list";
-import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
 import {
 	getCustomDomainUrl,
 	getMainSiteUrl,
 	hasVerifiedCustomDomain,
 } from "@/lib/domains";
-import { permanentRedirect } from "next/navigation";
-import { parseForumPage, type ForumSearchParams } from "../../_lib/pagination";
+import { buildPageMetadata, toDescription } from "@/lib/seo";
+import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
+import { type ForumSearchParams, parseForumPage } from "../../_lib/pagination";
 
 export async function generateMetadata({
 	params,
@@ -20,21 +21,20 @@ export async function generateMetadata({
 
 	if (!channel) {
 		return {
-			title: "Channel Not Found",
-			openGraph: {
-				title: "Channel Not Found",
+			title: "Channel not found",
+			robots: {
+				index: false,
+				follow: false,
 			},
 		};
 	}
-	return {
-		title: channel?.channelName,
-		alternates: {
-			canonical: getMainSiteUrl(`/channel/${id}`),
-		},
-		openGraph: {
-			title: channel?.channelName,
-		},
-	};
+	return buildPageMetadata({
+		title: `${channel.channelName} Discord Channel`,
+		description:
+			toDescription(channel.server?.description) ??
+			`Browse indexed Discord discussions from the ${channel.channelName} channel.`,
+		canonicalUrl: getMainSiteUrl(`/channel/${id}`),
+	});
 }
 
 export default async function Page({
@@ -50,11 +50,13 @@ export default async function Page({
 	const searchParamsPage = await parseForumPage(searchParams);
 
 	if (!channel?.server) {
-		return <div>Channel doesn't exist</div>;
+		notFound();
 	}
 
 	if (hasVerifiedCustomDomain(channel.server)) {
-		permanentRedirect(getCustomDomainUrl(channel.server, `/channel/${channelId}`));
+		permanentRedirect(
+			getCustomDomainUrl(channel.server, `/channel/${channelId}`),
+		);
 	}
 
 	const [regularResult, pinnedResult] = await Promise.all([
@@ -74,9 +76,9 @@ export default async function Page({
 
 	return (
 		<div className="mx-auto p-4">
-			<h2 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
+			<h1 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
 				Join a Discussion
-			</h2>
+			</h1>
 			<div className="flex gap-6">
 				<ThreadList
 					hasMore={hasMore}
