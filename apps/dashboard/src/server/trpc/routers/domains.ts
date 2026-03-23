@@ -158,18 +158,26 @@ export const domainsRouter = router({
 
 			const result = await getDomainStatus(server.customDomain);
 
-			await updateDomainLinkToServer({
-				serverId: server.id,
-				payload: {
-					customDomain: server.customDomain,
-					domainVerified: result.verified,
-				},
-			});
+			try {
+				await updateDomainLinkToServer({
+					serverId: server.id,
+					payload: {
+						customDomain: server.customDomain,
+						domainVerified: result.verified,
+					},
+				});
 
-			await revalidateDomainCaches({
-				serverId: server.id,
-				domain: server.customDomain,
-			});
+				await revalidateDomainCaches({
+					serverId: server.id,
+					domain: server.customDomain,
+				});
+			} catch (error) {
+				log.error("dashboard_check_domain_local_sync_failed", {
+					serverId: server.id,
+					domain: server.customDomain,
+					error: parseError(error),
+				});
+			}
 
 			return result;
 		}),
