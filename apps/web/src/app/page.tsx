@@ -33,7 +33,7 @@ export const metadata: Metadata = buildPageMetadata({
 	canonicalUrl: absoluteUrl("/"),
 });
 
-export const homepageFaqItems = [
+const homepageFaqItems = [
 	{
 		question: "How does Velumn work?",
 		answer:
@@ -67,17 +67,6 @@ export default function Home() {
 						<Link className="text-black text-xl" href="/">
 							Velumn <span className="text-xs text-neutral-600">[beta]</span>
 						</Link>
-						<nav
-							aria-label="Primary"
-							className="hidden items-center gap-4 text-sm md:flex"
-						>
-							<Link className="hover:underline" href="/pricing">
-								Pricing
-							</Link>
-							<Link className="hover:underline" href="/blog">
-								Blog
-							</Link>
-						</nav>
 					</div>
 					<a
 						className={buttonVariants({ size: "sm", variant: "outline" })}
