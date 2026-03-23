@@ -166,18 +166,6 @@ export default function Home() {
 			<footer className="border-neutral-300 border-x border-t">
 				<div className="mx-auto max-w-6xl border-x px-4 py-6">
 					<div className="flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
-						Velumn <span className="text-xs text-neutral-600">[beta]</span>
-						<nav
-							aria-label="Footer"
-							className="flex items-center justify-center gap-4 text-sm sm:justify-start"
-						>
-							<Link className="hover:underline" href="/pricing">
-								Pricing
-							</Link>
-							<Link className="hover:underline" href="/blog">
-								Blog
-							</Link>
-						</nav>
 						<p className="text-neutral-600 text-sm">
 							Built with <Twemoji className="inline size-4.5" name="💜" /> and
 							way too many Discord servers .{" "}
