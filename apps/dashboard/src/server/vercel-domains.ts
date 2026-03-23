@@ -1,7 +1,6 @@
 import { Vercel } from "@vercel/sdk";
 import type { GetDomainConfigResponseBody } from "@vercel/sdk/models/getdomainconfigop";
 import type { GetProjectDomainResponseBody } from "@vercel/sdk/models/getprojectdomainop";
-import { parseError } from "@/lib/error";
 import { log } from "@/lib/log";
 import { dashboardEnv } from "@/utils/env";
 
@@ -118,8 +117,9 @@ export async function getDomainStatus(
 		};
 	} catch (error) {
 		log.error("dashboard_check_domain_failed", {
+			area: "domains",
 			domain,
-			error: parseError(error),
+			error,
 		});
 
 		return {

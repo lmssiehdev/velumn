@@ -1,3 +1,6 @@
-import { Logger } from "next-axiom";
+import { logger } from "@repo/logger";
 
-export const log = new Logger();
+export const log = logger.with({
+	app: "dashboard",
+	service: "dashboard",
+});
