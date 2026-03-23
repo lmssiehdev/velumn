@@ -67,7 +67,11 @@ export async function indexServer(
 		}
 	}
 	console.log("Done indexing server", guild.name, guild.id);
-	await invalidateTags(CacheTags.getAllThreads(guild.id));
+	await invalidateTags([
+		CacheTags.getAllThreads(guild.id),
+		CacheTags.topicsInServer(guild.id),
+		CacheTags.server(guild.id),
+	]);
 }
 
 async function randomizeServers(allGuilds: Guild[]) {

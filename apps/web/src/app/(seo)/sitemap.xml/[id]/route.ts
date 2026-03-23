@@ -1,7 +1,9 @@
 import { getThreadsForSitemap } from "@repo/db/helpers/sitemap";
 import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake";
-import { DOMAIN_BASE_URL, LIMIT } from "../route";
+import { absoluteUrl } from "@/lib/seo";
+import { buildUrlSetXml } from "@/lib/sitemap";
+import { LIMIT } from "../route";
 
 export const revalidate = 86_400;
 
@@ -14,17 +16,12 @@ export async function GET(
 
 	const threads = await getThreadsForSitemap(start, LIMIT);
 
-	const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${threads
-	.map(
-		(thread) => `  <url>
-    <loc>${DOMAIN_BASE_URL}${slugifyThreadUrl({ id: thread.id, name: thread.name! })}</loc>
-    <lastmod>${getDateFromSnowflake(thread.id).toISOString()}</lastmod>
-  </url>`,
-	)
-	.join("\n")}
-</urlset>`;
+	const sitemap = buildUrlSetXml(
+		threads.map((thread) => ({
+			loc: absoluteUrl(slugifyThreadUrl({ id: thread.id, name: thread.name! })),
+			lastmod: getDateFromSnowflake(thread.id).toISOString(),
+		})),
+	);
 
 	return new Response(sitemap, {
 		headers: {

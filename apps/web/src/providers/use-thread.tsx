@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useContext, useMemo } from "react";
-import type { ThreadMessagesWithMetadata } from "@/app/(forum)/thread/[...id]/page";
+import type { ThreadWithMetadata } from "@/components/forum/thread-types";
 
 const ThreadContext = createContext<{
-	thread: ThreadMessagesWithMetadata;
+	thread: ThreadWithMetadata;
 } | null>(null);
 
 export function useThread() {
@@ -20,7 +20,7 @@ export function ThreadProvider({
 	thread,
 }: {
 	children: React.ReactNode;
-	thread: ThreadMessagesWithMetadata;
+	thread: ThreadWithMetadata;
 }) {
 	const value = useMemo(
 		() => ({

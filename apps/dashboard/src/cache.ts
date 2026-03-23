@@ -31,7 +31,7 @@ const THREE_DAYS_IN_SECONDS =
 
 export const getAllThreadsCached = stable_cache(getAllThreads, {
 	keyParts: (getBy, config) => [
-		`get-all-threads-${getBy}-${config.id}-${config.pinned ?? "all"}-${config.page ?? 1}`,
+		`get-all-threads-${getBy}-${config.id}-${config.pinFilter ?? "all"}-${config.page ?? 1}`,
 	],
 	tags: (_, config) => [
 		`clear-get-all-threads-${config.id}`,

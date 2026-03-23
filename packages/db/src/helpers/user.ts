@@ -11,6 +11,14 @@ import {
 	userServers,
 } from "../schema";
 
+export async function getAuthUser(userId: string) {
+	return await db.query.user.findFirst({
+		where: {
+			id: userId,
+		},
+	});
+}
+
 export async function updateAuthUser(
 	userId: string,
 	payload: Exclude<Partial<AuthUser>, "id">,
@@ -45,6 +53,8 @@ export async function getUserServers(userId: string) {
 				serverInvite: dbServer.serverInvite,
 				invitedBy: dbServer.invitedBy,
 				anonymizeUsers: dbServer.anonymizeUsers,
+				customDomain: dbServer.customDomain,
+				domainVerified: dbServer.domainVerified,
 			},
 		})
 		.from(userServers)

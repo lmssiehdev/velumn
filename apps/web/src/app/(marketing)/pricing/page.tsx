@@ -4,18 +4,36 @@ import {
 	LockIcon,
 	TrendUpIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FAQ } from "@/app/page";
+import { TrackLink } from "@/components/analytics/track-link";
 import { Button } from "@/components/ui/button";
+import { absoluteUrl, buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+	title: "Pricing for Discord SEO Forum Indexing",
+	description:
+		"See Velumn pricing for turning Discord channels into indexed, searchable forums with custom domains, unlimited channels, and fast setup.",
+	canonicalUrl: absoluteUrl("/pricing"),
+});
 
 export default function PricingPage() {
 	return (
 		<>
 			<div className="border-neutral-300 border-x border-b">
-				<div className="mx-auto max-w-screen-xl border-neutral-300 border-x p-2 px-4">
+				<div className="mx-auto flex max-w-screen-xl items-center justify-between border-neutral-300 border-x p-2 px-4">
 					<Link className="text-black text-xl" href="/">
 						Velumn
 					</Link>
+					<nav aria-label="Primary" className="flex items-center gap-4 text-sm">
+						<Link className="hover:underline" href="/blog">
+							Blog
+						</Link>
+						<Link className="hover:underline" href="/pricing">
+							Pricing
+						</Link>
+					</nav>
 				</div>
 			</div>
 			<section className="mx-auto max-w-screen-xl space-y-10 border-neutral-200 border-x px-4 py-20 text-center">
@@ -44,8 +62,18 @@ export default function PricingPage() {
 							)}
 						</div>
 						<div>
-							<Button size={"lg"} variant="outline" className="mt-auto">
-								Get Started
+							<Button asChild size={"lg"} variant="outline" className="mt-auto">
+								<TrackLink
+									eventData={{
+										source: "pricing-free-plan",
+									}}
+									eventKey="pricingGetStarted"
+									href="https://dashboard.velumn.com"
+									rel="noopener"
+									target="_blank"
+								>
+									Get Started
+								</TrackLink>
 							</Button>
 						</div>
 					</div>
@@ -70,7 +98,19 @@ export default function PricingPage() {
 								</div>
 							))}
 						</div>
-						<Button size={"lg"}>Start Free Trial</Button>
+						<Button asChild size={"lg"}>
+							<TrackLink
+								eventData={{
+									source: "pricing-paid-plan",
+								}}
+								eventKey="pricingStartTrial"
+								href="https://dashboard.velumn.com"
+								rel="noopener"
+								target="_blank"
+							>
+								Start Free Trial
+							</TrackLink>
+						</Button>
 					</div>
 				</div>
 			</section>

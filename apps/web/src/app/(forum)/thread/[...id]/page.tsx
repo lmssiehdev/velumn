@@ -3,7 +3,6 @@ import {
 	ChatsCircleIcon,
 	HashIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import type { getAllMessagesInThreads } from "@repo/db/helpers/channels";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
 import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import {
@@ -15,20 +14,26 @@ import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import { ChannelType } from "discord-api-types/v10";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { JsonLd } from "react-schemaorg";
 import type { DiscussionForumPosting, WithContext } from "schema-dts";
+import { ContinueDiscussion } from "@/components/forum/continue-discussion";
+import { ServerInfo } from "@/components/forum/shell";
+import { anonymizeName, MessagePost } from "@/components/forum/thread-message";
+import { HashProvider } from "@/components/forum/thread-message-highlight";
+import type { ThreadMessagesWithMetadata } from "@/components/forum/thread-types";
 import { ThreadIcon } from "@/components/markdown/mention";
 import ThreadFeedback from "@/components/thread-feedback";
+import {
+	getCustomDomainUrl,
+	getMainSiteUrl,
+	getThreadPath,
+	hasVerifiedCustomDomain,
+} from "@/lib/domains";
+import { buildDiscussionMetadata, buildRobots, toDescription } from "@/lib/seo";
 import { ThreadProvider } from "@/providers/use-thread";
 import { getAllMessagesInThreadsCache } from "@/utils/cache";
 import { sanitizeJsonLd } from "@/utils/sanitize";
-import { ServerInfo } from "../../layout";
-import { ContinueDiscussion } from "./_components/continue-discussion";
-import { HashProvider } from "./_components/message-highlight";
-import { anonymizeName, MessagePost } from "./_components/thread-message";
-
-export const revalidate = 86_400;
 
 type PageProps = {
 	params: Promise<{ id: [string, string?, string?] }>;
@@ -49,39 +54,33 @@ export async function generateMetadata({
 		!thread.channelName
 	) {
 		return {
-			title: "Not Found",
-			openGraph: {
-				title: "Not Found",
-				description: "Thread not found",
-				// TODO: generic Not found OG
-				// images: [`/og?id=${threadId}`],
+			title: "Thread not found",
+			robots: {
+				index: false,
+				follow: false,
 			},
 		};
 	}
 
 	const url = slugifyThreadUrl({ id: threadId, name: thread.channelName! });
-
+	const canonicalUrl = getMainSiteUrl(url);
 	const hasSlug = slug && slug === getSlugFromTitle(thread.channelName!);
 
-	return {
+	return buildDiscussionMetadata({
 		title: thread.channelName,
-		// TODO: check for answer first then fallback to original post
-		openGraph: {
-			title: thread.channelName,
-			description: thread.messages[0]?.cleanContent?.slice(0, 300),
-			// TODO:
-			// description: "Thread not found",
-			url,
-			images: [`/og?id=${threadId}`],
+		description:
+			toDescription(thread.messages[0]?.cleanContent, 160) ??
+			`Read the indexed Discord discussion for ${thread.channelName}.`,
+		canonicalUrl,
+		image: {
+			url: new URL(`/og?id=${threadId}`, canonicalUrl).toString(),
+			alt: `${thread.channelName} discussion preview`,
 		},
-		alternates: {
-			canonical: url,
-		},
-		robots: {
+		robots: buildRobots({
 			index: Boolean(hasSlug),
 			follow: true,
-		},
-	};
+		}),
+	});
 }
 
 export default async function Page({ params }: PageProps) {
@@ -94,13 +93,20 @@ export default async function Page({ params }: PageProps) {
 	}
 
 	if (!threadId) {
-		return <div>Invalid thread ID</div>;
+		notFound();
 	}
 
 	const thread = await getAllMessagesInThreadsCache(threadId);
 
 	if (!thread?.server) {
-		return <div>Thread doesn't exist</div>;
+		notFound();
+	}
+
+	if (hasVerifiedCustomDomain(thread.server)) {
+		const targetPath = markdown
+			? `/markdown/${threadId}`
+			: getThreadPath(threadId, thread.channelName!);
+		permanentRedirect(getCustomDomainUrl(thread.server, targetPath));
 	}
 
 	const threadUrlWithSlug = slugifyThreadUrl({
@@ -127,7 +133,7 @@ export default async function Page({ params }: PageProps) {
 	].sort((a, b) => a.data.id.localeCompare(b.data.id));
 
 	if (!originalPost) {
-		return <div>Thread with no post!</div>;
+		notFound();
 	}
 
 	const op = originalPost.user!;
@@ -147,6 +153,7 @@ export default async function Page({ params }: PageProps) {
 	const messagesLookup = new Map<string, ThreadMessagesWithMetadata>(
 		thread.messages.map((x) => [x.id, x]),
 	);
+	const canonicalUrl = getMainSiteUrl(threadUrlWithSlug);
 
 	return (
 		<div>
@@ -155,7 +162,7 @@ export default async function Page({ params }: PageProps) {
 					item={sanitizeJsonLd<WithContext<DiscussionForumPosting>>({
 						"@context": "https://schema.org",
 						"@type": "DiscussionForumPosting",
-						url: `https://velumn.com${threadUrlWithSlug}`,
+						url: canonicalUrl,
 						datePublished: getDateFromSnowflake(thread.id).toISOString(),
 						dateModified: getDateFromSnowflake(dateModified).toISOString(),
 						author: {
@@ -165,7 +172,9 @@ export default async function Page({ params }: PageProps) {
 							identifier: op.anonymizeName ? anonymizeName(op) : op?.id,
 						},
 						// todo fall to an og?
-						image: firstImage?.proxyURL || undefined,
+						image:
+							firstImage?.proxyURL ||
+							new URL(`/og?id=${thread.id}`, canonicalUrl).toString(),
 						headline: title,
 						articleBody: originalPost.content,
 						identifier: thread.id,
@@ -260,7 +269,14 @@ export default async function Page({ params }: PageProps) {
 												</div>
 												<a
 													className="mt-1 inline-block font-medium text-neutral-900 underline underline-offset-2 transition-colors"
-													href={`/thread/${item.data.fromThreadId}/#${item.data.fromMessageId}`}
+													href={
+														item.data.fromThread?.channelName
+															? `${slugifyThreadUrl({
+																	id: item.data.fromThreadId,
+																	name: item.data.fromThread.channelName,
+																})}#${item.data.fromMessageId}`
+															: `/thread/${item.data.fromThreadId}#${item.data.fromMessageId}`
+													}
 												>
 													{item.data.fromThread?.channelName}
 												</a>
@@ -278,7 +294,7 @@ export default async function Page({ params }: PageProps) {
 							/>
 						</div>
 						<div className="hidden w-full max-w-xs space-y-6 md:block">
-							<ServerInfo server={server} />
+							<ServerInfo homeHref={`/server/${server.id}`} server={server} />
 							<ThreadFeedback />
 						</div>
 					</div>
@@ -287,7 +303,3 @@ export default async function Page({ params }: PageProps) {
 		</div>
 	);
 }
-
-export type ThreadMessagesWithMetadata = NonNullable<
-	Awaited<ReturnType<typeof getAllMessagesInThreads>>
->["messages"][number];

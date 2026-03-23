@@ -10,10 +10,14 @@
 		"build:prod": "next build --turbopack",
 		"start": "next start",
 		"type-check": "tsc --noEmit",
+		"test": "bun test",
 		"lint": "biome check",
 		"format": "biome format --write"
 	},
 	"dependencies": {
+		"@mdx-js/loader": "^3.1.1",
+		"@mdx-js/react": "^3.1.1",
+		"@next/mdx": "^16.1.6",
 		"@phosphor-icons/react": "^2.1.10",
 		"@radix-ui/react-collapsible": "^1.1.12",
 		"@radix-ui/react-dialog": "^1.1.15",
@@ -26,6 +30,7 @@
 		"@repo/utils": "workspace:*",
 		"@tanstack/react-query": "^5.90.12",
 		"@trpc/client": "^11.7.1",
+		"@types/mdx": "^2.0.13",
 		"@uidotdev/usehooks": "^2.4.1",
 		"bytes": "^3.1.2",
 		"class-variance-authority": "^0.7.1",

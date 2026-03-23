@@ -5,10 +5,12 @@ import {
 	upsertServer,
 } from "@repo/db/helpers/servers";
 import { resetUserServerIdLink } from "@repo/db/helpers/user";
+import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
 import { Events, type Guild } from "discord.js";
 import { toDbChannel, toDbServer } from "../../helpers/convertion";
+import { invalidateTags } from "../../helpers/invalidate-cache";
 import { isChannelIndexable } from "../../indexing/server";
 
 @ApplyOptions<Listener.Options>({
@@ -52,6 +54,10 @@ export class JoinedGuild extends Listener {
 				channelsToIndex.map((x) => toDbChannel(x)),
 			);
 			await upsertBulkChannels(channelsToInsert);
+			await invalidateTags([
+				CacheTags.server(guild.id),
+				CacheTags.topicsInServer(guild.id),
+			]);
 		} catch (error) {
 			this.container.logger.error("Error in JoinedGuild:", error);
 		}
@@ -69,6 +75,10 @@ export class LeftGuild extends Listener {
 			const converted = toDbServer(guild);
 			await upsertServer({ ...converted, kickedAt: new Date() });
 			await resetUserServerIdLink(guild.id);
+			await invalidateTags([
+				CacheTags.server(guild.id),
+				CacheTags.topicsInServer(guild.id),
+			]);
 		} catch (error) {
 			this.container.logger.error("Failed to leave guild", error);
 		}
@@ -84,6 +94,7 @@ export class SyncOnUpdate extends Listener {
 		try {
 			const converted = toDbServer(newGuild);
 			await upsertServer(converted);
+			await invalidateTags(CacheTags.server(newGuild.id));
 		} catch (error) {
 			this.container.logger.error("Failed to update guild", error);
 		}

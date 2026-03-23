@@ -1,7 +1,9 @@
+import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 import "./src/utils/env";
 
 const nextConfig: NextConfig = {
+	pageExtensions: ["mdx", "ts", "tsx"],
 	async redirects() {
 		return [
 			{
@@ -34,8 +36,11 @@ const nextConfig: NextConfig = {
 		ignoreBuildErrors: true,
 	},
 	experimental: {
+		mdxRs: true,
 		optimizePackageImports: ["@phosphor-icons/react"],
 	},
 };
 
-export default nextConfig;
+const withMDX = createMDX({});
+
+export default withMDX(nextConfig);
