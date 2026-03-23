@@ -1,6 +1,14 @@
-import { ThreadList } from "@/app/(forum)/server/[id]/page";
+import { notFound, permanentRedirect } from "next/navigation";
+import { FrontPageSidebar } from "@/components/forum/shell";
+import { ThreadList } from "@/components/forum/thread-list";
+import {
+	getCustomDomainUrl,
+	getMainSiteUrl,
+	hasVerifiedCustomDomain,
+} from "@/lib/domains";
+import { buildPageMetadata, toDescription } from "@/lib/seo";
 import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
-import { FrontPageSidebar } from "../../layout";
+import { type ForumSearchParams, parseForumPage } from "../../_lib/pagination";
 
 export async function generateMetadata({
 	params,
@@ -13,21 +21,20 @@ export async function generateMetadata({
 
 	if (!channel) {
 		return {
-			title: "Channel Not Found",
-			openGraph: {
-				title: "Channel Not Found",
+			title: "Channel not found",
+			robots: {
+				index: false,
+				follow: false,
 			},
 		};
 	}
-	return {
-		title: channel?.channelName,
-		// TODO: sync description?
-		// describe: channel?.description,
-		openGraph: {
-			title: channel?.channelName,
-			// description: channel?.description,
-		},
-	};
+	return buildPageMetadata({
+		title: `${channel.channelName} Discord Channel`,
+		description:
+			toDescription(channel.server?.description) ??
+			`Browse indexed Discord discussions from the ${channel.channelName} channel.`,
+		canonicalUrl: getMainSiteUrl(`/channel/${id}`),
+	});
 }
 
 export default async function Page({
@@ -35,25 +42,32 @@ export default async function Page({
 	searchParams,
 }: {
 	params: Promise<{ id: string }>;
-	searchParams: { page: string };
+	searchParams: Promise<ForumSearchParams>;
 }) {
 	const { id: channelId } = await params;
 	// !! TODO: do these in one join
 	const channel = await getChannelInfoCached(channelId);
-	const searchParamsPage = Number((await searchParams).page ?? 1);
+	const searchParamsPage = await parseForumPage(searchParams);
 
 	if (!channel?.server) {
-		return <div>Channel doesn't exist</div>;
+		notFound();
+	}
+
+	if (hasVerifiedCustomDomain(channel.server)) {
+		permanentRedirect(
+			getCustomDomainUrl(channel.server, `/channel/${channelId}`),
+		);
 	}
 
 	const [regularResult, pinnedResult] = await Promise.all([
 		getAllThreadsCached("channel", {
 			id: channelId,
+			pinFilter: "unpinned",
 			page: searchParamsPage,
 		}),
 		getAllThreadsCached("channel", {
 			id: channelId,
-			pinned: true,
+			pinFilter: "pinned",
 		}),
 	]);
 
@@ -62,18 +76,19 @@ export default async function Page({
 
 	return (
 		<div className="mx-auto p-4">
-			<h2 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
+			<h1 className="mb-6 max-w-4xl text-balance font-medium text-3xl tracking-tight lg:text-4xl">
 				Join a Discussion
-			</h2>
+			</h1>
 			<div className="flex gap-6">
 				<ThreadList
 					hasMore={hasMore}
+					hrefBase={`/channel/${channelId}`}
 					page={page}
-					serverId={channelId}
 					threads={threads.concat(pinnedThread)}
 				/>
 				<FrontPageSidebar
 					activeChannelId={channel.id}
+					homeHref={`/server/${channel.server.id}`}
 					server={channel.server}
 				/>
 			</div>

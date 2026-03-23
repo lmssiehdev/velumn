@@ -20,7 +20,7 @@ function ServerPageClientContent({
 
 	const threadsQuery = useSuspenseQuery(
 		trpc.server.getServerThreads.queryOptions(
-			{ serverId, pinned: false, page: 1 },
+			{ serverId, pinFilter: "all", page: 1 },
 			{
 				enabled: initialThreads?.threads?.length === 0,
 				refetchInterval: 30000,

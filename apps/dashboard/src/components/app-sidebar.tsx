@@ -3,11 +3,13 @@
 import {
 	ArrowUpRightIcon,
 	DiscordLogoIcon,
+	GlobeIcon,
 	HashIcon,
 	HouseIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import type { AuthUserInsert } from "@repo/db/schema/auth";
 import type { DBServer } from "@repo/db/schema/discord";
+import { buildHostUrl } from "@repo/utils/helpers/domains";
 import Link from "next/link";
 import type * as React from "react";
 import { NavUser } from "@/components/nav-user";
@@ -62,9 +64,21 @@ export function AppSidebar({
 										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
+								<SidebarMenuItem key="Custom Domain">
+									<SidebarMenuButton asChild>
+										<Link href={`/server/${server.id}/custom-domain`}>
+											<GlobeIcon />
+											<span>Custom Domain</span>
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
 								<SidebarMenuButton asChild>
 									<a
-										href={`https://velumn.com/server/${server.id}`}
+										href={
+											server.customDomain && server.domainVerified
+												? buildHostUrl(server.customDomain, "/")
+												: `https://velumn.com/server/${server.id}`
+										}
 										rel="noopener noreferrer"
 										target="_blank"
 									>

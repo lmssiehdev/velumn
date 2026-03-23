@@ -45,7 +45,7 @@ export function AnimatedBeamSection() {
 		return (
 			<div>
 				<div className="w-full max-w-[350px]">
-					<h3 className="font-semibold text-gray-900 mb-1">{title}</h3>
+					<div className="mb-1 font-semibold text-gray-900">{title}</div>
 					<p className="text-neutral-800 mb-3">{description}</p>
 				</div>
 			</div>
@@ -353,9 +353,9 @@ function SearchView() {
 					<div className="flex items-baseline gap-2">
 						<span className="text-xs ">velumn.com › thread</span>
 					</div>
-					<h3 className="text-lg font-normal text-blue-800 hover:underline cursor-pointer">
+					<div className="cursor-pointer text-blue-800 text-lg font-normal hover:underline">
 						Discord threads discoverable on Google? - Velumn
-					</h3>
+					</div>
 					<p className="text-sm text-gray-600">
 						How do I make my server's help channel show up on Google so new
 						people can find us?
@@ -407,9 +407,9 @@ function SocialView() {
 									velumn.com
 								</div>
 								<div className="p-3">
-									<h4 className="text-sm font-semibold text-gray-900">
+									<div className="text-sm font-semibold text-gray-900">
 										The community platform built for Discord
-									</h4>
+									</div>
 									<p className="mt-1 text-xs text-gray-600">
 										Make your Discord community discoverable on Google and grow
 										organically.

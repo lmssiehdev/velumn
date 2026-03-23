@@ -6,16 +6,16 @@ import {
 	getAllThreads,
 	getServerInfo,
 	getServerInfoByChannelId,
+	getServerInfoByDomain,
 	getTopicsInServer,
 } from "@repo/db/helpers/servers";
 import { CacheTags } from "@repo/utils/helpers/cache-keys";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-// sanity check for now
-const VERCEL_CACHE_TTL = 20; // 86_400;
+const METADATA_TTL = 86_400;
+const THREAD_LIST_TTL = 3_600;
 
-// :P
 export function stable_cache<T extends unknown[], R>(
 	fn: (...args: T) => Promise<R>,
 	options: {
@@ -30,7 +30,7 @@ export function stable_cache<T extends unknown[], R>(
 			options.keyParts(...args),
 			{
 				tags: options.tags(...args),
-				revalidate: options.revalidate ?? VERCEL_CACHE_TTL,
+				revalidate: options.revalidate,
 			},
 		);
 		return cachedFn();
@@ -42,35 +42,46 @@ export const getAllMessagesInThreadsCache = stable_cache(
 	{
 		keyParts: (id) => [`messages-thread-${id}`],
 		tags: (id) => [CacheTags.thread(id)],
+		revalidate: METADATA_TTL,
 	},
 );
 
-export const getServerInfoByChannelIdCache = stable_cache(
-	getServerInfoByChannelId,
-	{
-		keyParts: (id) => [`server-info-${id}`],
-		tags: (id) => [CacheTags.server(id)],
-	},
-);
+export const getServerInfoByChannelIdCache = cache(async (id: string) => {
+	const channel = await getChannelInfoCached(id);
+	if (!channel) {
+		return getServerInfoByChannelId(id);
+	}
+	return getServerInfoCached(channel.serverId);
+});
+
+export const getServerInfoByDomainCache = stable_cache(getServerInfoByDomain, {
+	keyParts: (domain) => [`server-info-domain-${domain}`],
+	tags: (domain) => [CacheTags.serverByDomain(domain)],
+	revalidate: METADATA_TTL,
+});
 
 export const getServerInfoCached = stable_cache(getServerInfo, {
 	keyParts: (id) => [`server-info-${id}`],
 	tags: (id) => [CacheTags.server(id)],
+	revalidate: METADATA_TTL,
 });
 
 export const getChannelInfoCached = stable_cache(getChannelInfo, {
-	keyParts: (id) => [`server-info-${id}`],
+	keyParts: (id) => [`channel-info-${id}`],
 	tags: (id) => [CacheTags.channelInfo(id)],
+	revalidate: METADATA_TTL,
 });
 
 export const getAllThreadsCached = stable_cache(getAllThreads, {
 	keyParts: (getBy, config) => [
-		`get-all-threads-${getBy}-${config.id}-${config.pinned ?? "all"}-${config.page ?? 1}`,
+		`get-all-threads-${getBy}-${config.id}-${config.pinFilter ?? "all"}-${config.page ?? 1}`,
 	],
 	tags: (_, config) => [CacheTags.getAllThreads(config.id)],
+	revalidate: THREAD_LIST_TTL,
 });
 
 export const getTopicsInServerCached = stable_cache(getTopicsInServer, {
 	keyParts: (id) => [`topics-in-server-${id}`],
 	tags: (id) => [CacheTags.topicsInServer(id)],
+	revalidate: METADATA_TTL,
 });

@@ -4,6 +4,7 @@ import {
 	createBotInvite,
 	getAllThreads,
 	getChannelsInServer,
+	threadPinFilters,
 } from "@repo/db/helpers/servers";
 import { updateServerOnboarding } from "@repo/db/helpers/user";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
@@ -176,7 +177,7 @@ export const serverRouter = router({
 		.input(
 			z.object({
 				serverId: z.string(),
-				pinned: z.boolean().optional(),
+				pinFilter: z.enum(threadPinFilters).optional(),
 				page: z.number().optional(),
 			}),
 		)
@@ -193,7 +194,7 @@ export const serverRouter = router({
 
 				const threads = await getAllThreads("server", {
 					id: input.serverId,
-					pinned: input.pinned ?? false,
+					pinFilter: input.pinFilter ?? "all",
 					page: input.page ?? 1,
 				});
 				return threads;

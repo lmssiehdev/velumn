@@ -16,7 +16,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
 
 	const initialThreads = await getAllThreads("server", {
 		id: server.id,
-		pinned: false,
+		pinFilter: "all",
 		page: 1,
 	});
 

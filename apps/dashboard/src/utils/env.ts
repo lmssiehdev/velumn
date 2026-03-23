@@ -9,17 +9,22 @@ export const dashboardEnv = createEnv({
 		DISCORD_BOT_TOKEN: z.string().min(1),
 		BETTER_AUTH_SECRET: z.string().min(1),
 		AXIOM_TOKEN: z.string().min(1),
+		VERCEL_BEARER_TOKEN: z.string().min(1),
+		VERCEL_PROJECT_ID: z.string().min(1),
+		VERCEL_TEAM_ID: z.string().min(1).optional(),
 	},
 	client: {
 		NEXT_PUBLIC_DISCORD_CLIENT_ID: z.string().min(1),
 		NEXT_PUBLIC_VELUMN_API_URL: z.string(),
 		NEXT_PUBLIC_VELUMN_DASHBOARD_URL: z.string(),
+		NEXT_PUBLIC_VELUMN_URL: z.string(),
 	},
 	experimental__runtimeEnv: {
 		NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID,
 		NEXT_PUBLIC_VELUMN_API_URL: process.env.NEXT_PUBLIC_VELUMN_API_URL,
 		NEXT_PUBLIC_VELUMN_DASHBOARD_URL:
 			process.env.NEXT_PUBLIC_VELUMN_DASHBOARD_URL,
+		NEXT_PUBLIC_VELUMN_URL: process.env.NEXT_PUBLIC_VELUMN_URL,
 	},
 	extends: [vercel()],
 });

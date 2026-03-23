@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo } from "react";
-import type { ThreadWithMetadata } from "@/app/(forum)/thread/[...id]/page";
+import type { ThreadWithMetadata } from "@/components/forum/thread-types";
 
 const ThreadContext = createContext<{
 	thread: ThreadWithMetadata;

@@ -3,12 +3,13 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 
 const schema = z.object({
-	path: z.string(),
-	secret: z.string(),
+	path: z.string().min(1),
+	secret: z.string().min(1),
 });
 
 export async function POST(request: NextRequest) {
-	const { data, success } = schema.safeParse(await request.json());
+	const body = await request.json();
+	const { data, success } = schema.safeParse(body);
 
 	if (!success) {
 		return Response.json({ error: "Invalid parameters" }, { status: 400 });

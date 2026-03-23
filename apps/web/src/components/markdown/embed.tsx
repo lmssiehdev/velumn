@@ -45,11 +45,15 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 					return (
 						<div className="mt-4 overflow-hidden rounded" key={idx}>
 							<img
+								alt={embed.title || embed.description || "Embedded image"}
+								height={height ?? undefined}
+								loading="lazy"
 								src={embed.url}
 								style={getScaledDownWidth({
 									width,
 									height,
 								})}
+								width={width ?? undefined}
 							/>
 						</div>
 					);
@@ -88,9 +92,12 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								<div className="flex items-center gap-2 mb-2">
 									{embed.author.icon_url && (
 										<img
-											src={embed.author.icon_url}
-											alt="author avatar"
 											className="w-6 h-6 rounded-full object-cover"
+											height={24}
+											loading="lazy"
+											src={embed.author.icon_url}
+											alt={`${embed.author.name} avatar`}
+											width={24}
 										/>
 									)}
 									<a
@@ -150,12 +157,18 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								}}
 							>
 								<img
+									alt={
+										embed.title || embed.provider?.name || "Embedded thumbnail"
+									}
 									className="rounded object-cover"
+									height={embed.thumbnail?.height ?? undefined}
+									loading="lazy"
 									src={embed.thumbnail?.url}
 									style={{
 										maxWidth: "80px",
 										maxHeight: "80px",
 									}}
+									width={embed.thumbnail?.width ?? undefined}
 								/>
 							</div>
 						)}
@@ -166,12 +179,18 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								style={{ gridColumn: "1 / -1" }}
 							>
 								<img
+									alt={
+										embed.title || embed.description || "Embedded preview image"
+									}
 									className="max-h-full overflow-hidden object-cover"
+									height={embed.thumbnail?.height ?? undefined}
+									loading="lazy"
 									src={embed.thumbnail.url}
 									style={getScaledDownWidth({
 										width: embed.thumbnail?.width!,
 										height: embed.thumbnail?.height!,
 									})}
+									width={embed.thumbnail?.width ?? undefined}
 								/>
 							</div>
 						)}
@@ -179,12 +198,18 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 						{embed.image && (
 							<div className="col-span-full mt-4 max-h-[300px] overflow-hidden rounded">
 								<img
+									alt={
+										embed.title || embed.description || "Embedded content image"
+									}
 									className="max-h-full overflow-hidden object-cover"
+									height={embed.image?.height ?? undefined}
+									loading="lazy"
 									src={embed.image.url}
 									style={getScaledDownWidth({
 										width: embed.image?.width!,
 										height: embed.image?.height!,
 									})}
+									width={embed.image?.width ?? undefined}
 								/>
 							</div>
 						)}
@@ -194,7 +219,11 @@ export function Embeds({ embeds }: { embeds: DBEmbed[] | null }) {
 								{embed.footer.icon_url && (
 									<img
 										className="mr-2 size-5 rounded-full object-contain"
+										height={20}
+										loading="lazy"
 										src={embed.footer.icon_url}
+										alt={`${embed.footer.text} icon`}
+										width={20}
 									/>
 								)}
 								<div className="flex items-center gap-1 text-[13px]">
