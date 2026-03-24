@@ -5,6 +5,7 @@ import { log } from "@/lib/log";
 import { dashboardEnv } from "@/utils/env";
 
 const REQUEST_TIMEOUT_MS = 15_000;
+const CUSTOM_DOMAIN_PROJECT_ID = "prj_DtTSKM60p1hUvxppi3O3pR5nzDdr";
 
 const vercel = new Vercel({
 	bearerToken: dashboardEnv.VERCEL_BEARER_TOKEN,
@@ -32,7 +33,7 @@ export type DomainCheckResult = {
 export async function addProjectDomain(domain: string) {
 	return await vercel.projects.addProjectDomain(
 		{
-			idOrName: dashboardEnv.VERCEL_PROJECT_ID,
+			idOrName: CUSTOM_DOMAIN_PROJECT_ID,
 			teamId: dashboardEnv.VERCEL_TEAM_ID,
 			requestBody: {
 				name: domain,
@@ -46,7 +47,7 @@ export async function removeDomainFromProjectAndAccount(domain: string) {
 	return await Promise.allSettled([
 		vercel.projects.removeProjectDomain(
 			{
-				idOrName: dashboardEnv.VERCEL_PROJECT_ID,
+				idOrName: CUSTOM_DOMAIN_PROJECT_ID,
 				teamId: dashboardEnv.VERCEL_TEAM_ID,
 				domain,
 			},
@@ -65,32 +66,33 @@ export async function removeDomainFromProjectAndAccount(domain: string) {
 export async function getDomainStatus(
 	domain: string,
 ): Promise<DomainCheckResult> {
-	const [projectDomainResult, domainConfigResult] = await Promise.allSettled([
-		vercel.projects.getProjectDomain(
-			{
-				idOrName: dashboardEnv.VERCEL_PROJECT_ID,
-				teamId: dashboardEnv.VERCEL_TEAM_ID,
-				domain,
-			},
-			requestOptions,
-		),
-		vercel.domains.getDomainConfig(
-			{
-				domain,
-				projectIdOrName: dashboardEnv.VERCEL_PROJECT_ID,
-				teamId: dashboardEnv.VERCEL_TEAM_ID,
-			},
-			requestOptions,
-		),
-		vercel.projects.verifyProjectDomain(
-			{
-				idOrName: dashboardEnv.VERCEL_PROJECT_ID,
-				teamId: dashboardEnv.VERCEL_TEAM_ID,
-				domain,
-			},
-			requestOptions,
-		),
-	]);
+	const [projectDomainResult, domainConfigResult, verifyDomainResult] =
+		await Promise.allSettled([
+			vercel.projects.getProjectDomain(
+				{
+					idOrName: CUSTOM_DOMAIN_PROJECT_ID,
+					teamId: dashboardEnv.VERCEL_TEAM_ID,
+					domain,
+				},
+				requestOptions,
+			),
+			vercel.domains.getDomainConfig(
+				{
+					domain,
+					projectIdOrName: CUSTOM_DOMAIN_PROJECT_ID,
+					teamId: dashboardEnv.VERCEL_TEAM_ID,
+				},
+				requestOptions,
+			),
+			vercel.projects.verifyProjectDomain(
+				{
+					idOrName: CUSTOM_DOMAIN_PROJECT_ID,
+					teamId: dashboardEnv.VERCEL_TEAM_ID,
+					domain,
+				},
+				requestOptions,
+			),
+		]);
 
 	if (projectDomainResult.status === "rejected") {
 		log.error("dashboard_check_domain_failed", {
@@ -124,10 +126,21 @@ export async function getDomainStatus(
 		};
 	}
 
+	if (verifyDomainResult.status === "rejected") {
+		log.error("dashboard_verify_domain_failed", {
+			area: "domains",
+			domain,
+			error: verifyDomainResult.reason,
+		});
+	}
+
 	const projectDomain = projectDomainResult.value;
 	const domainConfig = domainConfigResult.value;
 	const dnsRecords = [
-		...toVerificationRecords(projectDomain.verification),
+		...toVerificationRecords(
+			projectDomain.verification,
+			projectDomain.apexName,
+		),
 		...toMisconfigurationRecords(domain, projectDomain, domainConfig),
 	];
 	const verified =
@@ -146,14 +159,23 @@ export async function getDomainStatus(
 
 function toVerificationRecords(
 	records?: GetProjectDomainResponseBody["verification"],
+	apexName?: string,
 ) {
-	return (records ?? []).map(
-		(record): DNSRecord => ({
-			name: record.domain,
+	return (records ?? []).map((record): DNSRecord => {
+		const relativeName = !apexName
+			? record.domain
+			: record.domain === apexName
+				? "@"
+				: record.domain.endsWith(`.${apexName}`)
+					? record.domain.slice(0, -`.${apexName}`.length)
+					: record.domain;
+
+		return {
+			name: relativeName,
 			type: (record.type || "TXT").toUpperCase(),
 			value: record.value,
-		}),
-	);
+		};
+	});
 }
 
 function toMisconfigurationRecords(
