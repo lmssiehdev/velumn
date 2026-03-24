@@ -110,15 +110,10 @@ export const domainsRouter = router({
 				await removeDomainFromProjectAndAccount(previousDomain);
 
 			if (projectRemovalResult?.status === "rejected") {
-				log.error("dashboard_remove_project_domain_failed", {
+				log.info("dashboard_remove_project_domain_failed", {
 					serverId: server.id,
 					domain: previousDomain,
 					error: parseError(projectRemovalResult.reason),
-				});
-
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to remove the domain from Vercel.",
 				});
 			}
 
