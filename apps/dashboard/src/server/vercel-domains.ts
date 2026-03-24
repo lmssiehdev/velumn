@@ -65,61 +65,38 @@ export async function removeDomainFromProjectAndAccount(domain: string) {
 export async function getDomainStatus(
 	domain: string,
 ): Promise<DomainCheckResult> {
-	try {
-		const [projectDomain, domainConfig, verifyResult] = await Promise.all([
-			vercel.projects.getProjectDomain(
-				{
-					idOrName: dashboardEnv.VERCEL_PROJECT_ID,
-					teamId: dashboardEnv.VERCEL_TEAM_ID,
-					domain,
-				},
-				requestOptions,
-			),
-			vercel.domains.getDomainConfig(
-				{
-					domain,
-					projectIdOrName: dashboardEnv.VERCEL_PROJECT_ID,
-					teamId: dashboardEnv.VERCEL_TEAM_ID,
-				},
-				requestOptions,
-			),
-			vercel.projects.verifyProjectDomain(
-				{
-					idOrName: dashboardEnv.VERCEL_PROJECT_ID,
-					teamId: dashboardEnv.VERCEL_TEAM_ID,
-					domain,
-				},
-				requestOptions,
-			),
-		]);
+	const [projectDomainResult, domainConfigResult] = await Promise.allSettled([
+		vercel.projects.getProjectDomain(
+			{
+				idOrName: dashboardEnv.VERCEL_PROJECT_ID,
+				teamId: dashboardEnv.VERCEL_TEAM_ID,
+				domain,
+			},
+			requestOptions,
+		),
+		vercel.domains.getDomainConfig(
+			{
+				domain,
+				projectIdOrName: dashboardEnv.VERCEL_PROJECT_ID,
+				teamId: dashboardEnv.VERCEL_TEAM_ID,
+			},
+			requestOptions,
+		),
+		vercel.projects.verifyProjectDomain(
+			{
+				idOrName: dashboardEnv.VERCEL_PROJECT_ID,
+				teamId: dashboardEnv.VERCEL_TEAM_ID,
+				domain,
+			},
+			requestOptions,
+		),
+	]);
 
-		const dnsRecords = [
-			...toVerificationRecords(projectDomain.verification),
-			...toMisconfigurationRecords(domain, projectDomain, domainConfig),
-		];
-		const verified =
-			!dnsRecords.length &&
-			!domainConfig.misconfigured &&
-			Boolean(
-				verifyResult.verified ??
-					projectDomain.verified ??
-					projectDomain.verification?.length === 0,
-			);
-
-		return {
-			domain,
-			verified,
-			status: verified ? "valid_configuration" : "pending_verification",
-			message: verified
-				? "Domain is fully configured and ready to serve."
-				: "Add the following DNS records to complete setup.",
-			dnsRecords,
-		};
-	} catch (error) {
+	if (projectDomainResult.status === "rejected") {
 		log.error("dashboard_check_domain_failed", {
 			area: "domains",
 			domain,
-			error,
+			error: projectDomainResult.reason,
 		});
 
 		return {
@@ -130,6 +107,41 @@ export async function getDomainStatus(
 			dnsRecords: [],
 		};
 	}
+
+	if (domainConfigResult.status === "rejected") {
+		log.error("dashboard_check_domain_failed", {
+			area: "domains",
+			domain,
+			error: domainConfigResult.reason,
+		});
+
+		return {
+			domain,
+			verified: false,
+			status: "unhandled_error",
+			message: "Failed to fetch the current domain configuration.",
+			dnsRecords: [],
+		};
+	}
+
+	const projectDomain = projectDomainResult.value;
+	const domainConfig = domainConfigResult.value;
+	const dnsRecords = [
+		...toVerificationRecords(projectDomain.verification),
+		...toMisconfigurationRecords(domain, projectDomain, domainConfig),
+	];
+	const verified =
+		!dnsRecords.length && !domainConfig.misconfigured && projectDomain.verified;
+
+	return {
+		domain,
+		verified,
+		status: verified ? "valid_configuration" : "pending_verification",
+		message: verified
+			? "Domain is fully configured and ready to serve."
+			: "Add the following DNS records to complete setup.",
+		dnsRecords,
+	};
 }
 
 function toVerificationRecords(
@@ -137,7 +149,7 @@ function toVerificationRecords(
 ) {
 	return (records ?? []).map(
 		(record): DNSRecord => ({
-			name: record.domain || "_vercel",
+			name: record.domain,
 			type: (record.type || "TXT").toUpperCase(),
 			value: record.value,
 		}),
