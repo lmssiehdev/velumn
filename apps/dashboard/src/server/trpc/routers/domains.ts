@@ -106,26 +106,27 @@ export const domainsRouter = router({
 				});
 			}
 
-			const results = await removeDomainFromProjectAndAccount(previousDomain);
+			const [projectRemovalResult, accountDeletionResult] =
+				await removeDomainFromProjectAndAccount(previousDomain);
 
-			for (const result of results) {
-				if (result.status === "rejected") {
-					log.error("dashboard_remove_domain_failed", {
-						serverId: server.id,
-						domain: previousDomain,
-						error: parseError(result.reason),
-					});
-				}
-			}
+			if (projectRemovalResult?.status === "rejected") {
+				log.error("dashboard_remove_project_domain_failed", {
+					serverId: server.id,
+					domain: previousDomain,
+					error: parseError(projectRemovalResult.reason),
+				});
 
-			const allRemoteDeletesSucceeded = results.every(
-				(result) => result.status === "fulfilled",
-			);
-
-			if (!allRemoteDeletesSucceeded) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to remove the domain from Vercel.",
+				});
+			}
+
+			if (accountDeletionResult?.status === "rejected") {
+				log.error("dashboard_delete_account_domain_failed", {
+					serverId: server.id,
+					domain: previousDomain,
+					error: parseError(accountDeletionResult.reason),
 				});
 			}
 
