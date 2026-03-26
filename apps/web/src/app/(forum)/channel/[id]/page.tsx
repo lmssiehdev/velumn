@@ -8,7 +8,11 @@ import {
 } from "@/lib/domains";
 import { buildPageMetadata, toDescription } from "@/lib/seo";
 import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
-import { type ForumSearchParams, parseForumPage } from "../../_lib/pagination";
+import {
+	buildPaginatedRedirectPath,
+	type ForumSearchParams,
+	parseForumPage,
+} from "../../_lib/pagination";
 
 export async function generateMetadata({
 	params,
@@ -55,12 +59,10 @@ export default async function Page({
 	}
 
 	if (hasVerifiedCustomDomain(channel.server)) {
-		const pageParam = Array.isArray(resolvedSearchParams.page)
-			? resolvedSearchParams.page[0]
-			: resolvedSearchParams.page;
-		const redirectPath = pageParam
-			? `/channel/${channelId}?page=${pageParam}`
-			: `/channel/${channelId}`;
+		const redirectPath = buildPaginatedRedirectPath(
+			`/channel/${channelId}`,
+			searchParamsPage,
+		);
 		permanentRedirect(getCustomDomainUrl(channel.server, redirectPath));
 	}
 
