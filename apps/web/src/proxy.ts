@@ -5,6 +5,16 @@ export function proxy(request: NextRequest) {
 	const url = request.nextUrl;
 	const host = request.headers.get("host");
 	const pathname = url.pathname;
+	const markdownRewrite = getMarkdownThreadRewrite(
+		pathname,
+		host,
+		request.headers.get("accept"),
+	);
+
+	if (markdownRewrite) {
+		url.pathname = markdownRewrite.pathname;
+		return NextResponse.rewrite(url);
+	}
 
 	if (shouldBypassCustomDomainRewrite(pathname)) {
 		return NextResponse.next();
@@ -17,6 +27,43 @@ export function proxy(request: NextRequest) {
 	const normalizedHost = normalizeHostHeader(host ?? "");
 	url.pathname = `/${normalizedHost}${url.pathname}`;
 	return NextResponse.rewrite(url);
+}
+
+const THREAD_PATH_REGEX = /^\/thread\/([^/]+)\/([^/]+?)(\.md)?\/?$/;
+
+export function getMarkdownThreadRewrite(
+	pathname: string,
+	host: string | null | undefined,
+	accept: string | null | undefined,
+) {
+	const threadMatch = pathname.match(THREAD_PATH_REGEX);
+
+	if (!threadMatch) {
+		return null;
+	}
+
+	const [, threadId, , markdownSuffix] = threadMatch;
+	if (!markdownSuffix && !acceptsMarkdown(accept)) {
+		return null;
+	}
+
+	const markdownPath = `/markdown/${threadId}`;
+	if (isOnMainSite(host)) {
+		return { pathname: markdownPath };
+	}
+
+	const normalizedHost = normalizeHostHeader(host ?? "");
+	return {
+		pathname: `/${normalizedHost}${markdownPath}`,
+	};
+}
+
+export function acceptsMarkdown(accept: string | null | undefined) {
+	if (!accept) {
+		return false;
+	}
+
+	return accept.toLowerCase().includes("text/markdown");
 }
 
 function shouldBypassCustomDomainRewrite(pathname: string) {
