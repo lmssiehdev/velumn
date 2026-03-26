@@ -75,6 +75,8 @@ export async function storeIndexedData(
 			},
 			update: {
 				authorId: convertedChannel.authorId,
+				archived: convertedChannel.archived,
+				locked: convertedChannel.locked,
 				archivedTimestamp: convertedChannel.archivedTimestamp,
 				pinned: convertedChannel.pinned,
 				...(lastIndexedMessageId === "0" ? {} : { lastIndexedMessageId }),

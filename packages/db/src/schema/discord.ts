@@ -92,6 +92,8 @@ export const dbChannel = pgTable(
 		parentId: snowflake("parent_id"),
 		authorId: snowflake("author_id"),
 		channelName: varchar("channel_name"),
+		archived: boolean("archived").default(false).notNull(),
+		locked: boolean("locked").default(false).notNull(),
 		archivedTimestamp: bigint("archivedTimestamp", { mode: "number" }),
 		lastIndexedMessageId: snowflake("last_indexed_message_id"),
 		type: integer("type").notNull(),
