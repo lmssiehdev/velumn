@@ -8,7 +8,11 @@ import {
 } from "@/lib/domains";
 import { buildPageMetadata, toDescription } from "@/lib/seo";
 import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
-import { type ForumSearchParams, parseForumPage } from "../../_lib/pagination";
+import {
+	buildPaginatedRedirectPath,
+	type ForumSearchParams,
+	parseForumPage,
+} from "../../_lib/pagination";
 
 export async function generateMetadata({
 	params,
@@ -45,8 +49,9 @@ export default async function Page({
 	searchParams: Promise<ForumSearchParams>;
 }) {
 	const { id } = await params;
+	const resolvedSearchParams = await searchParams;
 
-	const searchParamsPage = await parseForumPage(searchParams);
+	const searchParamsPage = await parseForumPage(resolvedSearchParams);
 
 	const server = await getServerInfoCached(id);
 
@@ -55,7 +60,8 @@ export default async function Page({
 	}
 
 	if (hasVerifiedCustomDomain(server)) {
-		permanentRedirect(getCustomDomainUrl(server, "/"));
+		const redirectPath = buildPaginatedRedirectPath("/", searchParamsPage);
+		permanentRedirect(getCustomDomainUrl(server, redirectPath));
 	}
 
 	const { threads, hasMore, page } = await getAllThreadsCached("server", {

@@ -8,7 +8,11 @@ import {
 } from "@/lib/domains";
 import { buildPageMetadata, toDescription } from "@/lib/seo";
 import { getAllThreadsCached, getChannelInfoCached } from "@/utils/cache";
-import { type ForumSearchParams, parseForumPage } from "../../_lib/pagination";
+import {
+	buildPaginatedRedirectPath,
+	type ForumSearchParams,
+	parseForumPage,
+} from "../../_lib/pagination";
 
 export async function generateMetadata({
 	params,
@@ -45,18 +49,21 @@ export default async function Page({
 	searchParams: Promise<ForumSearchParams>;
 }) {
 	const { id: channelId } = await params;
+	const resolvedSearchParams = await searchParams;
 	// !! TODO: do these in one join
 	const channel = await getChannelInfoCached(channelId);
-	const searchParamsPage = await parseForumPage(searchParams);
+	const searchParamsPage = await parseForumPage(resolvedSearchParams);
 
 	if (!channel?.server) {
 		notFound();
 	}
 
 	if (hasVerifiedCustomDomain(channel.server)) {
-		permanentRedirect(
-			getCustomDomainUrl(channel.server, `/channel/${channelId}`),
+		const redirectPath = buildPaginatedRedirectPath(
+			`/channel/${channelId}`,
+			searchParamsPage,
 		);
+		permanentRedirect(getCustomDomainUrl(channel.server, redirectPath));
 	}
 
 	const [regularResult, pinnedResult] = await Promise.all([
