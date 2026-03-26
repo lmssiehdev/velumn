@@ -1,24 +1,26 @@
-import { getThreadsForSitemap } from "@repo/db/helpers/sitemap";
+import { getThreadsForServerSitemap } from "@repo/db/helpers/sitemap";
 import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake";
-import { absoluteUrl } from "@/lib/seo";
+import { getCustomDomainUrl } from "@/lib/domains";
 import { buildUrlSetXml } from "@/lib/sitemap";
+import { getTenantServerOrNotFound } from "../../_lib/tenant";
 import { LIMIT } from "../route";
 
 export const revalidate = 86_400;
 
 export async function GET(
 	_request: Request,
-	{ params }: { params: Promise<{ id: string }> },
+	{ params }: { params: Promise<{ domain: string; id: string }> },
 ) {
-	const { id } = await params;
+	const { domain, id } = await params;
 	const start = Number(id) * LIMIT;
-
-	const threads = await getThreadsForSitemap(start, LIMIT);
+	const { server } = await getTenantServerOrNotFound(domain);
+	const threads = await getThreadsForServerSitemap(server.id, start, LIMIT);
 
 	const sitemap = buildUrlSetXml(
 		threads.map((thread) => ({
-			loc: absoluteUrl(
+			loc: getCustomDomainUrl(
+				server,
 				slugifyThreadUrl({ id: thread.id, name: thread.name ?? thread.id }),
 			),
 			lastmod: getDateFromSnowflake(thread.id).toISOString(),

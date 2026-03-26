@@ -1,5 +1,4 @@
 import { getMainSiteUrl } from "@/lib/domains";
-import { getHostUrl, getRequestHostContext } from "@/lib/request-host";
 
 function buildRobotsTxt(sitemapUrl?: string) {
 	const lines = [
@@ -16,7 +15,7 @@ function buildRobotsTxt(sitemapUrl?: string) {
 	return `${lines.join("\n")}\n`;
 }
 
-export async function GET(request: Request) {
+export async function GET() {
 	if (process.env.VERCEL_ENV !== "production") {
 		return new Response("User-Agent: *\nDisallow: /\n", {
 			headers: {
@@ -25,18 +24,7 @@ export async function GET(request: Request) {
 		});
 	}
 
-	const hostContext = await getRequestHostContext(request.headers.get("host"));
-
-	if (!hostContext) {
-		return new Response("Not Found", { status: 404 });
-	}
-
-	const sitemapUrl =
-		hostContext.type === "tenant"
-			? getHostUrl(hostContext.host, "/sitemap.xml")
-			: getMainSiteUrl("/sitemap.xml");
-
-	return new Response(buildRobotsTxt(sitemapUrl), {
+	return new Response(buildRobotsTxt(getMainSiteUrl("/sitemap.xml")), {
 		headers: {
 			"Content-Type": "text/plain",
 		},
