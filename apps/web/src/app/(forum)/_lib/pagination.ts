@@ -15,3 +15,7 @@ export async function parseForumPage(
 
 	return parsedPage;
 }
+
+export function buildPaginatedRedirectPath(basePath: string, page: number) {
+	return page > 1 ? `${basePath}?page=${page}` : basePath;
+}

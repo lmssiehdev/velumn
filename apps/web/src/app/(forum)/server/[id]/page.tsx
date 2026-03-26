@@ -8,7 +8,11 @@ import {
 } from "@/lib/domains";
 import { buildPageMetadata, toDescription } from "@/lib/seo";
 import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
-import { type ForumSearchParams, parseForumPage } from "../../_lib/pagination";
+import {
+	buildPaginatedRedirectPath,
+	type ForumSearchParams,
+	parseForumPage,
+} from "../../_lib/pagination";
 
 export async function generateMetadata({
 	params,
@@ -56,10 +60,7 @@ export default async function Page({
 	}
 
 	if (hasVerifiedCustomDomain(server)) {
-		const pageParam = Array.isArray(resolvedSearchParams.page)
-			? resolvedSearchParams.page[0]
-			: resolvedSearchParams.page;
-		const redirectPath = pageParam ? `/?page=${pageParam}` : "/";
+		const redirectPath = buildPaginatedRedirectPath("/", searchParamsPage);
 		permanentRedirect(getCustomDomainUrl(server, redirectPath));
 	}
 

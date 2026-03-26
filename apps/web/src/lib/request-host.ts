@@ -17,22 +17,26 @@ export async function getRequestHostContext(
 		return { type: "main", host: null };
 	}
 
-	if (isOnMainSite(host)) {
-		return { type: "main", host: normalizeHostHeader(host) };
-	}
+	try {
+		if (isOnMainSite(host)) {
+			return { type: "main", host: normalizeHostHeader(host) };
+		}
 
-	const normalizedHost = normalizeHostHeader(host);
-	const server = await getServerInfoByDomain(normalizedHost);
+		const normalizedHost = normalizeHostHeader(host);
+		const server = await getServerInfoByDomain(normalizedHost);
 
-	if (!server) {
+		if (!server) {
+			return null;
+		}
+
+		return {
+			type: "tenant",
+			host: normalizedHost,
+			server,
+		};
+	} catch {
 		return null;
 	}
-
-	return {
-		type: "tenant",
-		host: normalizedHost,
-		server,
-	};
 }
 
 export function getHostUrl(host: string, path: string) {
