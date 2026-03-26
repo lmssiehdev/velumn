@@ -156,11 +156,12 @@ export class UpdateThread extends Listener {
 		try {
 			const channelToUpdate = await toDbChannel(newThread);
 
-			const { id, authorId, channelName, pinned } = channelToUpdate;
+			const { id, authorId, archived, locked, channelName, pinned } =
+				channelToUpdate;
 
 			const result = await upsertChannel({
 				create: channelToUpdate,
-				update: { id, authorId, channelName, pinned },
+				update: { id, authorId, archived, locked, channelName, pinned },
 			});
 
 			if (result.rowCount) {

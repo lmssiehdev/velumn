@@ -57,13 +57,14 @@ export async function toDbChannel(
 		authorId: authorId ?? null,
 		serverId: channel.guild.id,
 		parentId: channel.isThread() ? channel.parentId : null,
+		archived: channel.isThread() ? (channel.archived ?? false) : false,
+		locked: channel.isThread() ? (channel.locked ?? false) : false,
 		archivedTimestamp:
 			channel.isThread() && channel.archiveTimestamp
 				? channel.archiveTimestamp
 				: null,
 		lastIndexedMessageId: null,
 		type: channel.type,
-		// archived: channel.isThread() && (channel.archived ?? false),
 		indexingEnabled: false,
 		pinned: channel.isThread() && channel.flags.has(ChannelFlags.Pinned),
 		downvotes: 0,

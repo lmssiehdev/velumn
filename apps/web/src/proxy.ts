@@ -20,29 +20,17 @@ export function proxy(request: NextRequest) {
 }
 
 function shouldBypassCustomDomainRewrite(pathname: string) {
-	return (
-		isOgPath(pathname) ||
-		isMetadataPath(pathname) ||
-		isSharedPublicAssetPath(pathname)
-	);
+	return isOgPath(pathname) || isSharedPublicAssetPath(pathname);
 }
 
 function isOgPath(pathname: string) {
 	return pathname.startsWith("/og");
 }
 
-function isMetadataPath(pathname: string) {
-	return (
-		pathname === "/robots.txt" ||
-		pathname === "/sitemap.xml" ||
-		pathname.startsWith("/sitemap.xml/") ||
-		pathname === "/favicon.ico" ||
-		pathname === "/opengraph-image.png"
-	);
-}
-
 function isSharedPublicAssetPath(pathname: string) {
 	return (
+		pathname === "/favicon.ico" ||
+		pathname === "/opengraph-image.png" ||
 		pathname.startsWith("/icons/") ||
 		pathname.startsWith("/assets/") ||
 		pathname.startsWith("/fonts/") ||
@@ -93,5 +81,10 @@ export function isOnMainSite(host: string | null | undefined) {
 }
 
 export const config = {
-	matcher: ["/((?!api|auth|trpc|_next/static|_next/image).*)"],
+	matcher: [
+		"/((?!api|auth|trpc|_next/static|_next/image).*)",
+		"/robots.txt",
+		"/sitemap.xml",
+		"/sitemap.xml/:path*",
+	],
 };
