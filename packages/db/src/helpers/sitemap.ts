@@ -1,13 +1,19 @@
 import { ChannelType } from "discord-api-types/v10";
-import { count, eq } from "drizzle-orm";
+import { and, count, desc, eq, isNull, or } from "drizzle-orm";
 import { db } from "..";
-import { dbChannel } from "../schema";
+import { dbChannel, dbServer } from "../schema";
+
+const mainSiteThreadFilter = and(
+	eq(dbChannel.type, ChannelType.PublicThread),
+	or(isNull(dbServer.customDomain), eq(dbServer.domainVerified, false)),
+);
 
 export async function getThreadsCountTotal() {
 	const threadsCount = await db
 		.select({ count: count(dbChannel.id) })
 		.from(dbChannel)
-		.where(eq(dbChannel.type, ChannelType.PublicThread));
+		.innerJoin(dbServer, eq(dbChannel.serverId, dbServer.id))
+		.where(mainSiteThreadFilter);
 
 	if (!threadsCount || threadsCount.length === 0) {
 		return 0;
@@ -21,7 +27,46 @@ export async function getThreadsForSitemap(start: number, limit: number) {
 	return await db
 		.select({ id: dbChannel.id, name: dbChannel.channelName })
 		.from(dbChannel)
-		.where(eq(dbChannel.type, ChannelType.PublicThread))
+		.innerJoin(dbServer, eq(dbChannel.serverId, dbServer.id))
+		.where(mainSiteThreadFilter)
+		.orderBy(desc(dbChannel.id))
+		.offset(start)
+		.limit(limit);
+}
+
+export async function getThreadsCountForServer(serverId: string) {
+	const threadsCount = await db
+		.select({ count: count(dbChannel.id) })
+		.from(dbChannel)
+		.where(
+			and(
+				eq(dbChannel.serverId, serverId),
+				eq(dbChannel.type, ChannelType.PublicThread),
+			),
+		);
+
+	if (!threadsCount || threadsCount.length === 0) {
+		return 0;
+	}
+
+	return threadsCount[0]?.count ?? 0;
+}
+
+export async function getThreadsForServerSitemap(
+	serverId: string,
+	start: number,
+	limit: number,
+) {
+	return await db
+		.select({ id: dbChannel.id, name: dbChannel.channelName })
+		.from(dbChannel)
+		.where(
+			and(
+				eq(dbChannel.serverId, serverId),
+				eq(dbChannel.type, ChannelType.PublicThread),
+			),
+		)
+		.orderBy(desc(dbChannel.id))
 		.offset(start)
 		.limit(limit);
 }

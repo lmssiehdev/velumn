@@ -180,6 +180,7 @@ export async function getServerInfoByDomain(domain: string) {
 	return await db.query.dbServer.findFirst({
 		where: {
 			customDomain: domain,
+			domainVerified: true,
 		},
 	});
 }

@@ -6,7 +6,7 @@ export function proxy(request: NextRequest) {
 	const host = request.headers.get("host");
 	const pathname = url.pathname;
 
-	if (pathname.startsWith("/og")) {
+	if (shouldBypassCustomDomainRewrite(pathname)) {
 		return NextResponse.next();
 	}
 
@@ -17,6 +17,41 @@ export function proxy(request: NextRequest) {
 	const normalizedHost = normalizeHostHeader(host ?? "");
 	url.pathname = `/${normalizedHost}${url.pathname}`;
 	return NextResponse.rewrite(url);
+}
+
+function shouldBypassCustomDomainRewrite(pathname: string) {
+	return (
+		isOgPath(pathname) ||
+		isMetadataPath(pathname) ||
+		isSharedPublicAssetPath(pathname)
+	);
+}
+
+function isOgPath(pathname: string) {
+	return pathname.startsWith("/og");
+}
+
+function isMetadataPath(pathname: string) {
+	return (
+		pathname === "/robots.txt" ||
+		pathname === "/sitemap.xml" ||
+		pathname.startsWith("/sitemap.xml/") ||
+		pathname === "/favicon.ico" ||
+		pathname === "/opengraph-image.png"
+	);
+}
+
+function isSharedPublicAssetPath(pathname: string) {
+	return (
+		pathname.startsWith("/icons/") ||
+		pathname.startsWith("/assets/") ||
+		pathname.startsWith("/fonts/") ||
+		pathname === "/next.svg" ||
+		pathname === "/vercel.svg" ||
+		pathname === "/window.svg" ||
+		pathname === "/globe.svg" ||
+		pathname === "/file.svg"
+	);
 }
 
 function stripTrailingSlash(value: string) {
@@ -58,5 +93,5 @@ export function isOnMainSite(host: string | null | undefined) {
 }
 
 export const config = {
-	matcher: ["/((?!api|auth|trpc|_next/static|_next/image|.*\\.png$|.svg).*)"],
+	matcher: ["/((?!api|auth|trpc|_next/static|_next/image).*)"],
 };

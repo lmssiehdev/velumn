@@ -83,7 +83,7 @@ export async function searchMessages(options: {
 				slugifyThreadUrl({
 					id: hit.threadId!,
 					name: hit.title!,
-				}) + (hit.isThreadStarter ? "" : `/#${hit.id}`),
+				}) + (hit.isThreadStarter ? "" : `#${hit.id}`),
 			sanitizedName: sanitize(hit._formatted?.title),
 			sanitizedContent: sanitize(hit._formatted?.content),
 		}))

@@ -45,18 +45,23 @@ export default async function Page({
 	searchParams: Promise<ForumSearchParams>;
 }) {
 	const { id: channelId } = await params;
+	const resolvedSearchParams = await searchParams;
 	// !! TODO: do these in one join
 	const channel = await getChannelInfoCached(channelId);
-	const searchParamsPage = await parseForumPage(searchParams);
+	const searchParamsPage = await parseForumPage(resolvedSearchParams);
 
 	if (!channel?.server) {
 		notFound();
 	}
 
 	if (hasVerifiedCustomDomain(channel.server)) {
-		permanentRedirect(
-			getCustomDomainUrl(channel.server, `/channel/${channelId}`),
-		);
+		const pageParam = Array.isArray(resolvedSearchParams.page)
+			? resolvedSearchParams.page[0]
+			: resolvedSearchParams.page;
+		const redirectPath = pageParam
+			? `/channel/${channelId}?page=${pageParam}`
+			: `/channel/${channelId}`;
+		permanentRedirect(getCustomDomainUrl(channel.server, redirectPath));
 	}
 
 	const [regularResult, pinnedResult] = await Promise.all([
