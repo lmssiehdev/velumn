@@ -69,7 +69,7 @@ export const dbServer = pgTable(
 		invitedBy: text("invitedBy"),
 		anonymizeUsers: boolean("anonymize_users").default(false).notNull(),
 		icon: text("icon").default(""),
-		customDomain: text("custom_domain").$type<string | null>().default(null),
+		customDomain: text("custom_domain").$type<string | null>(),
 		domainVerified: boolean("domain_verified").default(false).notNull(),
 	},
 	(table) => [uniqueIndex("server_custom_domain_idx").on(table.customDomain)],
