@@ -75,6 +75,7 @@ export function MarkdownResponse(content: string): Response {
 	return new Response(content, {
 		headers: {
 			"Content-Type": "text/markdown; charset=utf-8",
+			Vary: "Accept",
 		},
 	});
 }
