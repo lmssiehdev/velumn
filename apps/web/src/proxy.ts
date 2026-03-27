@@ -24,7 +24,11 @@ export function proxy(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	const normalizedHost = normalizeHostHeader(host ?? "");
+	if (!host) {
+		return NextResponse.next();
+	}
+
+	const normalizedHost = normalizeHostHeader(host);
 	url.pathname = `/${normalizedHost}${url.pathname}`;
 	return NextResponse.rewrite(url);
 }
@@ -52,7 +56,11 @@ export function getMarkdownThreadRewrite(
 		return { pathname: markdownPath };
 	}
 
-	const normalizedHost = normalizeHostHeader(host ?? "");
+	if (!host) {
+		return { pathname: markdownPath };
+	}
+
+	const normalizedHost = normalizeHostHeader(host);
 	return {
 		pathname: `/${normalizedHost}${markdownPath}`,
 	};

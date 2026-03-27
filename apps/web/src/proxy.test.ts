@@ -33,6 +33,12 @@ describe("proxy markdown routing", () => {
 		).toEqual({ pathname: "/docs.example.com/markdown/123" });
 	});
 
+	it("falls back to the main-site markdown path when host is missing", () => {
+		expect(
+			getMarkdownThreadRewrite("/thread/123/right_slug.md", null, null),
+		).toEqual({ pathname: "/markdown/123" });
+	});
+
 	it("ignores normal html thread requests", () => {
 		expect(
 			getMarkdownThreadRewrite(
