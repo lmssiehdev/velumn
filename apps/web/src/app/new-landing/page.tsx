@@ -34,10 +34,11 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-static";
 
 export const metadata: Metadata = buildPageMetadata({
-	title: "Turn Discord Knowledge Into Community Growth",
+	title: "Help More People Find Your Discord Community",
 	description:
-		"Velumn publishes useful public Discord threads as searchable pages that help people discover your knowledge and find their way back to your community.",
+		"Turn selected Discord threads into public, search-friendly pages that help people find your answers and join your community.",
 	canonicalUrl: absoluteUrl("/new-landing"),
+	robots: { index: false, follow: true },
 });
 
 const faqItems = [
@@ -89,56 +90,73 @@ const featureCards = [
 
 export default function NewLandingPage() {
 	return (
-		<main className="min-h-screen overflow-hidden bg-[#f7f5ed] text-[#191918]">
+		<>
+			<a
+				className="fixed top-3 left-3 z-50 -translate-y-16 rounded-md bg-[#20201e] px-4 py-2 text-sm text-white transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] focus:translate-y-0"
+				href="#main-content"
+			>
+				Skip to content
+			</a>
 			<FaqJsonLd items={[...faqItems]} />
 			<Navigation />
-			<div className="mx-auto max-w-[1280px] border-[#cbc9bf] border-x">
-				<Hero />
-				<Outcomes />
-				<HowItWorks />
-				<DiscoveryLoop />
-				<ProductStory />
-				<AiDiscovery />
-				<OpenSource />
-				<FAQ />
-				<FinalCTA />
-			</div>
+			<main
+				className="min-h-screen overflow-hidden bg-[#f7f5ed] text-[#191918]"
+				id="main-content"
+			>
+				<div className="mx-auto max-w-[1280px] border-[#cbc9bf] border-x">
+					<Hero />
+					<Outcomes />
+					<Tagline />
+					<HowItWorks />
+					<ProductStory />
+					<AiDiscovery />
+					<SourceTrust />
+					<FAQ />
+					<FinalCTA />
+				</div>
+			</main>
 			<Footer />
-		</main>
+		</>
 	);
 }
 
 function Navigation() {
 	return (
 		<div className="border-[#cbc9bf] border-b bg-[#f7f5ed]/90 backdrop-blur-lg">
-			<nav className="mx-auto flex h-16 max-w-[1280px] items-center justify-between border-[#cbc9bf] border-x px-4 sm:px-7">
-				<Link className="flex items-baseline gap-2" href="/new-landing">
+			<nav
+				aria-label="Primary"
+				className="mx-auto flex h-16 max-w-[1280px] items-center justify-between border-[#cbc9bf] border-x px-4 sm:px-7"
+			>
+				<Link className="flex items-baseline gap-2" href="/">
 					<span className="text-xl tracking-[-0.03em]">Velumn</span>
-					<span className="rounded-full border border-[#cbc9bf] px-2 py-0.5 text-[10px] text-[#67665f] uppercase tracking-[0.14em]">
+					<span className="rounded-full border border-[#cbc9bf] px-2 py-0.5 text-[#67665f] text-xs uppercase tracking-[0.14em]">
 						Beta
 					</span>
 				</Link>
 				<div className="hidden items-center gap-7 text-sm text-[#56554f] md:flex">
 					<a
-						className="transition-colors hover:text-black"
+						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a52dc] focus-visible:ring-offset-4"
 						href="#how-it-works"
 					>
 						How it works
 					</a>
-					<a className="transition-colors hover:text-black" href="#features">
+					<a
+						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a52dc] focus-visible:ring-offset-4"
+						href="#features"
+					>
 						Why Velumn
 					</a>
-					<a className="transition-colors hover:text-black" href="#faq">
+					<a
+						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a52dc] focus-visible:ring-offset-4"
+						href="#faq"
+					>
 						FAQ
 					</a>
-					<Link className="transition-colors hover:text-black" href="/blog">
-						Resources
-					</Link>
 				</div>
 				<TrackLink
 					className={cn(
 						buttonVariants({ size: "sm" }),
-						"rounded-full bg-[#20201e] px-4 shadow-none hover:bg-[#393936]",
+						"rounded-full bg-[#20201e] px-4 shadow-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#393936] active:translate-y-0 active:scale-[0.98]",
 					)}
 					eventData={{ source: "new-landing-nav" }}
 					eventKey="addServer"
@@ -146,7 +164,7 @@ function Navigation() {
 					rel="noopener"
 					target="_blank"
 				>
-					Start publishing
+					Start free trial
 					<HugeiconsIcon icon={ArrowUpRight03Icon} />
 				</TrackLink>
 			</nav>
@@ -157,27 +175,24 @@ function Navigation() {
 function Hero() {
 	return (
 		<header className="relative border-[#cbc9bf] border-b px-4 pt-20 pb-10 sm:px-8 sm:pt-28 lg:px-12 lg:pt-36">
-			<div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] overflow-hidden">
-				<div className="absolute top-24 left-[7%] h-52 w-52 rounded-full bg-[#d7ffab]/25 blur-[110px]" />
-				<div className="absolute top-10 right-[6%] h-64 w-64 rounded-full bg-[#dcd5ff]/30 blur-[120px]" />
-			</div>
-			<div className="relative mx-auto max-w-5xl text-center">
+			<div className="mx-auto max-w-5xl text-center">
 				<div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#bdbbb1] bg-[#fffef9] px-3 py-1.5 text-xs text-[#4d4c47] shadow-[0_2px_8px_rgba(35,35,30,0.05)]">
 					<span className="size-1.5 rounded-full bg-[#7f65ff]" />
-					Discord knowledge, built for discovery
+					For communities with answers worth sharing
 				</div>
-				<h1 className="mx-auto max-w-4xl text-balance text-5xl leading-[1] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
-					Turn Discord knowledge into community growth.
+				<h1 className="mx-auto max-w-[680px] text-balance text-5xl tracking-[-0.04em] sm:text-6xl">
+					Help more people find your Discord community.
 				</h1>
-				<p className="mx-auto mt-7 max-w-2xl text-pretty text-base leading-7 text-[#64635d] sm:text-lg">
-					Turn your best Discord threads into public, search-friendly pages.
-					Readers get useful answers and a clear path back to your community.
+				<p className="mx-auto mt-7 max-w-[680px] text-pretty text-base text-[#64635d] sm:text-lg">
+					Velumn turns selected Discord threads into public, search-friendly
+					pages. Readers find the answer on the web, then continue the
+					conversation in your server.
 				</p>
-				<div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+				<div className="mt-9 flex justify-center">
 					<TrackLink
 						className={cn(
 							buttonVariants({ size: "lg" }),
-							"h-12 w-full rounded-full bg-[#20201e] px-6 shadow-none hover:bg-[#393936] sm:w-auto",
+							"h-12 w-full rounded-full bg-[#20201e] px-6 font-semibold text-base shadow-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#393936] active:translate-y-0 active:scale-[0.98] sm:w-auto",
 						)}
 						eventData={{ source: "new-landing-hero" }}
 						eventKey="addServer"
@@ -185,28 +200,25 @@ function Hero() {
 						rel="noopener"
 						target="_blank"
 					>
-						Start publishing
+						Start free trial
 						<HugeiconsIcon icon={ArrowRight02Icon} />
-					</TrackLink>
-					<TrackLink
-						className={cn(
-							buttonVariants({ size: "lg", variant: "outline" }),
-							"h-12 w-full rounded-full border-[#bdbbb1] bg-[#fffef9] px-6 shadow-none sm:w-auto",
-						)}
-						eventData={undefined}
-						eventKey="clickedDemoLink"
-						href="/thread/1436230598959300718/a_demo_thread"
-					>
-						Explore a live page
-						<HugeiconsIcon icon={ArrowUpRight03Icon} />
 					</TrackLink>
 				</div>
 				<p className="mt-4 text-xs text-[#77766f]">
-					Your community stays in Discord · You choose what gets published
+					7 days free. No credit card required.
 				</p>
 			</div>
 
 			<HeroDemo />
+			<TrackLink
+				className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-md text-sm text-[#56554f] underline decoration-[#aaa89e] underline-offset-4 transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a52dc] focus-visible:ring-offset-4"
+				eventData={undefined}
+				eventKey="clickedDemoLink"
+				href="/thread/1436230598959300718/a_demo_thread"
+			>
+				See a live Velumn page
+				<HugeiconsIcon className="size-4" icon={ArrowUpRight03Icon} />
+			</TrackLink>
 		</header>
 	);
 }
@@ -223,7 +235,7 @@ function HeroDemo() {
 							</div>
 							<div>
 								<p className="font-medium text-sm">Northstar Community</p>
-								<p className="hidden text-[#8b8981] text-[10px] sm:block">
+								<p className="hidden text-[#8b8981] text-xs sm:block">
 									community.northstar.dev
 								</p>
 							</div>
@@ -360,7 +372,7 @@ function ThreadMessage({
 					<div className="mb-1 flex flex-wrap items-center gap-1 text-xs">
 						<span className="font-medium">{author}</span>
 						{isOp && (
-							<span className="border border-purple-700 px-1 text-[10px] text-purple-700">
+							<span className="border border-purple-700 px-1 text-purple-700 text-xs">
 								OP
 							</span>
 						)}
@@ -418,6 +430,17 @@ function Outcomes() {
 	);
 }
 
+function Tagline() {
+	return (
+		<section className="border-[#cbc9bf] border-b bg-[#e6e3ff] px-5 py-24 sm:px-8 sm:py-32 lg:px-12">
+			<p className="mx-auto max-w-[680px] text-balance text-center text-4xl tracking-[-0.04em] text-[#2f2c3d] sm:text-5xl">
+				A useful answer should keep working long after the Discord thread goes
+				quiet.
+			</p>
+		</section>
+	);
+}
+
 function HowItWorks() {
 	return (
 		<section
@@ -440,7 +463,7 @@ function HowItWorks() {
 				</div>
 
 				<div className="relative mt-16 grid gap-4 lg:grid-cols-3">
-					<div className="absolute top-1/2 right-[15%] left-[15%] hidden h-px bg-gradient-to-r from-[#8b7bff] via-[#b6ff69] to-[#ffb48a] opacity-50 lg:block" />
+					<div className="absolute top-1/2 right-[15%] left-[15%] hidden h-px bg-white/15 lg:block" />
 					<WorkflowCard
 						className="bg-[#302e42]"
 						icon={DiscordLogoIcon}
@@ -543,118 +566,6 @@ function WorkflowCard({
 			<h3 className="mt-8 text-2xl tracking-[-0.03em]">{title}</h3>
 			{children}
 		</article>
-	);
-}
-
-function DiscoveryLoop() {
-	return (
-		<section className="border-[#cbc9bf] border-b" id="features">
-			<div className="grid lg:grid-cols-2">
-				<div className="flex min-h-[560px] flex-col justify-center border-[#cbc9bf] border-b p-6 sm:p-10 lg:border-r lg:border-b-0 lg:p-14">
-					<p className="mb-4 font-medium text-[#6a52dc] text-xs uppercase tracking-[0.18em]">
-						Velumn for search
-					</p>
-					<h2 className="max-w-xl text-balance text-4xl leading-[1.05] tracking-[-0.045em] sm:text-5xl">
-						Meet people at the moment they need your answer.
-					</h2>
-					<p className="mt-6 max-w-lg leading-7 text-[#66655f]">
-						Velumn gives your best public threads stable, search-friendly pages.
-						When readers discover one, they see the answer and the community
-						that made it possible.
-					</p>
-					<div className="mt-8 grid gap-3 text-sm">
-						<div className="flex items-center gap-2">
-							<HugeiconsIcon
-								className="size-4 text-[#6a52dc]"
-								icon={Tick02Icon}
-							/>
-							Built for search engines to crawl and understand
-						</div>
-						<div className="flex items-center gap-2">
-							<HugeiconsIcon
-								className="size-4 text-[#6a52dc]"
-								icon={Tick02Icon}
-							/>
-							Publish under your own verified domain
-						</div>
-					</div>
-					<TrackLink
-						className={cn(
-							buttonVariants({ size: "lg" }),
-							"mt-9 h-11 w-fit rounded-full bg-[#20201e] px-6 shadow-none hover:bg-[#393936]",
-						)}
-						eventData={undefined}
-						eventKey="clickedDemoLink"
-						href="/thread/1436230598959300718/a_demo_thread"
-					>
-						Explore a live page
-						<HugeiconsIcon icon={ArrowRight02Icon} />
-					</TrackLink>
-				</div>
-
-				<div className="flex min-h-[560px] items-center bg-[#e6e3ff] p-6 sm:p-10 lg:p-14">
-					<div className="mx-auto w-full max-w-lg overflow-hidden rounded-2xl border border-[#aaa3dd] bg-[#fffef9] shadow-[0_24px_55px_rgba(72,61,130,0.14)]">
-						<div className="p-4 sm:p-6">
-							<div className="mb-3 font-medium text-[#746da2] text-[10px] uppercase tracking-[0.16em]">
-								01 · Someone searches
-							</div>
-							<div className="flex items-center gap-3 rounded-full border border-[#d4d1c8] px-4 py-2.5 text-[#77756e] text-sm">
-								<HugeiconsIcon className="size-4" icon={Search01Icon} />
-								How do I make my Discord searchable?
-							</div>
-						</div>
-						<div className="border-[#dedbe9] border-y p-4 sm:p-6">
-							<div className="mb-4 font-medium text-[#746da2] text-[10px] uppercase tracking-[0.16em]">
-								02 · Your community has the answer
-							</div>
-							<div className="flex items-center gap-2 text-sm">
-								<div className="flex size-7 items-center justify-center rounded-full bg-[#20201e] text-white">
-									<HugeiconsIcon className="size-3.5" icon={Globe02Icon} />
-								</div>
-								<div>
-									<p>Velumn</p>
-									<p className="text-[#8a8880] text-xs">velumn.com › thread</p>
-								</div>
-							</div>
-							<h3 className="mt-4 text-xl leading-tight tracking-[-0.025em] sm:text-2xl">
-								How do I index my Discord channels into Google?
-							</h3>
-							<p className="mt-2 text-[#6f6d66] text-sm leading-6">
-								A practical answer, with the original community and conversation
-								attached.
-							</p>
-						</div>
-						<div className="bg-[#29273a] p-4 text-white sm:p-6">
-							<div className="mb-4 font-medium text-[#bcb5ff] text-[10px] uppercase tracking-[0.16em]">
-								03 · The answer leads them home
-							</div>
-							<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-								<div className="flex items-center gap-3">
-									<div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#5865f2]">
-										<HugeiconsIcon
-											className="size-5 text-white"
-											icon={DiscordIcon}
-										/>
-									</div>
-									<div>
-										<p className="font-medium text-sm">
-											Meet the people behind the answer
-										</p>
-										<p className="mt-0.5 text-white/50 text-xs">
-											Continue in the original Discord thread
-										</p>
-									</div>
-								</div>
-								<div className="flex shrink-0 items-center gap-2 rounded-full bg-white px-4 py-2 text-[#20201e] text-sm">
-									Open Discord
-									<HugeiconsIcon className="size-4" icon={ArrowRight02Icon} />
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
 	);
 }
 
@@ -779,11 +690,10 @@ function AiDiscovery() {
 
 function ProductStory() {
 	return (
-		<section className="border-[#cbc9bf] border-b">
+		<section className="scroll-mt-24 border-[#cbc9bf] border-b" id="features">
 			<div className="grid lg:grid-cols-2">
 				<div className="relative min-h-[540px] overflow-hidden border-[#cbc9bf] border-b bg-[#ffdaca] p-6 sm:p-10 lg:border-r lg:border-b-0 lg:p-14">
-					<div className="absolute top-20 -left-28 size-72 rounded-full bg-[#ffaf8b]/20 blur-[100px]" />
-					<div className="relative mx-auto max-w-md space-y-3">
+					<div className="mx-auto max-w-md space-y-3">
 						{(
 							[
 								["#general", "Not connected", false],
@@ -853,7 +763,7 @@ function ProductStory() {
 	);
 }
 
-function OpenSource() {
+function SourceTrust() {
 	return (
 		<section className="border-[#cbc9bf] border-b px-5 py-24 sm:px-8 sm:py-32 lg:px-12">
 			<div className="mx-auto grid max-w-6xl overflow-hidden rounded-2xl border border-[#aaa89e] bg-[#20201e] text-white lg:grid-cols-[1.2fr_0.8fr]">
@@ -869,12 +779,12 @@ function OpenSource() {
 					</h2>
 					<p className="mt-6 max-w-lg leading-7 text-white/55">
 						Velumn&apos;s source is public. See how your community pages work,
-						review every change, report an issue, or contribute an improvement.
+						review every change, and report issues directly on GitHub.
 					</p>
 					<a
 						className={cn(
 							buttonVariants({ size: "lg", variant: "outline" }),
-							"mt-9 h-11 rounded-full border-white/20 bg-white text-black shadow-none hover:bg-[#efede6]",
+							"mt-9 h-11 rounded-full border-white/20 bg-white text-black shadow-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#efede6] active:translate-y-0 active:scale-[0.98]",
 						)}
 						href="https://github.com/lmssiehdev/velumn"
 						rel="noopener noreferrer"
@@ -884,9 +794,8 @@ function OpenSource() {
 						<HugeiconsIcon icon={ArrowUpRight03Icon} />
 					</a>
 				</div>
-				<div className="relative min-h-[360px] overflow-hidden border-white/10 border-t bg-[#292927] lg:min-h-0 lg:border-t-0 lg:border-l">
-					<div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:34px_34px]" />
-					<div className="relative flex h-full min-h-[360px] items-center justify-center p-8">
+				<div className="border-white/10 border-t bg-[#292927] lg:border-t-0 lg:border-l">
+					<div className="flex h-full min-h-[360px] items-center justify-center p-8">
 						<div className="w-full max-w-sm rotate-2 rounded-xl border border-white/15 bg-[#181817] p-5 font-mono text-xs shadow-2xl">
 							<div className="mb-5 flex gap-1.5">
 								<span className="size-2 rounded-full bg-white/20" />
@@ -903,7 +812,7 @@ function OpenSource() {
 							<p className="mt-1 text-white/65">
 								Receiving objects: 100% complete
 							</p>
-							<p className="mt-3 text-[#b7adff]">✓ Ready to inspect</p>
+							<p className="mt-3 text-[#b7adff]">Ready to inspect</p>
 						</div>
 					</div>
 				</div>
@@ -912,7 +821,7 @@ function OpenSource() {
 	);
 }
 
-function FAQ() {
+export function FAQ() {
 	return (
 		<section
 			className="border-[#cbc9bf] border-b px-5 py-24 sm:px-8 sm:py-32 lg:px-12"
@@ -942,7 +851,7 @@ function FAQ() {
 									{item.question}
 								</span>
 								<HugeiconsIcon
-									className="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180"
+									className="size-4 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-data-[state=open]:rotate-180"
 									icon={ChevronDownIcon}
 								/>
 							</CollapsibleTrigger>
@@ -959,9 +868,8 @@ function FAQ() {
 
 function FinalCTA() {
 	return (
-		<section className="relative overflow-hidden px-5 py-28 text-center sm:px-8 sm:py-40">
-			<div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_65%,rgba(182,255,105,.18),transparent_34%),radial-gradient(circle_at_35%_45%,rgba(220,213,255,.32),transparent_40%)]" />
-			<div className="relative mx-auto max-w-4xl">
+		<section className="px-5 py-28 text-center sm:px-8 sm:py-40">
+			<div className="mx-auto max-w-4xl">
 				<div className="mx-auto mb-7 flex size-12 items-center justify-center rounded-2xl border border-[#b8b5aa] bg-[#fffef9] shadow-sm">
 					<HugeiconsIcon className="size-6 text-[#5865f2]" icon={DiscordIcon} />
 				</div>
@@ -975,7 +883,7 @@ function FinalCTA() {
 				<TrackLink
 					className={cn(
 						buttonVariants({ size: "lg" }),
-						"mt-9 h-12 rounded-full bg-[#20201e] px-7 shadow-none hover:bg-[#393936]",
+						"mt-9 h-12 rounded-full bg-[#20201e] px-7 font-semibold text-base shadow-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#393936] active:translate-y-0 active:scale-[0.98]",
 					)}
 					eventData={{ source: "new-landing-cta" }}
 					eventKey="addServer"
@@ -983,9 +891,12 @@ function FinalCTA() {
 					rel="noopener"
 					target="_blank"
 				>
-					Start publishing
+					Start free trial
 					<HugeiconsIcon icon={ArrowUpRight03Icon} />
 				</TrackLink>
+				<p className="mt-4 text-xs text-[#68647a]">
+					7 days free. No credit card required.
+				</p>
 			</div>
 		</section>
 	);
@@ -997,17 +908,11 @@ function Footer() {
 			<div className="mx-auto flex max-w-[1280px] flex-col gap-6 border-white/10 border-x px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-8">
 				<div className="flex items-baseline gap-3">
 					<span className="text-lg text-white">Velumn</span>
-					<span>Turn Discord knowledge into community growth.</span>
+					<span>Help more people find your Discord community.</span>
 				</div>
 				<div className="flex flex-wrap gap-x-6 gap-y-3">
-					<Link className="transition-colors hover:text-white" href="/blog">
-						Blog
-					</Link>
-					<Link className="transition-colors hover:text-white" href="/pricing">
-						Pricing
-					</Link>
 					<a
-						className="transition-colors hover:text-white"
+						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#20201e]"
 						href="https://github.com/lmssiehdev/velumn"
 						rel="noopener noreferrer"
 						target="_blank"
