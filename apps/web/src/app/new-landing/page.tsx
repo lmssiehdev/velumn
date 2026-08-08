@@ -146,12 +146,12 @@ function Navigation() {
 					>
 						How it works
 					</a>
-					<a
+					<Link
 						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a52dc] focus-visible:ring-offset-4"
-						href="#features"
+						href="/pricing"
 					>
-						Why Velumn
-					</a>
+						Pricing
+					</Link>
 					<a
 						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a52dc] focus-visible:ring-offset-4"
 						href="#faq"
@@ -917,6 +917,12 @@ function Footer() {
 					<span>Help more people find your Discord community.</span>
 				</div>
 				<div className="flex flex-wrap gap-x-6 gap-y-3">
+					<Link
+						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#20201e]"
+						href="/pricing"
+					>
+						Pricing
+					</Link>
 					<Link
 						className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#20201e]"
 						href="/oss-program"
