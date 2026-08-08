@@ -92,12 +92,13 @@ function Pricing() {
 	return (
 		<section className="border-[#cbc9bf] border-b px-5 pt-20 pb-24 sm:px-8 sm:pt-28 sm:pb-32 lg:px-12">
 			<div className="mx-auto max-w-6xl">
-				<header className="mx-auto max-w-3xl text-center">
+				<header className="mx-auto max-w-6xl text-center">
 					<p className="font-medium text-[#6a52dc] text-xs uppercase tracking-[0.18em]">
 						Pricing
 					</p>
-					<h1 className="mt-5 text-balance text-4xl leading-[1] tracking-[-0.045em] sm:text-6xl sm:leading-[0.98] sm:tracking-[-0.05em] lg:text-7xl">
-						Searchable Discord answers, without another knowledge base to run.
+					<h1 className="mx-auto mt-5 max-w-[1120px] text-balance text-5xl leading-[0.98] tracking-[-0.05em] sm:text-6xl lg:text-[5.25rem]">
+						Turn Discord answers
+						<br className="hidden lg:block" /> into public knowledge.
 					</h1>
 					<p className="mx-auto mt-7 max-w-2xl text-pretty text-base leading-7 text-[#64635d] sm:text-lg">
 						Every plan publishes selected Discord threads as public, searchable
