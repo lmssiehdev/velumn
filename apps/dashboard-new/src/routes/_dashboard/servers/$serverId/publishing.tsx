@@ -209,17 +209,21 @@ function PublishingSettings({
             <p className="text-xs font-medium text-muted-foreground">
               Velumn address
             </p>
-            <div className="mt-1 flex min-w-0 items-center gap-1">
+            <div className="mt-2 flex min-w-0 items-start gap-2 rounded-lg border bg-muted/30 p-2.5">
               <a
                 href={data.defaultUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="min-w-0 truncate text-sm font-medium underline-offset-4 hover:underline"
+                className="min-w-0 flex-1 py-1 text-sm leading-5 font-medium break-all underline-offset-4 hover:underline"
                 title={data.defaultUrl}
               >
                 {data.defaultUrl}
               </a>
-              <CopyButton value={data.defaultUrl} label="Copy Velumn address" />
+              <CopyButton
+                value={data.defaultUrl}
+                label="Copy Velumn address"
+                showLabel
+              />
             </div>
           </div>
         </div>
@@ -528,7 +532,15 @@ function RecordValue({ label, value }: { label: string; value: string }) {
   )
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+function CopyButton({
+  value,
+  label,
+  showLabel = false,
+}: {
+  value: string
+  label: string
+  showLabel?: boolean
+}) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
   )
@@ -538,7 +550,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   return (
     <Button
       type="button"
-      size="icon-sm"
+      size={showLabel ? "sm" : "icon-sm"}
       variant="ghost"
       aria-label={copied ? "Copied" : failed ? "Copy failed" : label}
       title={copied ? "Copied" : failed ? "Copy failed" : label}
@@ -552,6 +564,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       }}
     >
       {copied ? <Check /> : failed ? <CircleAlert /> : <Copy />}
+      {showLabel && (copied ? "Copied" : failed ? "Copy failed" : "Copy")}
       <span className="sr-only" aria-live="polite">
         {copied ? "Copied" : failed ? "Copy failed" : ""}
       </span>

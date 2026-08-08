@@ -351,7 +351,7 @@ function ChannelsEditor({
       </Card>
 
       {data.channels.length > 0 && (dirty || saveError) && (
-        <div className="sticky bottom-4 z-10 mt-5 flex flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_rgb(0_0_0/0.08)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-4 z-10 mt-5 flex flex-col gap-3 rounded-xl border bg-background/95 p-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium">
               {`${selectedIds.size} channels selected, ${changeCount} unsaved ${changeCount === 1 ? "change" : "changes"}`}
