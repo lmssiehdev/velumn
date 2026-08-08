@@ -49,8 +49,8 @@ export default function PricingPage() {
 			>
 				<div className="mx-auto max-w-[1280px] border-[#cbc9bf] border-x">
 					<Pricing />
-					<OssCallout />
-					<FinalCTA />
+					<TestimonialPreview />
+					<OssProgram />
 				</div>
 			</main>
 			<Footer />
@@ -100,9 +100,11 @@ function Pricing() {
 						Turn Discord answers
 						<br className="hidden lg:block" /> into public knowledge.
 					</h1>
-					<p className="mx-auto mt-7 max-w-2xl text-pretty text-base leading-7 text-[#64635d] sm:text-lg">
-						Every plan publishes selected Discord threads as public, searchable
-						pages. Start hosted for free. Upgrade when you want your own domain.
+					<p className="mx-auto mt-7 max-w-[760px] text-pretty text-base leading-7 text-[#64635d] sm:text-lg sm:leading-8">
+						Every plan includes the full publishing setup: unlimited indexed
+						channels and page views, automatic syncing, and every answer linked
+						back to Discord. Start free on Velumn, or upgrade for your own
+						domain and priority support.
 					</p>
 					<ul className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[#64635d] text-sm">
 						<li className="flex items-center gap-2">
@@ -224,52 +226,61 @@ function PlanCard({
 	);
 }
 
-function OssCallout() {
+// Placeholder content for layout testing. Replace with a verified customer quote before production.
+function TestimonialPreview() {
 	return (
-		<section className="border-[#cbc9bf] border-b bg-[#dff4c7] px-5 py-14 sm:px-8 lg:px-12">
-			<div className="mx-auto flex max-w-4xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-				<div className="flex items-start gap-4">
-					<div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#31520e] text-white">
-						<HugeiconsIcon className="size-5" icon={GithubIcon} />
-					</div>
-					<div>
-						<h2 className="text-xl tracking-[-0.025em]">
-							Running a non-commercial open-source project?
-						</h2>
-						<p className="mt-2 max-w-xl text-[#49652b] text-sm leading-6">
-							Eligible projects get the complete Pro plan free.
-						</p>
-					</div>
-				</div>
-				<Link
-					className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[#73974e] bg-[#f7ffef] px-5 font-medium text-[#263d0e] text-sm transition-[transform,background-color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-white active:translate-y-0 active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#31520e] focus-visible:ring-offset-4 focus-visible:ring-offset-[#dff4c7]"
-					href="/oss-program"
-				>
-					View OSS program
-					<HugeiconsIcon icon={ArrowRight02Icon} />
-				</Link>
+		<section className="border-[#cbc9bf] border-b bg-[#ffdaca] px-5 py-20 sm:px-8 sm:py-24 lg:px-12">
+			<div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.4fr_1.6fr]">
+				<p className="font-medium text-[#9a4525] text-xs uppercase tracking-[0.18em]">
+					Customer story
+				</p>
+				<blockquote>
+					<p className="text-balance text-3xl leading-[1.12] tracking-[-0.035em] text-[#38241d] sm:text-4xl">
+						“We had years of community knowledge buried in Discord. Now our
+						users can finally find it.”
+					</p>
+					<footer className="mt-8 flex items-center gap-3">
+						<div className="flex size-10 items-center justify-center rounded-full bg-[#20201e] text-sm text-white">
+							T
+						</div>
+						<div className="text-sm">
+							<cite className="not-italic text-[#38241d]">Tyler</cite>
+							<p className="mt-0.5 text-[#825c4d]">
+								Customer Success at CrownCards
+							</p>
+						</div>
+					</footer>
+				</blockquote>
 			</div>
 		</section>
 	);
 }
 
-function FinalCTA() {
+function OssProgram() {
 	return (
-		<section className="px-5 py-24 text-center sm:px-8 sm:py-32">
-			<div className="mx-auto max-w-3xl">
-				<h2 className="text-balance text-4xl leading-[1.02] tracking-[-0.045em] sm:text-5xl">
-					Start with the community you already have.
-				</h2>
-				<p className="mx-auto mt-6 max-w-xl text-pretty leading-7 text-[#64635d]">
-					Connect Discord, choose the channels to publish, and give useful
-					answers a public home.
-				</p>
-				<div className="mt-8">
-					<DashboardLink eventKey="pricingFinalCta" size="lg">
-						Start free
-						<HugeiconsIcon icon={ArrowUpRight03Icon} />
-					</DashboardLink>
+		<section className="border-[#cbc9bf] border-b px-5 py-24 sm:px-8 sm:py-32 lg:px-12">
+			<div className="mx-auto max-w-6xl overflow-hidden rounded-2xl border border-[#aaa89e] bg-[#20201e] p-7 text-white sm:p-12 lg:p-16">
+				<div className="flex items-center justify-between gap-6">
+					<div className="flex size-12 items-center justify-center rounded-xl bg-white/10">
+						<HugeiconsIcon className="size-6" icon={GithubIcon} />
+					</div>
+					<span className="font-mono text-white/35 text-xs uppercase tracking-[0.14em]">
+						Full Pro · $0
+					</span>
 				</div>
+				<p className="mt-12 font-medium text-[#b6ff69] text-xs uppercase tracking-[0.18em]">
+					Open-source program
+				</p>
+				<h2 className="mt-4 max-w-4xl text-balance text-4xl leading-[1.04] tracking-[-0.045em] sm:text-6xl">
+					Velumn for open-source communities.
+				</h2>
+				<Link
+					className="mt-9 inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-white px-5 font-medium text-[#20201e] text-sm transition-[transform,background-color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#efede6] active:translate-y-0 active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#20201e]"
+					href="/oss-program"
+				>
+					Explore the OSS program
+					<HugeiconsIcon icon={ArrowRight02Icon} />
+				</Link>
 			</div>
 		</section>
 	);
@@ -294,7 +305,8 @@ function DashboardLink({
 				buttonVariants({ size, variant }),
 				"rounded-full font-semibold shadow-none transition-[transform,background-color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none",
 				variant === "default" && "bg-[#20201e] hover:bg-[#393936]",
-				variant === "outline" && "border-[#aaa89e] bg-white hover:bg-[#f1efe8]",
+				variant === "outline" &&
+					"border-[#aaa89e] bg-white text-[#20201e] hover:bg-[#f1efe8] hover:text-[#20201e]",
 				size === "lg" && "h-12 px-6 text-base",
 				size === "lg" && (fullWidth ? "w-full" : "w-full sm:w-auto"),
 			)}
