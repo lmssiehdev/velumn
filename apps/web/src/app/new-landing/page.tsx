@@ -180,21 +180,22 @@ function Navigation() {
 
 function Hero() {
 	return (
-		<header className="relative border-[#cbc9bf] border-b px-4 pt-20 pb-10 sm:px-8 sm:pt-28 lg:px-12 lg:pt-36">
-			<div className="mx-auto max-w-5xl text-center">
-				<div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#bdbbb1] bg-[#fffef9] px-3 py-1.5 text-xs text-[#4d4c47] shadow-[0_2px_8px_rgba(35,35,30,0.05)]">
+		<header className="relative border-[#cbc9bf] border-b px-4 pt-20 pb-10 sm:px-8 sm:pt-24 lg:px-12 lg:pt-28">
+			<div className="mx-auto max-w-6xl text-center">
+				<div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#bdbbb1] bg-[#fffef9] px-3 py-1.5 text-xs text-[#4d4c47] shadow-[0_2px_8px_rgba(35,35,30,0.05)]">
 					<span className="size-1.5 rounded-full bg-[#7f65ff]" />
 					For communities with answers worth sharing
 				</div>
-				<h1 className="mx-auto max-w-[680px] text-balance text-5xl tracking-[-0.04em] sm:text-6xl">
-					Help more people find your Discord community.
+				<h1 className="mx-auto max-w-[1120px] text-balance text-5xl leading-[0.98] tracking-[-0.05em] sm:text-6xl lg:text-[5.25rem]">
+					Help more people find
+					<br className="hidden lg:block" /> your Discord community.
 				</h1>
-				<p className="mx-auto mt-7 max-w-[680px] text-pretty text-base text-[#64635d] sm:text-lg">
+				<p className="mx-auto mt-8 max-w-[720px] text-pretty text-base leading-7 text-[#64635d] sm:text-lg sm:leading-8">
 					Velumn turns selected Discord threads into public, search-friendly
 					pages. Readers find the answer on the web, then continue the
 					conversation in your server.
 				</p>
-				<div className="mt-9 flex justify-center">
+				<div className="mt-8 flex justify-center">
 					<TrackLink
 						className={cn(
 							buttonVariants({ size: "lg" }),
