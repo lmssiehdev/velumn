@@ -14,6 +14,7 @@ import {
   Copy,
   Globe2,
   LoaderCircle,
+  Plus,
   RefreshCw,
   ShieldCheck,
   Trash2,
@@ -23,13 +24,6 @@ import { useState, type FormEvent, type ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -38,7 +32,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   publishingPageQueryOptions,
@@ -121,7 +120,7 @@ function PublishingSettings({
       ? verification.data.data
       : data.verification
   const verificationError = verification.isError
-    ? "Verification could not be completed. Check your connection and try again."
+    ? "Unable to verify the domain. Check your connection and try again."
     : verification.data?.status === "error"
       ? verification.data.message
       : null
@@ -141,7 +140,9 @@ function PublishingSettings({
       const result = await addDomain.mutateAsync(domainInput)
       if (result.status === "error") setAddError(result.message)
     } catch {
-      setAddError("The domain could not be added. Try again shortly.")
+      setAddError(
+        "Unable to add the domain. Check your connection and try again."
+      )
     }
   }
 
@@ -155,157 +156,179 @@ function PublishingSettings({
       }
       setRemoveOpen(false)
     } catch {
-      setRemoveError("The domain could not be removed. Try again shortly.")
+      setRemoveError(
+        "Unable to remove the domain. Check your connection and try again."
+      )
     }
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-8">
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Publish
+          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Globe2 className="size-3.5" /> Publishing
           </p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight">
-            Publishing
+          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-balance">
+            Custom domain
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Choose where readers find {data.server.name}. Your Velumn URL always
-            remains available, even when you connect or remove a custom domain.
+          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-pretty text-muted-foreground">
+            Host {data.server.name} at a domain you control.
           </p>
         </div>
         <Button
           variant="outline"
           render={<a href={canonicalUrl} target="_blank" rel="noreferrer" />}
         >
-          Open forum <ArrowUpRight data-icon="inline-end" />
+          Visit forum <ArrowUpRight data-icon="inline-end" />
         </Button>
       </header>
 
       {data.disconnected && (
-        <div className="mt-6 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <div className="mt-6 flex gap-3 rounded-lg border border-amber-500/20 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-700" />
           <div>
             <p className="font-medium">Discord is disconnected</p>
             <p className="mt-1 text-xs leading-5 text-amber-800">
-              Existing forum content and domain management remain available.
-              Reconnect Discord to resume publishing new conversations.
+              Domain management remains available. Reconnect Discord to publish
+              new conversations.
             </p>
           </div>
         </div>
       )}
 
-      <section className="mt-6 grid gap-3 md:grid-cols-2">
-        <UrlCard
-          label="Default URL"
-          value={data.defaultUrl}
-          description="Permanent Velumn address"
-        />
-        <UrlCard
-          label="Active canonical URL"
-          value={canonicalUrl}
-          description={
-            customDomainActive
-              ? "Readers are directed to your custom domain"
-              : "Uses the default URL until verification succeeds"
-          }
-          active
-        />
-      </section>
+      <section className="mt-7 grid gap-8 border-t pt-7 md:grid-cols-[minmax(14rem,0.75fr)_minmax(0,1.5fr)] md:gap-12">
+        <div>
+          <h2 className="text-base font-semibold">Set up your domain</h2>
+          <p className="mt-1.5 max-w-sm text-sm leading-6 text-pretty text-muted-foreground">
+            Your custom domain will become the public address for this forum.
+            The Velumn address remains available as a fallback.
+          </p>
 
-      <Card className="mt-6">
-        <CardHeader className="border-b">
-          <div className="flex items-start gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-              <Globe2 className="size-4" />
-            </span>
-            <div>
-              <CardTitle>Custom domain</CardTitle>
-              <CardDescription className="mt-1">
-                Connect one public hostname that you control.
-              </CardDescription>
+          <div className="mt-6">
+            <p className="text-xs font-medium text-muted-foreground">
+              Velumn address
+            </p>
+            <div className="mt-1 flex min-w-0 items-center gap-1">
+              <a
+                href={data.defaultUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="min-w-0 truncate text-sm font-medium underline-offset-4 hover:underline"
+                title={data.defaultUrl}
+              >
+                {data.defaultUrl}
+              </a>
+              <CopyButton value={data.defaultUrl} label="Copy Velumn address" />
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="pt-5">
+        </div>
+
+        <div className="min-w-0">
           <form onSubmit={handleAdd}>
             <label htmlFor="custom-domain" className="text-sm font-medium">
-              Hostname
+              Enter your domain URL
             </label>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <Input
-                id="custom-domain"
-                autoComplete="off"
-                disabled={Boolean(data.customDomain) || addDomain.isPending}
-                onChange={(event) => {
-                  setDomainInput(event.target.value)
-                  setAddError(null)
-                }}
-                placeholder="community.example.com"
-                value={domainInput}
-                aria-describedby={
-                  addError
-                    ? "custom-domain-help custom-domain-error"
-                    : "custom-domain-help"
-                }
-                aria-invalid={Boolean(addError)}
-              />
-              {data.customDomain ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={removeDomain.isPending}
-                  onClick={() => {
-                    setRemoveError(null)
-                    setRemoveOpen(true)
+            <p
+              id="custom-domain-help"
+              className="mt-1 text-sm leading-6 text-pretty text-muted-foreground"
+            >
+              Use a root domain or subdomain, without a path or query string.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <InputGroup
+                className={cn("h-9 flex-1", data.customDomain && "bg-muted/40")}
+              >
+                <InputGroupAddon className="border-r pr-2.5">
+                  <InputGroupText>https://</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="custom-domain"
+                  autoComplete="url"
+                  className={cn(data.customDomain && "cursor-default")}
+                  readOnly={Boolean(data.customDomain)}
+                  disabled={addDomain.isPending}
+                  onChange={(event) => {
+                    setDomainInput(event.target.value)
+                    setAddError(null)
                   }}
-                >
-                  {removeDomain.isPending ? (
-                    <LoaderCircle className="animate-spin" />
-                  ) : (
-                    <Trash2 />
-                  )}
-                  Remove
-                </Button>
+                  placeholder="community.example.com"
+                  value={domainInput}
+                  aria-describedby={
+                    addError
+                      ? "custom-domain-help custom-domain-error"
+                      : "custom-domain-help"
+                  }
+                  aria-invalid={Boolean(addError)}
+                />
+              </InputGroup>
+
+              {data.customDomain ? (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="icon-lg"
+                    variant="outline"
+                    aria-label="Remove custom domain"
+                    title="Remove custom domain"
+                    disabled={removeDomain.isPending}
+                    onClick={() => {
+                      setRemoveError(null)
+                      setRemoveOpen(true)
+                    }}
+                  >
+                    {removeDomain.isPending ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <Trash2 />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9"
+                    disabled={verification.isFetching}
+                    onClick={() => verification.refetch()}
+                  >
+                    <RefreshCw
+                      className={cn(verification.isFetching && "animate-spin")}
+                    />
+                    Refresh
+                  </Button>
+                </div>
               ) : (
                 <Button
                   type="submit"
+                  className="h-9"
                   disabled={!domainInput.trim() || addDomain.isPending}
                 >
                   {addDomain.isPending ? (
                     <LoaderCircle className="animate-spin" />
                   ) : (
-                    <Globe2 />
+                    <Plus />
                   )}
                   Add domain
                 </Button>
               )}
             </div>
-            <p
-              id="custom-domain-help"
-              className="mt-2 text-xs text-muted-foreground"
-            >
-              Enter only the hostname, without a path or query string.
-            </p>
             {addError && (
               <InlineError id="custom-domain-error" className="mt-3">
                 {addError}
               </InlineError>
             )}
           </form>
-        </CardContent>
-      </Card>
 
-      {data.customDomain && (
-        <VerificationCard
-          domain={data.customDomain}
-          verification={currentVerification}
-          checking={verification.isFetching}
-          lastKnownActive={lastKnownCustomActive}
-          queryError={verificationError}
-          onRefresh={() => verification.refetch()}
-        />
-      )}
+          {data.customDomain && (
+            <DomainConfiguration
+              checking={verification.isFetching}
+              domain={data.customDomain}
+              lastKnownActive={lastKnownCustomActive}
+              queryError={verificationError}
+              verification={currentVerification}
+            />
+          )}
+        </div>
+      </section>
 
       <Dialog open={removeOpen} onOpenChange={setRemoveOpen}>
         <DialogContent>
@@ -338,18 +361,16 @@ function PublishingSettings({
   )
 }
 
-function VerificationCard({
+function DomainConfiguration({
   checking,
   domain,
   lastKnownActive,
-  onRefresh,
   queryError,
   verification,
 }: {
   checking: boolean
   domain: string
   lastKnownActive: boolean
-  onRefresh: () => void
   queryError: string | null
   verification: PublishingVerification
 }) {
@@ -357,138 +378,116 @@ function VerificationCard({
     ? new Date(verification.checkedAt)
     : null
   const failed = Boolean(queryError) || verification.status === "failed"
-  const ownershipRecords = verification.records.filter(
-    (record) => record.type === "TXT"
-  )
-  const routingRecords = verification.records.filter(
-    (record) => record.type !== "TXT"
-  )
 
   return (
-    <Card className="mt-6">
-      <CardHeader className="border-b">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span
-              className={cn(
-                "grid size-9 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-700",
-                verification.status === "verified" &&
-                  "bg-emerald-500/10 text-emerald-700",
-                failed && "bg-destructive/10 text-destructive"
-              )}
-            >
-              {verification.status === "verified" ? (
-                <ShieldCheck className="size-4" />
-              ) : failed ? (
-                <CircleAlert className="size-4" />
-              ) : (
-                <Clock3 className="size-4" />
-              )}
-            </span>
-            <div>
-              <div
-                className="flex flex-wrap items-center gap-2"
-                aria-live="polite"
-              >
-                <CardTitle>Domain verification</CardTitle>
-                <StatusBadge
-                  status={failed ? "failed" : verification.status}
-                  checking={checking}
-                />
-              </div>
-              <CardDescription className="mt-1">{domain}</CardDescription>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={checking}
-            onClick={onRefresh}
-          >
-            <RefreshCw className={cn(checking && "animate-spin")} />
-            {checkedAt ? "Refresh" : "Verify"}
-          </Button>
+    <div className="mt-3">
+      <DomainStatus
+        checking={checking}
+        failed={failed}
+        status={verification.status}
+      />
+
+      {queryError ? (
+        <InlineError className="mt-4">{queryError}</InlineError>
+      ) : (
+        verification.message &&
+        verification.status !== "verified" && (
+          <p className="mt-4 text-sm leading-6 text-pretty text-muted-foreground">
+            {verification.message}
+          </p>
+        )
+      )}
+
+      {verification.status === "failed" && lastKnownActive && (
+        <div className="mt-4 flex gap-2 rounded-lg bg-blue-500/10 px-3 py-2 text-xs leading-5 text-blue-900 ring-1 ring-blue-500/15 dark:bg-blue-950/40 dark:text-blue-200 dark:ring-blue-400/20">
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
+          The domain remains active based on its last successful verification.
         </div>
-      </CardHeader>
-      <CardContent className="pt-5">
-        {queryError ? (
-          <InlineError>{queryError}</InlineError>
-        ) : (
-          verification.message && (
-            <p
-              className={cn(
-                "text-sm leading-6 text-muted-foreground",
-                failed && "text-destructive"
-              )}
-            >
-              {verification.message}
-            </p>
-          )
-        )}
+      )}
 
-        {verification.status === "failed" && lastKnownActive && (
-          <div className="mt-3 flex gap-2 rounded-lg border border-blue-500/20 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-900">
-            <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
-            Your domain remains active based on its last successful
-            verification. A failed provider check does not take it offline.
-          </div>
-        )}
-
+      {checkedAt && (
         <p
-          className="mt-2 text-xs text-muted-foreground"
-          title={checkedAt?.toLocaleString()}
+          className="mt-2 text-xs text-muted-foreground tabular-nums"
+          title={checkedAt.toLocaleString()}
         >
-          {checking && !checkedAt
-            ? "Checking Vercel now"
-            : checkedAt
-              ? `Checked ${formatDistanceToNow(checkedAt, { addSuffix: true })}`
-              : "Not checked during this session"}
+          Checked {formatDistanceToNow(checkedAt, { addSuffix: true })}
         </p>
+      )}
 
-        {ownershipRecords.length > 0 && (
-          <DnsRecordSection
-            title="Verify domain ownership"
-            description="Add this TXT record to prove that you control the domain. If it belongs to another Vercel project, verification can transfer it away from that project."
-            records={ownershipRecords}
-            warning
-          />
-        )}
-        {routingRecords.length > 0 && (
-          <DnsRecordSection
-            title="Route traffic to Velumn"
-            description="Add these records with your DNS provider. DNS changes can take time to propagate."
-            records={routingRecords}
-          />
-        )}
-      </CardContent>
-    </Card>
+      {verification.records.length > 0 && (
+        <DnsConfiguration domain={domain} records={verification.records} />
+      )}
+    </div>
   )
 }
 
-function DnsRecordSection({
-  description,
-  records,
-  title,
-  warning = false,
+function DomainStatus({
+  checking,
+  failed,
+  status,
 }: {
-  description: string
-  records: PublishingVerification["records"]
-  title: string
-  warning?: boolean
+  checking: boolean
+  failed: boolean
+  status: PublishingVerification["status"]
 }) {
+  const verified = status === "verified" && !failed
+  const label = checking
+    ? "Fetching DNS configuration…"
+    : verified
+      ? "Domain connected"
+      : failed
+        ? "Verification unavailable"
+        : "DNS configuration required"
+
   return (
-    <div className="mt-6">
-      <h3 className="text-sm font-semibold">{title}</h3>
-      <p
-        className={cn(
-          "mt-1 text-xs leading-5 text-muted-foreground",
-          warning && "text-amber-800"
-        )}
-      >
-        {description}
+    <span
+      role="status"
+      className={cn(
+        "inline-flex min-h-7 items-center gap-1.5 rounded-md bg-amber-500/8 px-2.5 text-xs font-medium text-amber-900 ring-1 ring-amber-500/20 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-400/20",
+        verified &&
+          "bg-emerald-500/10 text-emerald-900 ring-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-400/20",
+        failed && "bg-destructive/8 text-destructive ring-destructive/20"
+      )}
+    >
+      {checking ? (
+        <LoaderCircle className="size-3.5 animate-spin" />
+      ) : verified ? (
+        <Check className="size-3.5" />
+      ) : failed ? (
+        <CircleAlert className="size-3.5" />
+      ) : (
+        <Clock3 className="size-3.5" />
+      )}
+      {label}
+    </span>
+  )
+}
+
+function DnsConfiguration({
+  domain,
+  records,
+}: {
+  domain: string
+  records: PublishingVerification["records"]
+}) {
+  const requiresOwnership = records.some((record) => record.type === "TXT")
+
+  return (
+    <section className="mt-8">
+      <h3 className="text-base font-semibold">DNS configuration</h3>
+      <p className="mt-1.5 max-w-2xl text-sm leading-6 text-pretty text-muted-foreground">
+        Add these records with your DNS provider to connect {domain}. DNS
+        changes can take time to propagate.
       </p>
-      <div className="mt-3 overflow-hidden rounded-lg border">
-        <div className="hidden grid-cols-[90px_1fr_1.6fr] border-b bg-muted/50 px-4 py-2 text-xs font-medium text-muted-foreground sm:grid">
+      {requiresOwnership && (
+        <p className="mt-3 flex gap-2 text-xs leading-5 text-amber-900 dark:text-amber-200">
+          <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
+          The TXT record verifies ownership. If this domain belongs to another
+          Vercel project, verification may transfer it.
+        </p>
+      )}
+      <div className="mt-4 overflow-hidden rounded-lg ring-1 ring-foreground/10">
+        <div className="hidden grid-cols-[5rem_minmax(7rem,0.7fr)_minmax(0,1.5fr)] bg-muted/35 px-4 py-2 text-xs font-medium text-muted-foreground sm:grid">
           <span>Type</span>
           <span>Name</span>
           <span>Value</span>
@@ -497,7 +496,7 @@ function DnsRecordSection({
           {records.map((record) => (
             <div
               key={`${record.type}-${record.name}-${record.value}`}
-              className="grid gap-3 px-4 py-3 text-sm sm:grid-cols-[90px_1fr_1.6fr] sm:items-center"
+              className="grid gap-3 px-4 py-3 text-sm sm:grid-cols-[5rem_minmax(7rem,0.7fr)_minmax(0,1.5fr)] sm:items-center"
             >
               <div>
                 <span className="mr-2 text-xs text-muted-foreground sm:hidden">
@@ -511,49 +510,17 @@ function DnsRecordSection({
           ))}
         </div>
       </div>
-    </div>
-  )
-}
-
-function UrlCard({
-  active = false,
-  description,
-  label,
-  value,
-}: {
-  active?: boolean
-  description: string
-  label: string
-  value: string
-}) {
-  return (
-    <Card className={cn(active && "border-primary/20 bg-primary/[0.025]")}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium text-muted-foreground">
-            {label}
-          </span>
-          <CopyButton value={value} label={`Copy ${label.toLowerCase()}`} />
-        </div>
-        <p
-          className="mt-4 truncate font-mono text-sm font-medium"
-          title={value}
-        >
-          {value}
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+    </section>
   )
 }
 
 function RecordValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <span className="w-10 shrink-0 text-xs text-muted-foreground sm:hidden">
+    <div className="flex min-w-0 items-start gap-2 sm:items-center">
+      <span className="w-10 shrink-0 pt-0.5 text-xs text-muted-foreground sm:hidden">
         {label}
       </span>
-      <code className="min-w-0 flex-1 truncate text-xs" title={value}>
+      <code className="min-w-0 flex-1 text-xs break-all" title={value}>
         {value}
       </code>
       <CopyButton value={value} label={`Copy ${label.toLowerCase()}`} />
@@ -567,6 +534,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   )
   const copied = copyStatus === "copied"
   const failed = copyStatus === "failed"
+
   return (
     <Button
       type="button"
@@ -588,37 +556,6 @@ function CopyButton({ value, label }: { value: string; label: string }) {
         {copied ? "Copied" : failed ? "Copy failed" : ""}
       </span>
     </Button>
-  )
-}
-
-function StatusBadge({
-  checking,
-  status,
-}: {
-  checking: boolean
-  status: "not_configured" | "pending" | "verified" | "failed"
-}) {
-  const label = checking
-    ? "Checking"
-    : status === "verified"
-      ? "Verified"
-      : status === "failed"
-        ? "Check failed"
-        : "Action required"
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "border-amber-500/30 bg-amber-500/10 text-amber-800",
-        status === "verified" &&
-          "border-emerald-500/30 bg-emerald-500/10 text-emerald-800",
-        status === "failed" &&
-          "border-destructive/30 bg-destructive/10 text-destructive"
-      )}
-    >
-      {checking && <LoaderCircle className="animate-spin" />}
-      {label}
-    </Badge>
   )
 }
 
@@ -648,15 +585,20 @@ function InlineError({
 
 function PublishingPending() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <Skeleton className="h-3 w-16" />
-      <Skeleton className="mt-3 h-7 w-36" />
-      <Skeleton className="mt-3 h-4 w-full max-w-xl" />
-      <div className="mt-6 grid gap-3 md:grid-cols-2">
-        <Skeleton className="h-32 rounded-xl" />
-        <Skeleton className="h-32 rounded-xl" />
+    <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-8">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="mt-3 h-7 w-44" />
+      <Skeleton className="mt-3 h-4 w-full max-w-md" />
+      <div className="mt-7 grid gap-8 border-t pt-7 md:grid-cols-[minmax(14rem,0.75fr)_minmax(0,1.5fr)] md:gap-12">
+        <div>
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="mt-3 h-16 w-full max-w-sm" />
+        </div>
+        <div>
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="mt-3 h-9 w-full" />
+        </div>
       </div>
-      <Skeleton className="mt-6 h-56 rounded-xl" />
     </div>
   )
 }
@@ -674,7 +616,7 @@ function PublishingError({
         <CircleAlert className="mx-auto size-8 text-destructive" />
         <h1 className="mt-4 text-lg font-semibold">Publishing did not load</h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          We could not load this server's publishing settings. Retry or choose a
+          Unable to load this server's publishing settings. Retry or choose a
           different server.
         </p>
         <div className="mt-5 flex justify-center gap-2">
