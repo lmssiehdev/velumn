@@ -1,6 +1,12 @@
 import { ChannelType } from "discord-api-types/v10";
-import { and, eq, exists, inArray, isNull } from "drizzle-orm";
+import { and, eq, exists, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "../index";
+import {
+	isPendingInviteFresh,
+	type OnboardingLifecycle,
+	PENDING_INVITE_MAX_AGE_MS,
+	resolveOnboardingLifecycle,
+} from "../lifecycle";
 import {
 	type DBChannel,
 	type DBServer,
@@ -39,20 +45,36 @@ export async function createBotInvite({
 	userId: string;
 	serverId: string;
 }) {
-	await db
-		.insert(pendingDiscordInvite)
-		.values({
-			userId,
-			updatedAt: new Date(),
-			serverId,
-		})
-		.onConflictDoUpdate({
-			target: pendingDiscordInvite.serverId,
-			set: {
-				userId,
-				updatedAt: new Date(),
-			},
-		});
+	const now = new Date();
+	const expiredBefore = new Date(now.getTime() - PENDING_INVITE_MAX_AGE_MS);
+
+	await db.transaction(async (tx) => {
+		const inserted = await tx
+			.insert(pendingDiscordInvite)
+			.values({ userId, updatedAt: now, serverId })
+			.onConflictDoNothing()
+			.returning({ serverId: pendingDiscordInvite.serverId });
+		if (inserted.length > 0) return;
+
+		const refreshed = await tx
+			.update(pendingDiscordInvite)
+			.set({ userId, updatedAt: now })
+			.where(
+				and(
+					eq(pendingDiscordInvite.serverId, serverId),
+					or(
+						eq(pendingDiscordInvite.userId, userId),
+						isNull(pendingDiscordInvite.updatedAt),
+						lt(pendingDiscordInvite.updatedAt, expiredBefore),
+					),
+				),
+			)
+			.returning({ serverId: pendingDiscordInvite.serverId });
+
+		if (refreshed.length === 0) {
+			throw new Error("A different user is already installing this server");
+		}
+	});
 }
 
 export async function linkServerToUser(serverId: string, userId: string) {
@@ -65,12 +87,174 @@ export async function linkServerToUser(serverId: string, userId: string) {
 		.onConflictDoNothing();
 }
 
-export async function getUserWhoInvited(serverId: string) {
+export async function getPendingDiscordInvite(serverId: string) {
 	return await db._query.pendingDiscordInvite.findFirst({
 		where: eq(pendingDiscordInvite.serverId, serverId),
 		columns: {
 			userId: true,
+			updatedAt: true,
 		},
+	});
+}
+
+export async function getUserWhoInvited(serverId: string) {
+	const invite = await getPendingDiscordInvite(serverId);
+	return invite && isPendingInviteFresh(invite) ? invite : undefined;
+}
+
+export async function getOnboardingLifecycleForUser({
+	userId,
+	serverId,
+}: {
+	userId: string;
+	serverId: string;
+}) {
+	const installation = await getOnboardingInstallationForUser({
+		userId,
+		serverId,
+	});
+	return installation.lifecycle;
+}
+
+export async function getOnboardingInstallationForUser({
+	userId,
+	serverId,
+}: {
+	userId: string;
+	serverId: string;
+}) {
+	const [membership, pendingInvite] = await Promise.all([
+		checkIfServerExistsForUser({ userId, serverId }),
+		getPendingDiscordInvite(serverId),
+	]);
+
+	return {
+		membership,
+		lifecycle: resolveOnboardingLifecycle({
+			userId,
+			membership: membership
+				? {
+						finishedOnboarding: membership.finishedOnboarding,
+						kickedAt: membership.server?.kickedAt ?? null,
+					}
+				: null,
+			pendingInvite: pendingInvite ?? null,
+		}),
+	};
+}
+
+export async function getOnboardingLifecyclesForUser({
+	userId,
+	serverIds,
+}: {
+	userId: string;
+	serverIds: string[];
+}) {
+	const uniqueServerIds = [...new Set(serverIds)];
+	const lifecycles = new Map<string, OnboardingLifecycle>();
+	if (uniqueServerIds.length === 0) return lifecycles;
+
+	const [memberships, pendingInvites] = await Promise.all([
+		db
+			.select({
+				serverId: userServers.serverId,
+				finishedOnboarding: userServers.finishedOnboarding,
+				kickedAt: dbServer.kickedAt,
+			})
+			.from(userServers)
+			.leftJoin(dbServer, eq(userServers.serverId, dbServer.id))
+			.where(
+				and(
+					eq(userServers.userId, userId),
+					inArray(userServers.serverId, uniqueServerIds),
+				),
+			),
+		db
+			.select({
+				serverId: pendingDiscordInvite.serverId,
+				userId: pendingDiscordInvite.userId,
+				updatedAt: pendingDiscordInvite.updatedAt,
+			})
+			.from(pendingDiscordInvite)
+			.where(inArray(pendingDiscordInvite.serverId, uniqueServerIds)),
+	]);
+
+	const membershipByServer = new Map(
+		memberships.map((membership) => [membership.serverId, membership]),
+	);
+	const pendingInviteByServer = new Map(
+		pendingInvites.map((invite) => [invite.serverId, invite]),
+	);
+
+	for (const serverId of uniqueServerIds) {
+		const membership = membershipByServer.get(serverId);
+		lifecycles.set(
+			serverId,
+			resolveOnboardingLifecycle({
+				userId,
+				membership: membership
+					? {
+							finishedOnboarding: membership.finishedOnboarding,
+							kickedAt: membership.kickedAt,
+						}
+					: null,
+				pendingInvite: pendingInviteByServer.get(serverId) ?? null,
+			}),
+		);
+	}
+
+	return lifecycles;
+}
+
+export async function completeBotInstallation({
+	server,
+	userId,
+	channels,
+}: {
+	server: Partial<DBServerInsert> & Pick<DBServerInsert, "id">;
+	userId: string;
+	channels: DBChannel[];
+}) {
+	const installation = { ...server, kickedAt: null };
+	const { id, invitedBy: _, ...updateFields } = installation;
+
+	await db.transaction(async (tx) => {
+		await tx
+			.insert(dbServer)
+			.values(installation as DBServerInsert)
+			.onConflictDoUpdate({
+				target: dbServer.id,
+				set: buildConflictUpdateColumns(
+					dbServer,
+					Object.keys(updateFields) as Array<keyof typeof updateFields>,
+				),
+			});
+
+		await tx
+			.insert(userServers)
+			.values({ userId, serverId: id })
+			.onConflictDoNothing();
+
+		if (channels.length > 0) {
+			await tx
+				.insert(dbChannel)
+				.values(channels)
+				.onConflictDoUpdate({
+					target: dbChannel.id,
+					set: {
+						channelName: sql.raw(`excluded.${dbChannel.channelName.name}`),
+					},
+				});
+		}
+
+		await tx
+			.delete(pendingDiscordInvite)
+			.where(
+				and(
+					eq(pendingDiscordInvite.serverId, id),
+					eq(pendingDiscordInvite.userId, userId),
+				),
+			);
 	});
 }
 
@@ -95,6 +279,34 @@ export async function getChannelsInServer(
 			server: true,
 		},
 	});
+}
+
+export async function getExistingThreadCountsByChannel(
+	serverId: string,
+	channelIds: string[],
+) {
+	if (channelIds.length === 0) return new Map<string, number>();
+
+	const counts = await db
+		.select({
+			channelId: dbChannel.parentId,
+			threads: sql<number>`count(*)::int`,
+		})
+		.from(dbChannel)
+		.where(
+			and(
+				eq(dbChannel.serverId, serverId),
+				eq(dbChannel.type, ChannelType.PublicThread),
+				inArray(dbChannel.parentId, channelIds),
+			),
+		)
+		.groupBy(dbChannel.parentId);
+
+	return new Map(
+		counts.flatMap((row) =>
+			row.channelId ? [[row.channelId, row.threads] as const] : [],
+		),
+	);
 }
 
 export async function setServerPlanById(serverId: string, plan: ServerPlan) {

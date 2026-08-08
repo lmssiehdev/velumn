@@ -17,10 +17,14 @@
 		"lint": "biome check --write",
 		"dev:web": "turbo --filter web dev",
 		"dev:dashboard": "turbo --filter dashboard dev",
+		"dev:dashboard-new": "turbo --filter dashboard-new dev",
 		"nuke": "bunx npkill -D -y && rm bun.lock"
 	},
-	"workspaces": [
-		"apps/*",
-		"packages/*"
-	]
+	"workspaces": {
+		"packages": ["apps/*", "packages/*"],
+		"catalog": {
+			"react": "19.2.3",
+			"react-dom": "19.2.3"
+		}
+	}
 }

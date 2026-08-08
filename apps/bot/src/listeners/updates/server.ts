@@ -1,11 +1,10 @@
-import { upsertBulkChannels } from "@repo/db/helpers/channels";
 import {
+	completeBotInstallation,
 	getUserWhoInvited,
-	linkServerToUser,
 	upsertServer,
 } from "@repo/db/helpers/servers";
-import { resetUserServerIdLink } from "@repo/db/helpers/user";
 import { CacheTags } from "@repo/utils/helpers/cache-keys";
+import { captureOnboardingEvent } from "@repo/utils/onboarding-analytics";
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
 import { Events, type Guild } from "discord.js";
@@ -32,28 +31,37 @@ export class JoinedGuild extends Listener {
 					await guild.leave();
 					return;
 				}
-				invitedBy = { userId: "1335068922067550229" };
+				invitedBy = {
+					userId: "1335068922067550229",
+					updatedAt: new Date(),
+				};
 			}
+			const installer = invitedBy;
 			// TODO: handle blacklisted servers and leave if necessary;
 			// TODO: handle invite code;
-			const converted = toDbServer(guild);
-			await upsertServer({
-				...converted,
-				invitedBy: invitedBy?.userId,
-			});
-
 			// we save channels to display them in the onboarding flow
 			const channels = await guild.channels.fetch();
 			const channelsToIndex = channels
 				.filter((c) => c != null && isChannelIndexable(c))
 				.filter((c) => c?.viewable);
 
-			// !! should probably be done in a transaction
-			await linkServerToUser(guild.id, invitedBy.userId);
 			const channelsToInsert = await Promise.all(
 				channelsToIndex.map((x) => toDbChannel(x)),
 			);
-			await upsertBulkChannels(channelsToInsert);
+			await completeBotInstallation({
+				server: {
+					...toDbServer(guild),
+					invitedBy: installer.userId,
+				},
+				userId: installer.userId,
+				channels: channelsToInsert,
+			});
+			void captureOnboardingEvent({
+				event: "bot_connected",
+				properties: { $insert_id: `onboarding_bot_connected_${guild.id}` },
+				serverId: guild.id,
+				userId: installer.userId,
+			});
 			await invalidateTags([
 				CacheTags.server(guild.id),
 				CacheTags.topicsInServer(guild.id),
@@ -74,7 +82,6 @@ export class LeftGuild extends Listener {
 		try {
 			const converted = toDbServer(guild);
 			await upsertServer({ ...converted, kickedAt: new Date() });
-			await resetUserServerIdLink(guild.id);
 			await invalidateTags([
 				CacheTags.server(guild.id),
 				CacheTags.topicsInServer(guild.id),

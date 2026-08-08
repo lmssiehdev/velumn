@@ -1,3 +1,4 @@
+import { getServerInfo } from "@repo/db/helpers/servers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { FrontPageSidebar } from "@/components/forum/shell";
 import { ThreadList } from "@/components/forum/thread-list";
@@ -58,12 +59,13 @@ export default async function Page({
 		notFound();
 	}
 
-	if (hasVerifiedCustomDomain(channel.server)) {
+	const routingServer = await getServerInfo(channel.serverId);
+	if (hasVerifiedCustomDomain(routingServer)) {
 		const redirectPath = buildPaginatedRedirectPath(
 			`/channel/${channelId}`,
 			searchParamsPage,
 		);
-		permanentRedirect(getCustomDomainUrl(channel.server, redirectPath));
+		permanentRedirect(getCustomDomainUrl(routingServer, redirectPath));
 	}
 
 	const [regularResult, pinnedResult] = await Promise.all([

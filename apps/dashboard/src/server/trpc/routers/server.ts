@@ -1,4 +1,4 @@
-import { setBulkIndexingStatus } from "@repo/db/helpers/channels";
+import { setServerChannelSelection } from "@repo/db/helpers/channels";
 import {
 	checkIfServerExistsForUser,
 	createBotInvite,
@@ -16,6 +16,7 @@ import { parseError } from "@/lib/error";
 import { log } from "@/lib/log";
 import { privateProcedure, router } from "@/server/trpc";
 import { dashboardEnv } from "@/utils/env";
+import { checkIfUserHasPermissionsForServerFromApi } from "@/utils/get-onboarding-status";
 import type { BotRouter } from "../../../../../bot/src/helpers/trpc"; // Adjust path as needed
 
 export const botClient = createTRPCClient<BotRouter>({
@@ -51,13 +52,18 @@ export const serverRouter = router({
 				});
 			}
 			const { serverId, payload: channels } = input;
+			if (!channels.some((channel) => channel.status)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Select at least one channel",
+				});
+			}
 
-			await updateServerOnboarding(ctx.user.id, serverId, true);
-
-			await setBulkIndexingStatus(channels);
+			await setServerChannelSelection({ serverId, channels });
 
 			try {
 				await botClient.indexServer.mutate({ serverId });
+				await updateServerOnboarding(ctx.user.id, serverId, true);
 			} catch (err) {
 				log.error("finish_onboarrding_failed", { err: parseError(err) });
 				// TODO: schedule retry?
@@ -116,7 +122,10 @@ export const serverRouter = router({
 				});
 			}
 			try {
-				await setBulkIndexingStatus(input.payload);
+				await setServerChannelSelection({
+					serverId: input.serverId,
+					channels: input.payload,
+				});
 				return { success: true };
 			} catch (err) {
 				log.error("update_channels_indexing_status_failed", {
@@ -133,6 +142,17 @@ export const serverRouter = router({
 	createServerInvite: privateProcedure
 		.input(z.object({ serverId: z.string() }))
 		.mutation(async ({ input, ctx }) => {
+			const canManageServer = await checkIfUserHasPermissionsForServerFromApi(
+				ctx.user.id,
+				input.serverId,
+			);
+			if (!canManageServer) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You don't have permission to install this server",
+				});
+			}
+
 			try {
 				await createBotInvite({
 					serverId: input.serverId,

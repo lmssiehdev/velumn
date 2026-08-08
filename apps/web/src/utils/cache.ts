@@ -6,7 +6,6 @@ import {
 	getAllThreads,
 	getServerInfo,
 	getServerInfoByChannelId,
-	getServerInfoByDomain,
 	getTopicsInServer,
 } from "@repo/db/helpers/servers";
 import { CacheTags } from "@repo/utils/helpers/cache-keys";
@@ -52,12 +51,6 @@ export const getServerInfoByChannelIdCache = cache(async (id: string) => {
 		return getServerInfoByChannelId(id);
 	}
 	return getServerInfoCached(channel.serverId);
-});
-
-export const getServerInfoByDomainCache = stable_cache(getServerInfoByDomain, {
-	keyParts: (domain) => [`server-info-domain-${domain}`],
-	tags: (domain) => [CacheTags.serverByDomain(domain)],
-	revalidate: METADATA_TTL,
 });
 
 export const getServerInfoCached = stable_cache(getServerInfo, {

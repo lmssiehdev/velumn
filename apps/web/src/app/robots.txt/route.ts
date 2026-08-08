@@ -1,32 +1,14 @@
-import { getMainSiteUrl } from "@/lib/domains";
-
-function buildRobotsTxt(sitemapUrl?: string) {
-	const lines = [
-		"User-Agent: *",
-		"Allow: /",
-		"Allow: /api/og/*",
-		"Disallow: /api/",
-	];
-
-	if (sitemapUrl) {
-		lines.push("", `Sitemap: ${sitemapUrl}`);
-	}
-
-	return `${lines.join("\n")}\n`;
-}
+const BLOCK_ALL = "User-Agent: *\nDisallow: /\n";
+const PRODUCTION_ROBOTS =
+	"User-Agent: *\nAllow: /\nAllow: /api/og/*\nDisallow: /api/\n\nSitemap: https://velumn.com/sitemap.xml\n";
 
 export async function GET() {
-	if (process.env.VERCEL_ENV !== "production") {
-		return new Response("User-Agent: *\nDisallow: /\n", {
+	return new Response(
+		process.env.VERCEL_ENV === "production" ? PRODUCTION_ROBOTS : BLOCK_ALL,
+		{
 			headers: {
 				"Content-Type": "text/plain",
 			},
-		});
-	}
-
-	return new Response(buildRobotsTxt(getMainSiteUrl("/sitemap.xml")), {
-		headers: {
-			"Content-Type": "text/plain",
 		},
-	});
+	);
 }

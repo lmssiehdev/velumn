@@ -3,6 +3,7 @@ import {
 	ChatsCircleIcon,
 	HashIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import { getServerInfo } from "@repo/db/helpers/servers";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
 import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import {
@@ -94,9 +95,10 @@ export default async function Page({ params }: PageProps) {
 		notFound();
 	}
 
-	if (hasVerifiedCustomDomain(thread.server)) {
+	const routingServer = await getServerInfo(thread.serverId);
+	if (hasVerifiedCustomDomain(routingServer)) {
 		const targetPath = getThreadPath(threadId, thread.channelName!);
-		permanentRedirect(getCustomDomainUrl(thread.server, targetPath));
+		permanentRedirect(getCustomDomainUrl(routingServer, targetPath));
 	}
 
 	const threadUrlWithSlug = slugifyThreadUrl({
