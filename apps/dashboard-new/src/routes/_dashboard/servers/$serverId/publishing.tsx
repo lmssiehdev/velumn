@@ -214,7 +214,7 @@ function PublishingSettings({
                 href={data.defaultUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="min-w-0 flex-1 py-1 text-sm leading-5 font-medium break-all underline-offset-4 hover:underline"
+                className="block min-w-0 flex-1 truncate py-1 text-sm leading-5 font-medium underline-offset-4 hover:underline"
                 title={data.defaultUrl}
               >
                 {data.defaultUrl}
@@ -552,6 +552,7 @@ function CopyButton({
       type="button"
       size={showLabel ? "sm" : "icon-sm"}
       variant="ghost"
+      className={showLabel ? "shrink-0" : undefined}
       aria-label={copied ? "Copied" : failed ? "Copy failed" : label}
       title={copied ? "Copied" : failed ? "Copy failed" : label}
       onClick={async () => {
