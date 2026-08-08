@@ -24,6 +24,7 @@ describe("sitemap helpers", () => {
 		expect(entries.map((entry) => entry.loc)).toEqual([
 			"https://velumn.com/",
 			"https://velumn.com/pricing",
+			"https://velumn.com/oss-program",
 			"https://velumn.com/blog",
 			"https://velumn.com/blog/discord-search-sucks",
 		]);
