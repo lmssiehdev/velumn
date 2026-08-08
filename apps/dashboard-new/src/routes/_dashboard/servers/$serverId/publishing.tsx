@@ -202,30 +202,7 @@ function PublishingSettings({
           <h2 className="text-base font-semibold">Set up your domain</h2>
           <p className="mt-1.5 max-w-sm text-sm leading-6 text-pretty text-muted-foreground">
             Your custom domain will become the public address for this forum.
-            The Velumn address remains available as a fallback.
           </p>
-
-          <div className="mt-6">
-            <p className="text-xs font-medium text-muted-foreground">
-              Velumn address
-            </p>
-            <div className="mt-2 flex min-w-0 items-start gap-2 rounded-lg border bg-muted/30 p-2.5">
-              <a
-                href={data.defaultUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block min-w-0 flex-1 truncate py-1 text-sm leading-5 font-medium underline-offset-4 hover:underline"
-                title={data.defaultUrl}
-              >
-                {data.defaultUrl}
-              </a>
-              <CopyButton
-                value={data.defaultUrl}
-                label="Copy Velumn address"
-                showLabel
-              />
-            </div>
-          </div>
         </div>
 
         <div className="min-w-0">
@@ -339,8 +316,9 @@ function PublishingSettings({
           <DialogHeader>
             <DialogTitle>Remove custom domain?</DialogTitle>
             <DialogDescription>
-              Readers will use {data.defaultUrl}. Removing {data.customDomain}{" "}
-              does not delete your forum or published content.
+              The forum will return to its Velumn URL. Removing{" "}
+              {data.customDomain} does not delete your forum or published
+              content.
             </DialogDescription>
           </DialogHeader>
           {removeError && <InlineError>{removeError}</InlineError>}
@@ -532,15 +510,7 @@ function RecordValue({ label, value }: { label: string; value: string }) {
   )
 }
 
-function CopyButton({
-  value,
-  label,
-  showLabel = false,
-}: {
-  value: string
-  label: string
-  showLabel?: boolean
-}) {
+function CopyButton({ value, label }: { value: string; label: string }) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
   )
@@ -550,9 +520,8 @@ function CopyButton({
   return (
     <Button
       type="button"
-      size={showLabel ? "sm" : "icon-sm"}
+      size="icon-sm"
       variant="ghost"
-      className={showLabel ? "shrink-0" : undefined}
       aria-label={copied ? "Copied" : failed ? "Copy failed" : label}
       title={copied ? "Copied" : failed ? "Copy failed" : label}
       onClick={async () => {
@@ -565,7 +534,6 @@ function CopyButton({
       }}
     >
       {copied ? <Check /> : failed ? <CircleAlert /> : <Copy />}
-      {showLabel && (copied ? "Copied" : failed ? "Copy failed" : "Copy")}
       <span className="sr-only" aria-live="polite">
         {copied ? "Copied" : failed ? "Copy failed" : ""}
       </span>
