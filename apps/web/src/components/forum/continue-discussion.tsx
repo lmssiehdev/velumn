@@ -1,6 +1,7 @@
 "use client";
 
-import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr";
+import ChevronRightIcon from "@hugeicons/core-free-icons/ChevronRightIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { TrackLink } from "@/components/analytics/track-link";
 import { Twemoji } from "@/components/markdown/emoji";
 import { rainbowButtonVariants } from "@/components/ui/rainbow-button";
@@ -57,7 +58,10 @@ export function ContinueDiscussion({
 					target="_blank"
 				>
 					Open in Discord{" "}
-					<CaretRightIcon className="transition-transform duration-300 group-hover:translate-x-0.5" />
+					<HugeiconsIcon
+						className="transition-transform duration-300 group-hover:translate-x-0.5"
+						icon={ChevronRightIcon}
+					/>
 				</TrackLink>
 			</div>
 		</div>

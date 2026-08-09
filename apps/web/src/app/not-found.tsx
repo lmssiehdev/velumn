@@ -1,7 +1,6 @@
-import {
-	ArrowLeftIcon,
-	ArrowUpRightIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import ArrowLeft02Icon from "@hugeicons/core-free-icons/ArrowLeft02Icon";
+import ArrowUpRight03Icon from "@hugeicons/core-free-icons/ArrowUpRight03Icon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -22,7 +21,7 @@ export default function NotFound() {
 					</p>
 					<div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
 						<Link className={buttonVariants({ size: "lg" })} href="/">
-							<ArrowLeftIcon className="size-4" />
+							<HugeiconsIcon className="size-4" icon={ArrowLeft02Icon} />
 							Go home
 						</Link>
 						<Link
@@ -30,7 +29,7 @@ export default function NotFound() {
 							href="/blog"
 						>
 							Read the blog
-							<ArrowUpRightIcon className="size-4" />
+							<HugeiconsIcon className="size-4" icon={ArrowUpRight03Icon} />
 						</Link>
 					</div>
 				</div>

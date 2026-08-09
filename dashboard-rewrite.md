@@ -124,13 +124,13 @@ Normal pages use a consistent content header with a title, a one-sentence descri
 
 | Route | Title | Description | Primary header action |
 | --- | --- | --- | --- |
-| `/servers` | Servers | Choose a Discord server to manage. | Add server |
-| `/servers/$serverId` | Overview | Connection, indexing, content, and publishing status for this server. | Visit forum |
-| `/servers/$serverId/threads` | Threads | Content currently available through Velumn. | Visit forum |
-| `/servers/$serverId/channels` | Channels | Choose which eligible Discord channels Velumn indexes. | Save changes when dirty |
-| `/servers/$serverId/publishing` | Publishing | Manage the public URL and custom-domain verification. | Verify or refresh when applicable |
+| `/dashboard/servers` | Servers | Choose a Discord server to manage. | Add server |
+| `/dashboard/servers/$serverId` | Overview | Connection, indexing, content, and publishing status for this server. | Visit forum |
+| `/dashboard/servers/$serverId/threads` | Threads | Content currently available through Velumn. | Visit forum |
+| `/dashboard/servers/$serverId/channels` | Channels | Choose which eligible Discord channels Velumn indexes. | Save changes when dirty |
+| `/dashboard/servers/$serverId/publishing` | Publishing | Manage the public URL and custom-domain verification. | Verify or refresh when applicable |
 
-### `/auth/sign-in`
+### `/dashboard/sign-in`
 
 Purpose: authenticate with Discord.
 
@@ -148,24 +148,18 @@ Data:
 Access:
 
 - Guest-only
-- Authenticated users redirect to `/servers` or a safe return URL
+- Authenticated users redirect to `/dashboard/servers` or a safe dashboard return URL
 
-### `/`
+### `/dashboard`
 
-Purpose: route resolver only. This is not a dashboard page.
-
-Data:
-
-- Session
-- Last-used ready server ID
-- Available server summaries when no last-used server exists
+Purpose: dashboard route resolver only.
 
 Behavior:
 
-- Redirect to the last-used ready server
-- Otherwise redirect to `/servers`
+- Redirect to `/dashboard/servers`
+- Authentication remains owned by the pathless dashboard layout
 
-### `/servers`
+### `/dashboard/servers`
 
 Purpose: choose and manage a server installation.
 
@@ -202,7 +196,7 @@ Status is always a labeled badge, not color alone. Counts use explicit labels su
 
 Each card has exactly one lifecycle-driven primary action: Continue setup, Reconnect bot, or Open dashboard. The public-forum link is a secondary external action and only appears when `forumUrl` exists. When no servers exist, explain that no manageable server has been added and present Add server as the primary action.
 
-### `/servers/new`
+### `/dashboard/servers/new`
 
 Purpose: select a Discord server to add to Velumn.
 
@@ -238,7 +232,7 @@ Search by server name and sort manageable servers alphabetically. Each row displ
 
 Initial loading uses a page skeleton. A Discord API failure is an inline error with Retry, not an empty result. Adding a server shows row-local pending state and prevents duplicate submission without disabling unrelated rows.
 
-### `/servers/$serverId/setup`
+### `/dashboard/servers/$serverId/setup`
 
 Purpose: complete installation through one canonical setup flow.
 
@@ -262,13 +256,13 @@ Display by state:
 - Initial indexing progress
 - Useful failure reason and retry action
 
-Setup is an immersive authenticated flow. Suppress ordinary management navigation while preserving server switching, Help, and a safe return to `/servers`. The backend state is authoritative; URL or client state cannot skip setup steps.
+Setup is an immersive authenticated flow. Suppress ordinary management navigation while preserving server switching, Help, and a safe return to `/dashboard/servers`. The backend state is authoritative; URL or client state cannot skip setup steps.
 
 Every state displays the server identity, current step, concise explanation, and one primary action. Channel selection shows `#name`, Forum or Text type, selected count, and disables Continue when nothing is selected. Indexing displays completed and total work when available. Failure displays a backend-safe reason, only offers Retry when retryable, and always offers Help.
 
 Creating a pending invitation is an explicit mutation, never a side effect of rendering the page. Poll only lightweight setup status, not the entire server payload.
 
-### `/servers/$serverId`
+### `/dashboard/servers/$serverId`
 
 Purpose: operational overview of the selected server.
 
@@ -324,7 +318,7 @@ Present four concise summary areas:
 
 Recent indexed threads contains at most the five newest rows with title, parent channel, and last-indexed time plus View all. Hide this section during genuine first-time setup. After a successful indexing run with no results, show a specific empty result instead of setup messaging.
 
-### `/servers/$serverId/threads`
+### `/dashboard/servers/$serverId/threads`
 
 Purpose: inspect the content Velumn has published.
 
@@ -364,7 +358,7 @@ Default sorting is newest `lastIndexedAt` first. Search uses `Search threads`; c
 
 Pagination, sorting, and filtering are server-backed and represented in the URL. Do not paginate a partial server result again on the client. Do not include row selection until a real bulk action exists. Secondary external actions must not trigger the primary row link.
 
-### `/servers/$serverId/channels`
+### `/dashboard/servers/$serverId/channels`
 
 Purpose: control which Discord channels Velumn indexes.
 
@@ -397,7 +391,7 @@ Changes are staged. Display enabled and selected counts with explicit Save and D
 
 Channel mutations must validate that every submitted channel belongs to the authorized server. Setup and ongoing channel management should share the same channel-selection feature rather than duplicate implementations.
 
-### `/servers/$serverId/publishing`
+### `/dashboard/servers/$serverId/publishing`
 
 Purpose: explain where the public forum is available and manage its custom domain.
 

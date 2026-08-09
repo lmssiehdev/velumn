@@ -7,7 +7,6 @@ import {
 	DiscordLogoIcon,
 	HashIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import type { ThreadWithMetadata } from "@repo/db/helpers/servers";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import {
 	type ColumnDef,
@@ -21,6 +20,7 @@ import {
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
+import type { inferRouterOutputs } from "@trpc/server";
 import { ChannelType } from "discord-api-types/v10";
 import { ChevronDown, MoreHorizontal } from "lucide-react";
 import * as React from "react";
@@ -44,6 +44,10 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import type { AppRouter } from "@/server/trpc/root";
+
+type ServerThreadOutput =
+	inferRouterOutputs<AppRouter>["server"]["getServerThreads"]["threads"][number];
 
 function ChannelIcon({ type }: { type: number }) {
 	switch (type) {
@@ -54,7 +58,7 @@ function ChannelIcon({ type }: { type: number }) {
 	}
 }
 
-export const columns: ColumnDef<ThreadWithMetadata>[] = [
+export const columns: ColumnDef<ServerThreadOutput>[] = [
 	{
 		id: "select",
 		header: ({ table }) => (
@@ -163,7 +167,7 @@ export const columns: ColumnDef<ThreadWithMetadata>[] = [
 	},
 ];
 
-export default function ThreadsTable({ data }: { data: ThreadWithMetadata[] }) {
+export default function ThreadsTable({ data }: { data: ServerThreadOutput[] }) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[],

@@ -9,13 +9,15 @@ import {
   toServerIdentity,
 } from "@/features/dashboard/urls"
 
-import {
-  threadDirectionSchema,
-  threadPinnedSchema,
-  threadSortSchema,
-} from "./search"
-
 const serverIdSchema = z.string().regex(/^\d+$/)
+const threadSortSchema = z.enum([
+  "newest",
+  "title",
+  "parentChannel",
+  "messageCount",
+])
+const threadDirectionSchema = z.enum(["asc", "desc"])
+const threadPinnedSchema = z.enum(["pinned", "unpinned"])
 const requestSchema = z.object({
   serverId: serverIdSchema,
   page: z.number().int().positive(),

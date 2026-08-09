@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "indexing_gateway_mutation_submission_id_idx" ON "db_indexing_gateway_mutation" ("submission_id");

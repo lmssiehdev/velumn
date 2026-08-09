@@ -63,7 +63,10 @@ export async function getDashboardThreadPage(
 	const messageCount = sql<number>`coalesce(${messageCounts.count}, 0)::int`;
 	const filters: Array<SQL | undefined> = [
 		eq(dbChannel.serverId, query.serverId),
-		eq(dbChannel.type, ChannelType.PublicThread),
+		inArray(dbChannel.type, [
+			ChannelType.PublicThread,
+			ChannelType.AnnouncementThread,
+		]),
 		eq(parent.serverId, query.serverId),
 		query.search
 			? ilike(dbChannel.channelName, `%${escapeLike(query.search)}%`)
@@ -90,7 +93,10 @@ export async function getDashboardThreadPage(
 
 	const publishedWhere = and(
 		eq(dbChannel.serverId, query.serverId),
-		eq(dbChannel.type, ChannelType.PublicThread),
+		inArray(dbChannel.type, [
+			ChannelType.PublicThread,
+			ChannelType.AnnouncementThread,
+		]),
 		eq(parent.serverId, query.serverId),
 	);
 	const [rows, totalRows, channelRows, summaryRows] = await Promise.all([
@@ -140,7 +146,10 @@ export async function getDashboardThreadPage(
 			.where(
 				and(
 					eq(dbChannel.serverId, query.serverId),
-					eq(dbChannel.type, ChannelType.PublicThread),
+					inArray(dbChannel.type, [
+						ChannelType.PublicThread,
+						ChannelType.AnnouncementThread,
+					]),
 				),
 			)
 			.orderBy(asc(parent.channelName), asc(parent.id)),

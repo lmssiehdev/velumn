@@ -1,5 +1,5 @@
 import { ChannelType } from "discord-api-types/v10";
-import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../index";
 import {
@@ -13,7 +13,15 @@ import {
 	userServers,
 } from "../schema";
 
-const INDEXABLE_CHANNEL_TYPES = [ChannelType.GuildText, ChannelType.GuildForum];
+const INDEXABLE_CHANNEL_TYPES = [
+	ChannelType.GuildText,
+	ChannelType.GuildForum,
+	ChannelType.GuildAnnouncement,
+];
+const INDEXED_THREAD_TYPES = [
+	ChannelType.PublicThread,
+	ChannelType.AnnouncementThread,
+];
 
 /**
  * A server the requesting user is a member of, projected for dashboard reads.
@@ -85,7 +93,6 @@ async function loadDashboardServers({
 			.where(
 				and(
 					inArray(dbChannel.serverId, memberServerIds),
-					isNull(dbChannel.parentId),
 					inArray(dbChannel.type, INDEXABLE_CHANNEL_TYPES),
 				),
 			)
@@ -106,8 +113,7 @@ async function loadDashboardServers({
 			.where(
 				and(
 					inArray(dbChannel.serverId, memberServerIds),
-					isNotNull(dbChannel.parentId),
-					eq(dbChannel.type, ChannelType.PublicThread),
+					inArray(dbChannel.type, INDEXED_THREAD_TYPES),
 				),
 			)
 			.groupBy(dbChannel.serverId),

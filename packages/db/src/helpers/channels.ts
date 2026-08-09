@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../index";
 import { type DBChannel, dbChannel } from "../schema";
+import { enqueueIndexingChannelRefreshes } from "./indexing";
 
 export async function updateVote(
 	threadId: string,
@@ -9,7 +10,7 @@ export async function updateVote(
 	const field = type === "upvote" ? dbChannel.upvotes : dbChannel.downvotes;
 	return await db
 		.update(dbChannel)
-		.set({ [field.name]: sql`${dbChannel.upvotes} + 1` })
+		.set({ [field.name]: sql`${field} + 1` })
 		.where(eq(dbChannel.id, threadId));
 }
 
@@ -66,6 +67,8 @@ export async function setServerChannelSelection({
 					),
 				);
 		}
+
+		await enqueueIndexingChannelRefreshes({ serverId, channelIds }, tx);
 	});
 }
 

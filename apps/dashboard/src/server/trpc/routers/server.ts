@@ -24,7 +24,8 @@ export const botClient = createTRPCClient<BotRouter>({
 		httpBatchLink({
 			url: `${dashboardEnv.NEXT_PUBLIC_VELUMN_API_URL}/trpc`,
 			headers: {
-				"x-velumn-secret": dashboardEnv.DISCORD_BOT_TOKEN,
+				"x-velumn-secret":
+					dashboardEnv.BOT_API_SECRET ?? dashboardEnv.DISCORD_BOT_TOKEN,
 			},
 		}),
 	],

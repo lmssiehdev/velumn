@@ -31,13 +31,19 @@ export const publishingQueryKeys = {
   all: ["publishing"] as const,
   page: (userId: string, serverId: string) =>
     [...publishingQueryKeys.all, "page", userId, serverId] as const,
-  verification: (userId: string, serverId: string, domain: string) =>
+  verification: (
+    userId: string,
+    serverId: string,
+    domain: string,
+    generation: number
+  ) =>
     [
       ...publishingQueryKeys.all,
       "verification",
       userId,
       serverId,
       domain,
+      generation,
     ] as const,
   serverVerification: (userId: string, serverId: string) =>
     [...publishingQueryKeys.all, "verification", userId, serverId] as const,
@@ -53,12 +59,19 @@ export function publishingPageQueryOptions(userId: string, serverId: string) {
 export function publishingVerificationQueryOptions(
   userId: string,
   serverId: string,
-  domain: string | null
+  domain: string | null,
+  lifecycleStatus: PublishingPageData["domainLifecycle"]["status"],
+  generation: number
 ) {
   return queryOptions({
-    queryKey: publishingQueryKeys.verification(userId, serverId, domain ?? ""),
+    queryKey: publishingQueryKeys.verification(
+      userId,
+      serverId,
+      domain ?? "",
+      generation
+    ),
     queryFn: () => verifyPublishingDomain({ data: { serverId } }),
-    enabled: Boolean(domain),
+    enabled: Boolean(domain) && lifecycleStatus !== "removing",
     retry: false,
     refetchInterval: (query) => {
       const result = query.state.data
@@ -86,6 +99,10 @@ export function useAddPublishingDomain(userId: string, serverId: string) {
                 data: {
                   ...current.data,
                   customDomain: result.data.domain,
+                  domainLifecycle: {
+                    status: result.data.lifecycleStatus,
+                    generation: result.data.generation,
+                  },
                   canonicalUrl: current.data.defaultUrl,
                   verification: {
                     status: "pending",
@@ -100,6 +117,10 @@ export function useAddPublishingDomain(userId: string, serverId: string) {
             : current
       )
     },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: publishingQueryKeys.page(userId, serverId),
+      }),
   })
 }
 
@@ -123,6 +144,10 @@ export function useRemovePublishingDomain(userId: string, serverId: string) {
                 data: {
                   ...current.data,
                   customDomain: null,
+                  domainLifecycle: {
+                    status: "unconfigured",
+                    generation: current.data.domainLifecycle.generation + 1,
+                  },
                   canonicalUrl: current.data.defaultUrl,
                   verification: {
                     status: "not_configured",
@@ -139,5 +164,9 @@ export function useRemovePublishingDomain(userId: string, serverId: string) {
         queryKey: publishingQueryKeys.all,
       })
     },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: publishingQueryKeys.page(userId, serverId),
+      }),
   })
 }

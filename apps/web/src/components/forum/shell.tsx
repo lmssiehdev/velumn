@@ -1,8 +1,10 @@
-import { ChatsCircleIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
+import HashIcon from "@hugeicons/core-free-icons/HashIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { DBServer } from "@repo/db/schema/index";
 import { ChannelType } from "discord-api-types/v10";
 import Link from "next/link";
 import { TrackLink } from "@/components/analytics/track-link";
+import { ChatsCircleIcon } from "@/components/icons/phosphor-chat";
 import { SearchPortal } from "@/components/search/search-input";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -137,7 +139,7 @@ async function Boards({
 						{topic.type === ChannelType.GuildForum ? (
 							<ChatsCircleIcon className="size-4" />
 						) : (
-							<HashIcon className="size-4" weight="bold" />
+							<HugeiconsIcon className="size-4" icon={HashIcon} />
 						)}
 					</div>
 					<div>{topic.channelName}</div>

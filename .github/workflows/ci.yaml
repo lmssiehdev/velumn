@@ -4,15 +4,15 @@ on:
     branches:
       - main
   pull_request:
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 jobs:
   build:
-    name: Build and Test
+    name: Build
     timeout-minutes: 15
     runs-on: ubuntu-latest
     concurrency: ci-build-${{ github.ref }}
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -29,15 +29,17 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.0
 
       - name: Install Packages
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Build
         run: bun run build
   lint:
     name: Lint
-    timeout-minutes: 1
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     concurrency: ci-lint-${{ github.ref }}
 
@@ -45,14 +47,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Biome
-        uses: biomejs/setup-biome@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.0
 
-      - name: Run Biome
-        run: biome ci .
+      - name: Install Packages
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
   test:
-    name: Test
-    timeout-minutes: 1
+    name: Type Check and Test
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     concurrency: ci-test-${{ github.ref }}
 
@@ -62,9 +69,14 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.0
 
       - name: Install Packages
-        run: bun install
+        run: bun install --frozen-lockfile
 
-      - name: Run tests
-        run: bun test
+      - name: Type Check
+        run: bun run type-check
+
+      - name: Test
+        run: bun run test

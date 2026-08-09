@@ -15,6 +15,7 @@ import { ChannelType, PermissionFlagsBits } from "discord-api-types/v10"
 import { z } from "zod"
 
 import type { BotRouter } from "../../../../bot/src/helpers/trpc"
+import { requireDiscordClientId, requireIndexingEnv } from "@/env.server"
 import type {
   EligibleDiscordServer,
   ServerIdentity,
@@ -61,8 +62,7 @@ function toServerIdentity(guild: {
 }
 
 function createDiscordInviteUrl(serverId: string) {
-  const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID
-  if (!clientId) throw new Error("Discord client is not configured")
+  const clientId = requireDiscordClientId()
 
   const url = new URL("https://discord.com/oauth2/authorize")
   url.search = new URLSearchParams({
@@ -76,16 +76,13 @@ function createDiscordInviteUrl(serverId: string) {
 }
 
 async function requestInitialIndex(serverId: string) {
-  const apiUrl = process.env.NEXT_PUBLIC_VELUMN_API_URL
-  const apiSecret = process.env.DISCORD_BOT_TOKEN
-  if (!apiUrl || !apiSecret)
-    throw new Error("Indexing service is not configured")
+  const { apiOrigin, secret } = requireIndexingEnv()
 
   const client = createTRPCClient<BotRouter>({
     links: [
       httpBatchLink({
-        url: `${apiUrl}/trpc`,
-        headers: { "x-velumn-secret": apiSecret },
+        url: `${apiOrigin}/trpc`,
+        headers: { "x-velumn-secret": secret },
       }),
     ],
   })

@@ -1,33 +1,16 @@
-import { isIP } from "node:net";
 import { redis } from "bun";
 import type { Context } from "hono";
 import { getConnInfo } from "hono/bun";
+import {
+	consumePublicSearchQuota as consumeQuota,
+	normalizeIp,
+} from "./search-quota";
+
+export { getTrustedClientIp, normalizeIp } from "./search-quota";
 
 const HOUR_IN_SECONDS = 3600;
 const MINUTE_IN_SECONDS = 60;
 const MAX_SEARCH_REQUESTS_PER_MINUTE = 30;
-
-function normalizeIp(rawIp: string): string | undefined {
-	let ip = rawIp.trim();
-
-	if (!ip) {
-		return;
-	}
-
-	if (ip === "::1") {
-		ip = "127.0.0.1";
-	}
-
-	if (ip.startsWith("::ffff:")) {
-		ip = ip.slice("::ffff:".length);
-	}
-
-	if (isIP(ip) === 0) {
-		return;
-	}
-
-	return ip;
-}
 
 function parseForwardedFor(value: string): string | undefined {
 	const [firstIp] = value.split(",");
@@ -108,4 +91,10 @@ export async function trackSearch(ip?: string): Promise<void> {
 	if (current === 1) {
 		await redis.expire(searchWindowKey, MINUTE_IN_SECONDS);
 	}
+}
+
+export async function consumePublicSearchQuota(
+	ip: string,
+): ReturnType<typeof consumeQuota> {
+	return consumeQuota(ip, redis);
 }

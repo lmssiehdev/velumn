@@ -1,4 +1,6 @@
-import { DetectiveIcon, ImageIcon } from "@phosphor-icons/react/dist/ssr";
+import Image02Icon from "@hugeicons/core-free-icons/Image02Icon";
+import IncognitoIcon from "@hugeicons/core-free-icons/IncognitoIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { DBUser } from "@repo/db/schema/discord";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import {
@@ -56,7 +58,7 @@ export function MessagePost({
 								<span className="px-1 text-xs">
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<DetectiveIcon className="size-5" />
+											<HugeiconsIcon className="size-5" icon={IncognitoIcon} />
 										</TooltipTrigger>
 										<TooltipContent>
 											<p>User prefers to remain anonymous</p>
@@ -111,7 +113,8 @@ function ReferenceMessage({
 							</DiscordMarkdown>
 						) : (
 							<span className="text-sm italic">
-								Click to see attachments <ImageIcon className="size-5" />
+								Click to see attachments{" "}
+								<HugeiconsIcon className="size-5" icon={Image02Icon} />
 							</span>
 						)}
 					</span>

@@ -2,6 +2,7 @@ import {
 	bigint,
 	boolean,
 	customType,
+	foreignKey,
 	index,
 	integer,
 	json,
@@ -92,6 +93,12 @@ export const dbChannel = pgTable(
 		parentId: snowflake("parent_id"),
 		authorId: snowflake("author_id"),
 		channelName: varchar("channel_name"),
+		position: integer("position").notNull().default(0),
+		nsfw: boolean("nsfw").notNull().default(false),
+		botPermissions: text("bot_permissions"),
+		botPermissionsCheckedAt: timestamp("bot_permissions_checked_at", {
+			mode: "date",
+		}),
 		archived: boolean("archived").default(false).notNull(),
 		locked: boolean("locked").default(false).notNull(),
 		archivedTimestamp: bigint("archivedTimestamp", { mode: "number" }),
@@ -105,6 +112,11 @@ export const dbChannel = pgTable(
 		downvotes: integer("downvotes").default(0).notNull(),
 	},
 	(table) => [
+		foreignKey({
+			columns: [table.parentId],
+			foreignColumns: [table.id],
+			name: "channel_parent_id_fk",
+		}).onDelete("set null"),
 		index("channel_pinned_idx").on(table.pinned),
 		index("channel_type_idx").on(table.type),
 		index("channel_parent_id_idx").on(table.parentId),
@@ -113,6 +125,42 @@ export const dbChannel = pgTable(
 );
 
 export type DBChannel = typeof dbChannel.$inferSelect;
+
+//
+// Forum tags
+//
+
+export const dbForumTag = pgTable(
+	"db_forum_tag",
+	{
+		id: snowflake("id").primaryKey(),
+		channelId: snowflake("channel_id")
+			.notNull()
+			.references(() => dbChannel.id, { onDelete: "cascade" }),
+		name: varchar("name").notNull(),
+		moderated: boolean("moderated").notNull().default(false),
+		emojiId: snowflake("emoji_id"),
+		emojiName: varchar("emoji_name"),
+	},
+	(table) => [index("forum_tag_channel_id_idx").on(table.channelId)],
+);
+
+export type DBForumTag = typeof dbForumTag.$inferSelect;
+
+export const dbChannelAppliedTag = pgTable(
+	"db_channel_applied_tag",
+	{
+		channelId: snowflake("channel_id")
+			.notNull()
+			.references(() => dbChannel.id, { onDelete: "cascade" }),
+		tagId: snowflake("tag_id")
+			.notNull()
+			.references(() => dbForumTag.id, { onDelete: "cascade" }),
+	},
+	(table) => [primaryKey({ columns: [table.channelId, table.tagId] })],
+);
+
+export type DBChannelAppliedTag = typeof dbChannelAppliedTag.$inferSelect;
 
 //
 // Message
@@ -131,6 +179,9 @@ export const dbMessage = pgTable(
 	"db_message",
 	{
 		id: snowflake("id").primaryKey(),
+		sourceVersion: bigint("source_version", { mode: "number" })
+			.notNull()
+			.default(0),
 		serverId: snowflake("server_id")
 			.notNull()
 			.references(() => dbServer.id, { onDelete: "cascade" }),
@@ -166,7 +217,7 @@ export const dbMessage = pgTable(
 		 * This works around a Discord quirk where starter messages for threads
 		 * created from text channels point to the parent channel instead of the thread.
 		 *
-		 * - For regular messages: equals `Message.id`
+		 * - For regular messages: equals `Message.channelId`
 		 * - For thread starter messages: equals `Message.thread.id`
 		 */
 		primaryChannelId: snowflake("primary_channel_id"),
@@ -220,9 +271,15 @@ export type DBMessageWithRelations = DBMessage & {
 export const dbThreadBacklink = pgTable(
 	"thread_backlink",
 	{
-		fromMessageId: snowflake("from_message_id").notNull(),
-		toThreadId: snowflake("to_thread_id").notNull(),
-		fromThreadId: snowflake("from_thread_id").notNull(),
+		fromMessageId: snowflake("from_message_id")
+			.notNull()
+			.references(() => dbMessage.id, { onDelete: "cascade" }),
+		toThreadId: snowflake("to_thread_id")
+			.notNull()
+			.references(() => dbChannel.id, { onDelete: "cascade" }),
+		fromThreadId: snowflake("from_thread_id")
+			.notNull()
+			.references(() => dbChannel.id, { onDelete: "cascade" }),
 	},
 	(table) => [
 		primaryKey({ columns: [table.fromMessageId, table.toThreadId] }),

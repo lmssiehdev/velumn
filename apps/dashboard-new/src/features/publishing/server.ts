@@ -1,6 +1,12 @@
 import {
+  beginDomainRemoval,
+  completeDomainProvisioning,
+  completeDomainRemoval,
+  completeDomainVerification,
+  getDomainLifecycle,
   getServerByCustomDomain,
-  updateDomainLinkToServerIfCurrent,
+  releaseDomainProvisioning,
+  reserveDomainForServer,
 } from "@repo/db/helpers/domains"
 import { buildHostUrl, normalizeDomain } from "@repo/utils/helpers/domains"
 import { createServerFn } from "@tanstack/react-start"
@@ -8,13 +14,32 @@ import { z } from "zod"
 
 import { authorizeManagementServer } from "@/features/dashboard/server-context"
 import { toServerIdentity } from "@/features/dashboard/urls"
+import { getHostRoutingEnv } from "@/env.server"
 
 import {
   addProjectDomain,
-  type DomainProviderFailure,
   getDomainStatus,
-  removeDomainFromProjectAndAccount,
+  removeDomainFromProject,
 } from "./vercel"
+import {
+  addPublishingDomainOrchestration,
+  removePublishingDomainOrchestration,
+  verifyPublishingDomainOrchestration,
+  type PublishingOrchestrationDependencies,
+} from "./orchestration"
+
+const orchestrationDependencies: PublishingOrchestrationDependencies = {
+  addProjectDomain,
+  beginDomainRemoval,
+  completeDomainProvisioning,
+  completeDomainRemoval,
+  completeDomainVerification,
+  getDomainLifecycle,
+  getDomainStatus,
+  releaseDomainProvisioning,
+  removeDomainFromProject,
+  reserveDomainForServer,
+}
 
 const serverIdSchema = z.string().regex(/^\d+$/)
 const serverInputSchema = z.object({ serverId: serverIdSchema })
@@ -29,6 +54,7 @@ export const getPublishingPage = createServerFn({ method: "GET" })
     if (authorization.status === "error") return authorization
 
     const { server } = authorization
+    const lifecycle = await getDomainLifecycle(server.id)
     const defaultUrl = buildHostUrl("velumn.com", `/server/${server.id}`)
     const customDomain = server.customDomain
     return {
@@ -42,6 +68,16 @@ export const getPublishingPage = createServerFn({ method: "GET" })
             ? buildHostUrl(customDomain, "/")
             : defaultUrl,
         customDomain,
+        domainLifecycle: {
+          status:
+            lifecycle?.status ??
+            (customDomain
+              ? server.domainVerified
+                ? ("verified" as const)
+                : ("pending" as const)
+              : ("unconfigured" as const)),
+          generation: lifecycle?.generation ?? 0,
+        },
         verification: {
           status: customDomain
             ? server.domainVerified
@@ -88,6 +124,17 @@ export const addPublishingDomain = createServerFn({ method: "POST" })
         error instanceof Error ? error.message : "Enter a valid hostname."
       )
     }
+    const canonicalHost = new URL(getHostRoutingEnv().canonicalOrigin).hostname
+    if (
+      domain === canonicalHost ||
+      domain.endsWith(`.${canonicalHost}`) ||
+      domain.endsWith(".vercel.app")
+    ) {
+      return domainError(
+        "invalid_domain",
+        "Use a domain that is not reserved by Velumn or Vercel."
+      )
+    }
 
     const existingOwner = await getServerByCustomDomain(domain)
     if (existingOwner && existingOwner.id !== data.serverId) {
@@ -97,47 +144,10 @@ export const addPublishingDomain = createServerFn({ method: "POST" })
       )
     }
 
-    let reserved = false
-    try {
-      reserved = await updateDomainLinkToServerIfCurrent({
-        serverId: data.serverId,
-        expectedCustomDomain: null,
-        payload: { customDomain: domain, domainVerified: false },
-      })
-    } catch {
-      return domainError(
-        "domain_unavailable",
-        "This domain is already linked to another server."
-      )
-    }
-    if (!reserved) {
-      return domainError("domain_exists", "A custom domain is already linked.")
-    }
-
-    const providerResult = await addProjectDomain(domain)
-    if (providerResult.isErr()) {
-      try {
-        const released = await updateDomainLinkToServerIfCurrent({
-          serverId: data.serverId,
-          expectedCustomDomain: domain,
-          payload: { customDomain: null, domainVerified: false },
-        })
-        if (!released) {
-          return domainError(
-            "domain_changed",
-            "The linked domain changed while it was being added. Refresh the page."
-          )
-        }
-      } catch {
-        return domainError(
-          "save_failed",
-          "The domain could not be added and its local reservation could not be released. Refresh before trying again."
-        )
-      }
-      return domainError("provider_error", providerResult.error.message)
-    }
-
-    return { status: "ok" as const, data: { domain } }
+    return addPublishingDomainOrchestration(
+      { serverId: data.serverId, domain },
+      orchestrationDependencies
+    )
   })
 
 export const verifyPublishingDomain = createServerFn({ method: "POST" })
@@ -148,31 +158,10 @@ export const verifyPublishingDomain = createServerFn({ method: "POST" })
       "publishing"
     )
     if (authorization.status === "error") return authorization
-    const domain = authorization.server.customDomain
-    if (!domain) return domainError("domain_missing", "Add a domain first.")
-
-    const providerResult = await getDomainStatus(domain)
-    if (providerResult.isErr()) {
-      return {
-        status: "ok" as const,
-        data: failedDomainCheck(domain, providerResult.error),
-      }
-    }
-    const result = providerResult.value
-    if (result.verified !== authorization.server.domainVerified) {
-      const updated = await updateDomainLinkToServerIfCurrent({
-        serverId: data.serverId,
-        expectedCustomDomain: domain,
-        payload: { customDomain: domain, domainVerified: result.verified },
-      })
-      if (!updated) {
-        return domainError(
-          "domain_changed",
-          "The linked domain changed while verification was running. Refresh the page."
-        )
-      }
-    }
-    return { status: "ok" as const, data: result }
+    return verifyPublishingDomainOrchestration(
+      data.serverId,
+      orchestrationDependencies
+    )
   })
 
 export const removePublishingDomain = createServerFn({ method: "POST" })
@@ -183,44 +172,12 @@ export const removePublishingDomain = createServerFn({ method: "POST" })
       "publishing"
     )
     if (authorization.status === "error") return authorization
-    const domain = authorization.server.customDomain
-    if (!domain) return domainError("domain_missing", "No domain is linked.")
-
-    const providerResult = await removeDomainFromProjectAndAccount(domain)
-    if (providerResult.isErr()) {
-      return domainError("provider_error", providerResult.error.message)
-    }
-    const removed = await updateDomainLinkToServerIfCurrent({
-      serverId: data.serverId,
-      expectedCustomDomain: domain,
-      payload: { customDomain: null, domainVerified: false },
-    })
-    if (!removed) {
-      return domainError(
-        "domain_changed",
-        "The linked domain changed while removal was running. Refresh the page."
-      )
-    }
-    return { status: "ok" as const }
+    return removePublishingDomainOrchestration(
+      data.serverId,
+      orchestrationDependencies
+    )
   })
 
 function domainError(code: string, message: string) {
   return { status: "error" as const, code, message }
-}
-
-function failedDomainCheck(domain: string, error: DomainProviderFailure) {
-  return {
-    domain,
-    verified: false,
-    status: "failed" as const,
-    failureReason:
-      error.code === "not_found"
-        ? ("not_found" as const)
-        : error.code === "forbidden"
-          ? ("permission" as const)
-          : ("unavailable" as const),
-    checkedAt: new Date().toISOString(),
-    message: error.message,
-    records: [],
-  }
 }

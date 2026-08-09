@@ -10,159 +10,518 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardRouteImport } from './routes/_dashboard'
-import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
-import { Route as DashboardServersIndexRouteImport } from './routes/_dashboard/servers/index'
-import { Route as DashboardServersNewRouteImport } from './routes/_dashboard/servers/new'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as ChannelRouteImport } from './routes/channel'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as OssProgramRouteImport } from './routes/oss-program'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as ServerRouteImport } from './routes/server'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ThreadRouteImport } from './routes/thread'
+import { Route as _tenantHostRouteImport } from './routes/[_]_tenant/$host'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as DashboardAuthenticatedRouteImport } from './routes/dashboard/_authenticated'
+import { Route as DashboardSignInRouteImport } from './routes/dashboard/sign-in'
+import { Route as ThreadIndexRouteImport } from './routes/thread/index'
+import { Route as _tenantHostIndexRouteImport } from './routes/[_]_tenant/$host/index'
+import { Route as _tenantHostRobotsDottxtRouteImport } from './routes/[_]_tenant/$host/robots[.]txt'
+import { Route as _tenantHostSitemapDotxmlRouteImport } from './routes/[_]_tenant/$host/sitemap[.]xml'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as DashboardServersServerIdIndexRouteImport } from './routes/_dashboard/servers/$serverId/index'
-import { Route as DashboardServersServerIdChannelsRouteImport } from './routes/_dashboard/servers/$serverId/channels'
-import { Route as DashboardServersServerIdPublishingRouteImport } from './routes/_dashboard/servers/$serverId/publishing'
-import { Route as DashboardServersServerIdSetupRouteImport } from './routes/_dashboard/servers/$serverId/setup'
-import { Route as DashboardServersServerIdThreadsRouteImport } from './routes/_dashboard/servers/$serverId/threads'
+import { Route as ChannelChannelIdIndexRouteImport } from './routes/channel/$channelId/index'
+import { Route as DashboardAuthenticatedIndexRouteImport } from './routes/dashboard/_authenticated/index'
+import { Route as ServerServerIdIndexRouteImport } from './routes/server/$serverId/index'
+import { Route as ThreadThreadIdSlugRouteImport } from './routes/thread/$threadId/$slug'
+import { Route as ThreadThreadIdChar123slugChar125DotmdRouteImport } from './routes/thread/$threadId/{$slug}[.]md'
+import { Route as _tenantHostApiSearchRouteImport } from './routes/[_]_tenant/$host/api/search'
+import { Route as _tenantHostChannelIndexRouteImport } from './routes/[_]_tenant/$host/channel/index'
+import { Route as DashboardAuthenticatedServersIndexRouteImport } from './routes/dashboard/_authenticated/servers/index'
+import { Route as DashboardAuthenticatedServersNewRouteImport } from './routes/dashboard/_authenticated/servers/new'
+import { Route as _tenantHostChannelChannelIdIndexRouteImport } from './routes/[_]_tenant/$host/channel/$channelId/index'
+import { Route as _tenantHostChannelChannelIdSlugRouteImport } from './routes/[_]_tenant/$host/channel/$channelId/$slug'
+import { Route as _tenantHostThreadThreadIdIndexRouteImport } from './routes/[_]_tenant/$host/thread/$threadId/index'
+import { Route as _tenantHostThreadThreadIdSlugRouteImport } from './routes/[_]_tenant/$host/thread/$threadId/$slug'
+import { Route as _tenantHostThreadThreadIdChar123slugChar125DotmdRouteImport } from './routes/[_]_tenant/$host/thread/$threadId/{$slug}[.]md'
+import { Route as DashboardAuthenticatedServersServerIdIndexRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/index'
+import { Route as DashboardAuthenticatedServersServerIdChannelsRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/channels'
+import { Route as DashboardAuthenticatedServersServerIdPublishingRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/publishing'
+import { Route as DashboardAuthenticatedServersServerIdSetupRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/setup'
+import { Route as DashboardAuthenticatedServersServerIdThreadsRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/threads'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelRoute = ChannelRouteImport.update({
+  id: '/channel',
+  path: '/channel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
-  id: '/_dashboard',
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthSignInRoute = AuthSignInRouteImport.update({
-  id: '/auth/sign-in',
-  path: '/auth/sign-in',
+const OssProgramRoute = OssProgramRouteImport.update({
+  id: '/oss-program',
+  path: '/oss-program',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardServersIndexRoute = DashboardServersIndexRouteImport.update({
-  id: '/servers/',
-  path: '/servers/',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServerRoute = ServerRouteImport.update({
+  id: '/server',
+  path: '/server',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThreadRoute = ThreadRouteImport.update({
+  id: '/thread',
+  path: '/thread',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const _tenantHostRoute = _tenantHostRouteImport.update({
+  id: '/__tenant/$host',
+  path: '/__tenant/$host',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
+const DashboardAuthenticatedRoute = DashboardAuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => DashboardRoute,
 } as any)
-const DashboardServersNewRoute = DashboardServersNewRouteImport.update({
-  id: '/servers/new',
-  path: '/servers/new',
+const DashboardSignInRoute = DashboardSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ThreadIndexRoute = ThreadIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ThreadRoute,
+} as any)
+const _tenantHostIndexRoute = _tenantHostIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => _tenantHostRoute,
+} as any)
+const _tenantHostRobotsDottxtRoute = _tenantHostRobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => _tenantHostRoute,
+} as any)
+const _tenantHostSitemapDotxmlRoute =
+  _tenantHostSitemapDotxmlRouteImport.update({
+    id: '/sitemap.xml',
+    path: '/sitemap.xml',
+    getParentRoute: () => _tenantHostRoute,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardServersServerIdIndexRoute =
-  DashboardServersServerIdIndexRouteImport.update({
+const ChannelChannelIdIndexRoute = ChannelChannelIdIndexRouteImport.update({
+  id: '/$channelId/',
+  path: '/$channelId/',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const DashboardAuthenticatedIndexRoute =
+  DashboardAuthenticatedIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardAuthenticatedRoute,
+  } as any)
+const ServerServerIdIndexRoute = ServerServerIdIndexRouteImport.update({
+  id: '/$serverId/',
+  path: '/$serverId/',
+  getParentRoute: () => ServerRoute,
+} as any)
+const ThreadThreadIdSlugRoute = ThreadThreadIdSlugRouteImport.update({
+  id: '/$threadId/$slug',
+  path: '/$threadId/$slug',
+  getParentRoute: () => ThreadRoute,
+} as any)
+const ThreadThreadIdChar123slugChar125DotmdRoute =
+  ThreadThreadIdChar123slugChar125DotmdRouteImport.update({
+    id: '/$threadId/{$slug}.md',
+    path: '/$threadId/{$slug}.md',
+    getParentRoute: () => ThreadRoute,
+  } as any)
+const _tenantHostApiSearchRoute = _tenantHostApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => _tenantHostRoute,
+} as any)
+const _tenantHostChannelIndexRoute = _tenantHostChannelIndexRouteImport.update({
+  id: '/channel/',
+  path: '/channel/',
+  getParentRoute: () => _tenantHostRoute,
+} as any)
+const DashboardAuthenticatedServersIndexRoute =
+  DashboardAuthenticatedServersIndexRouteImport.update({
+    id: '/servers/',
+    path: '/servers/',
+    getParentRoute: () => DashboardAuthenticatedRoute,
+  } as any)
+const DashboardAuthenticatedServersNewRoute =
+  DashboardAuthenticatedServersNewRouteImport.update({
+    id: '/servers/new',
+    path: '/servers/new',
+    getParentRoute: () => DashboardAuthenticatedRoute,
+  } as any)
+const _tenantHostChannelChannelIdIndexRoute =
+  _tenantHostChannelChannelIdIndexRouteImport.update({
+    id: '/channel/$channelId/',
+    path: '/channel/$channelId/',
+    getParentRoute: () => _tenantHostRoute,
+  } as any)
+const _tenantHostChannelChannelIdSlugRoute =
+  _tenantHostChannelChannelIdSlugRouteImport.update({
+    id: '/channel/$channelId/$slug',
+    path: '/channel/$channelId/$slug',
+    getParentRoute: () => _tenantHostRoute,
+  } as any)
+const _tenantHostThreadThreadIdIndexRoute =
+  _tenantHostThreadThreadIdIndexRouteImport.update({
+    id: '/thread/$threadId/',
+    path: '/thread/$threadId/',
+    getParentRoute: () => _tenantHostRoute,
+  } as any)
+const _tenantHostThreadThreadIdSlugRoute =
+  _tenantHostThreadThreadIdSlugRouteImport.update({
+    id: '/thread/$threadId/$slug',
+    path: '/thread/$threadId/$slug',
+    getParentRoute: () => _tenantHostRoute,
+  } as any)
+const _tenantHostThreadThreadIdChar123slugChar125DotmdRoute =
+  _tenantHostThreadThreadIdChar123slugChar125DotmdRouteImport.update({
+    id: '/thread/$threadId/{$slug}.md',
+    path: '/thread/$threadId/{$slug}.md',
+    getParentRoute: () => _tenantHostRoute,
+  } as any)
+const DashboardAuthenticatedServersServerIdIndexRoute =
+  DashboardAuthenticatedServersServerIdIndexRouteImport.update({
     id: '/servers/$serverId/',
     path: '/servers/$serverId/',
-    getParentRoute: () => DashboardRoute,
+    getParentRoute: () => DashboardAuthenticatedRoute,
   } as any)
-const DashboardServersServerIdChannelsRoute =
-  DashboardServersServerIdChannelsRouteImport.update({
+const DashboardAuthenticatedServersServerIdChannelsRoute =
+  DashboardAuthenticatedServersServerIdChannelsRouteImport.update({
     id: '/servers/$serverId/channels',
     path: '/servers/$serverId/channels',
-    getParentRoute: () => DashboardRoute,
+    getParentRoute: () => DashboardAuthenticatedRoute,
   } as any)
-const DashboardServersServerIdPublishingRoute =
-  DashboardServersServerIdPublishingRouteImport.update({
+const DashboardAuthenticatedServersServerIdPublishingRoute =
+  DashboardAuthenticatedServersServerIdPublishingRouteImport.update({
     id: '/servers/$serverId/publishing',
     path: '/servers/$serverId/publishing',
-    getParentRoute: () => DashboardRoute,
+    getParentRoute: () => DashboardAuthenticatedRoute,
   } as any)
-const DashboardServersServerIdSetupRoute =
-  DashboardServersServerIdSetupRouteImport.update({
+const DashboardAuthenticatedServersServerIdSetupRoute =
+  DashboardAuthenticatedServersServerIdSetupRouteImport.update({
     id: '/servers/$serverId/setup',
     path: '/servers/$serverId/setup',
-    getParentRoute: () => DashboardRoute,
+    getParentRoute: () => DashboardAuthenticatedRoute,
   } as any)
-const DashboardServersServerIdThreadsRoute =
-  DashboardServersServerIdThreadsRouteImport.update({
+const DashboardAuthenticatedServersServerIdThreadsRoute =
+  DashboardAuthenticatedServersServerIdThreadsRouteImport.update({
     id: '/servers/$serverId/threads',
     path: '/servers/$serverId/threads',
-    getParentRoute: () => DashboardRoute,
+    getParentRoute: () => DashboardAuthenticatedRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth/sign-in': typeof AuthSignInRoute
-  '/servers/new': typeof DashboardServersNewRoute
+  '/blog': typeof BlogRouteWithChildren
+  '/channel': typeof ChannelRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/oss-program': typeof OssProgramRoute
+  '/pricing': typeof PricingRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/server': typeof ServerRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/thread': typeof ThreadRouteWithChildren
+  '/__tenant/$host': typeof _tenantHostRouteWithChildren
+  '/api/search': typeof ApiSearchRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/dashboard/sign-in': typeof DashboardSignInRoute
+  '/blog/': typeof BlogIndexRoute
+  '/thread/': typeof ThreadIndexRoute
+  '/__tenant/$host/robots.txt': typeof _tenantHostRobotsDottxtRoute
+  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/servers/': typeof DashboardServersIndexRoute
-  '/servers/$serverId/channels': typeof DashboardServersServerIdChannelsRoute
-  '/servers/$serverId/publishing': typeof DashboardServersServerIdPublishingRoute
-  '/servers/$serverId/setup': typeof DashboardServersServerIdSetupRoute
-  '/servers/$serverId/threads': typeof DashboardServersServerIdThreadsRoute
-  '/servers/$serverId/': typeof DashboardServersServerIdIndexRoute
+  '/thread/$threadId/$slug': typeof ThreadThreadIdSlugRoute
+  '/thread/$threadId/{$slug}.md': typeof ThreadThreadIdChar123slugChar125DotmdRoute
+  '/__tenant/$host/': typeof _tenantHostIndexRoute
+  '/channel/$channelId/': typeof ChannelChannelIdIndexRoute
+  '/dashboard/': typeof DashboardAuthenticatedIndexRoute
+  '/server/$serverId/': typeof ServerServerIdIndexRoute
+  '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
+  '/dashboard/servers/new': typeof DashboardAuthenticatedServersNewRoute
+  '/__tenant/$host/channel/': typeof _tenantHostChannelIndexRoute
+  '/dashboard/servers/': typeof DashboardAuthenticatedServersIndexRoute
+  '/__tenant/$host/channel/$channelId/$slug': typeof _tenantHostChannelChannelIdSlugRoute
+  '/__tenant/$host/thread/$threadId/$slug': typeof _tenantHostThreadThreadIdSlugRoute
+  '/__tenant/$host/thread/$threadId/{$slug}.md': typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRoute
+  '/dashboard/servers/$serverId/channels': typeof DashboardAuthenticatedServersServerIdChannelsRoute
+  '/dashboard/servers/$serverId/publishing': typeof DashboardAuthenticatedServersServerIdPublishingRoute
+  '/dashboard/servers/$serverId/setup': typeof DashboardAuthenticatedServersServerIdSetupRoute
+  '/dashboard/servers/$serverId/threads': typeof DashboardAuthenticatedServersServerIdThreadsRoute
+  '/__tenant/$host/channel/$channelId/': typeof _tenantHostChannelChannelIdIndexRoute
+  '/__tenant/$host/thread/$threadId/': typeof _tenantHostThreadThreadIdIndexRoute
+  '/dashboard/servers/$serverId/': typeof DashboardAuthenticatedServersServerIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth/sign-in': typeof AuthSignInRoute
-  '/servers/new': typeof DashboardServersNewRoute
+  '/channel': typeof ChannelRouteWithChildren
+  '/dashboard': typeof DashboardAuthenticatedIndexRoute
+  '/oss-program': typeof OssProgramRoute
+  '/pricing': typeof PricingRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/server': typeof ServerRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/search': typeof ApiSearchRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/dashboard/sign-in': typeof DashboardSignInRoute
+  '/blog': typeof BlogIndexRoute
+  '/thread': typeof ThreadIndexRoute
+  '/__tenant/$host/robots.txt': typeof _tenantHostRobotsDottxtRoute
+  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/servers': typeof DashboardServersIndexRoute
-  '/servers/$serverId/channels': typeof DashboardServersServerIdChannelsRoute
-  '/servers/$serverId/publishing': typeof DashboardServersServerIdPublishingRoute
-  '/servers/$serverId/setup': typeof DashboardServersServerIdSetupRoute
-  '/servers/$serverId/threads': typeof DashboardServersServerIdThreadsRoute
-  '/servers/$serverId': typeof DashboardServersServerIdIndexRoute
+  '/thread/$threadId/$slug': typeof ThreadThreadIdSlugRoute
+  '/thread/$threadId/{$slug}.md': typeof ThreadThreadIdChar123slugChar125DotmdRoute
+  '/__tenant/$host': typeof _tenantHostIndexRoute
+  '/channel/$channelId': typeof ChannelChannelIdIndexRoute
+  '/server/$serverId': typeof ServerServerIdIndexRoute
+  '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
+  '/dashboard/servers/new': typeof DashboardAuthenticatedServersNewRoute
+  '/__tenant/$host/channel': typeof _tenantHostChannelIndexRoute
+  '/dashboard/servers': typeof DashboardAuthenticatedServersIndexRoute
+  '/__tenant/$host/channel/$channelId/$slug': typeof _tenantHostChannelChannelIdSlugRoute
+  '/__tenant/$host/thread/$threadId/$slug': typeof _tenantHostThreadThreadIdSlugRoute
+  '/__tenant/$host/thread/$threadId/{$slug}.md': typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRoute
+  '/dashboard/servers/$serverId/channels': typeof DashboardAuthenticatedServersServerIdChannelsRoute
+  '/dashboard/servers/$serverId/publishing': typeof DashboardAuthenticatedServersServerIdPublishingRoute
+  '/dashboard/servers/$serverId/setup': typeof DashboardAuthenticatedServersServerIdSetupRoute
+  '/dashboard/servers/$serverId/threads': typeof DashboardAuthenticatedServersServerIdThreadsRoute
+  '/__tenant/$host/channel/$channelId': typeof _tenantHostChannelChannelIdIndexRoute
+  '/__tenant/$host/thread/$threadId': typeof _tenantHostThreadThreadIdIndexRoute
+  '/dashboard/servers/$serverId': typeof DashboardAuthenticatedServersServerIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_dashboard': typeof DashboardRouteWithChildren
-  '/auth/sign-in': typeof AuthSignInRoute
-  '/_dashboard/servers/new': typeof DashboardServersNewRoute
+  '/blog': typeof BlogRouteWithChildren
+  '/channel': typeof ChannelRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/oss-program': typeof OssProgramRoute
+  '/pricing': typeof PricingRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/server': typeof ServerRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/thread': typeof ThreadRouteWithChildren
+  '/__tenant/$host': typeof _tenantHostRouteWithChildren
+  '/api/search': typeof ApiSearchRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/dashboard/_authenticated': typeof DashboardAuthenticatedRouteWithChildren
+  '/dashboard/sign-in': typeof DashboardSignInRoute
+  '/blog/': typeof BlogIndexRoute
+  '/thread/': typeof ThreadIndexRoute
+  '/__tenant/$host/robots.txt': typeof _tenantHostRobotsDottxtRoute
+  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/_dashboard/servers/': typeof DashboardServersIndexRoute
-  '/_dashboard/servers/$serverId/channels': typeof DashboardServersServerIdChannelsRoute
-  '/_dashboard/servers/$serverId/publishing': typeof DashboardServersServerIdPublishingRoute
-  '/_dashboard/servers/$serverId/setup': typeof DashboardServersServerIdSetupRoute
-  '/_dashboard/servers/$serverId/threads': typeof DashboardServersServerIdThreadsRoute
-  '/_dashboard/servers/$serverId/': typeof DashboardServersServerIdIndexRoute
+  '/thread/$threadId/$slug': typeof ThreadThreadIdSlugRoute
+  '/thread/$threadId/{$slug}.md': typeof ThreadThreadIdChar123slugChar125DotmdRoute
+  '/__tenant/$host/': typeof _tenantHostIndexRoute
+  '/channel/$channelId/': typeof ChannelChannelIdIndexRoute
+  '/dashboard/_authenticated/': typeof DashboardAuthenticatedIndexRoute
+  '/server/$serverId/': typeof ServerServerIdIndexRoute
+  '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
+  '/dashboard/_authenticated/servers/new': typeof DashboardAuthenticatedServersNewRoute
+  '/__tenant/$host/channel/': typeof _tenantHostChannelIndexRoute
+  '/dashboard/_authenticated/servers/': typeof DashboardAuthenticatedServersIndexRoute
+  '/__tenant/$host/channel/$channelId/$slug': typeof _tenantHostChannelChannelIdSlugRoute
+  '/__tenant/$host/thread/$threadId/$slug': typeof _tenantHostThreadThreadIdSlugRoute
+  '/__tenant/$host/thread/$threadId/{$slug}.md': typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRoute
+  '/dashboard/_authenticated/servers/$serverId/channels': typeof DashboardAuthenticatedServersServerIdChannelsRoute
+  '/dashboard/_authenticated/servers/$serverId/publishing': typeof DashboardAuthenticatedServersServerIdPublishingRoute
+  '/dashboard/_authenticated/servers/$serverId/setup': typeof DashboardAuthenticatedServersServerIdSetupRoute
+  '/dashboard/_authenticated/servers/$serverId/threads': typeof DashboardAuthenticatedServersServerIdThreadsRoute
+  '/__tenant/$host/channel/$channelId/': typeof _tenantHostChannelChannelIdIndexRoute
+  '/__tenant/$host/thread/$threadId/': typeof _tenantHostThreadThreadIdIndexRoute
+  '/dashboard/_authenticated/servers/$serverId/': typeof DashboardAuthenticatedServersServerIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/auth/sign-in'
-    | '/servers/new'
+    | '/blog'
+    | '/channel'
+    | '/dashboard'
+    | '/oss-program'
+    | '/pricing'
+    | '/robots.txt'
+    | '/server'
+    | '/sitemap.xml'
+    | '/thread'
+    | '/__tenant/$host'
+    | '/api/search'
+    | '/blog/$slug'
+    | '/dashboard/sign-in'
+    | '/blog/'
+    | '/thread/'
+    | '/__tenant/$host/robots.txt'
+    | '/__tenant/$host/sitemap.xml'
     | '/api/auth/$'
-    | '/servers/'
-    | '/servers/$serverId/channels'
-    | '/servers/$serverId/publishing'
-    | '/servers/$serverId/setup'
-    | '/servers/$serverId/threads'
-    | '/servers/$serverId/'
+    | '/thread/$threadId/$slug'
+    | '/thread/$threadId/{$slug}.md'
+    | '/__tenant/$host/'
+    | '/channel/$channelId/'
+    | '/dashboard/'
+    | '/server/$serverId/'
+    | '/__tenant/$host/api/search'
+    | '/dashboard/servers/new'
+    | '/__tenant/$host/channel/'
+    | '/dashboard/servers/'
+    | '/__tenant/$host/channel/$channelId/$slug'
+    | '/__tenant/$host/thread/$threadId/$slug'
+    | '/__tenant/$host/thread/$threadId/{$slug}.md'
+    | '/dashboard/servers/$serverId/channels'
+    | '/dashboard/servers/$serverId/publishing'
+    | '/dashboard/servers/$serverId/setup'
+    | '/dashboard/servers/$serverId/threads'
+    | '/__tenant/$host/channel/$channelId/'
+    | '/__tenant/$host/thread/$threadId/'
+    | '/dashboard/servers/$serverId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/auth/sign-in'
-    | '/servers/new'
+    | '/channel'
+    | '/dashboard'
+    | '/oss-program'
+    | '/pricing'
+    | '/robots.txt'
+    | '/server'
+    | '/sitemap.xml'
+    | '/api/search'
+    | '/blog/$slug'
+    | '/dashboard/sign-in'
+    | '/blog'
+    | '/thread'
+    | '/__tenant/$host/robots.txt'
+    | '/__tenant/$host/sitemap.xml'
     | '/api/auth/$'
-    | '/servers'
-    | '/servers/$serverId/channels'
-    | '/servers/$serverId/publishing'
-    | '/servers/$serverId/setup'
-    | '/servers/$serverId/threads'
-    | '/servers/$serverId'
+    | '/thread/$threadId/$slug'
+    | '/thread/$threadId/{$slug}.md'
+    | '/__tenant/$host'
+    | '/channel/$channelId'
+    | '/server/$serverId'
+    | '/__tenant/$host/api/search'
+    | '/dashboard/servers/new'
+    | '/__tenant/$host/channel'
+    | '/dashboard/servers'
+    | '/__tenant/$host/channel/$channelId/$slug'
+    | '/__tenant/$host/thread/$threadId/$slug'
+    | '/__tenant/$host/thread/$threadId/{$slug}.md'
+    | '/dashboard/servers/$serverId/channels'
+    | '/dashboard/servers/$serverId/publishing'
+    | '/dashboard/servers/$serverId/setup'
+    | '/dashboard/servers/$serverId/threads'
+    | '/__tenant/$host/channel/$channelId'
+    | '/__tenant/$host/thread/$threadId'
+    | '/dashboard/servers/$serverId'
   id:
     | '__root__'
     | '/'
-    | '/_dashboard'
-    | '/auth/sign-in'
-    | '/_dashboard/servers/new'
+    | '/blog'
+    | '/channel'
+    | '/dashboard'
+    | '/oss-program'
+    | '/pricing'
+    | '/robots.txt'
+    | '/server'
+    | '/sitemap.xml'
+    | '/thread'
+    | '/__tenant/$host'
+    | '/api/search'
+    | '/blog/$slug'
+    | '/dashboard/_authenticated'
+    | '/dashboard/sign-in'
+    | '/blog/'
+    | '/thread/'
+    | '/__tenant/$host/robots.txt'
+    | '/__tenant/$host/sitemap.xml'
     | '/api/auth/$'
-    | '/_dashboard/servers/'
-    | '/_dashboard/servers/$serverId/channels'
-    | '/_dashboard/servers/$serverId/publishing'
-    | '/_dashboard/servers/$serverId/setup'
-    | '/_dashboard/servers/$serverId/threads'
-    | '/_dashboard/servers/$serverId/'
+    | '/thread/$threadId/$slug'
+    | '/thread/$threadId/{$slug}.md'
+    | '/__tenant/$host/'
+    | '/channel/$channelId/'
+    | '/dashboard/_authenticated/'
+    | '/server/$serverId/'
+    | '/__tenant/$host/api/search'
+    | '/dashboard/_authenticated/servers/new'
+    | '/__tenant/$host/channel/'
+    | '/dashboard/_authenticated/servers/'
+    | '/__tenant/$host/channel/$channelId/$slug'
+    | '/__tenant/$host/thread/$threadId/$slug'
+    | '/__tenant/$host/thread/$threadId/{$slug}.md'
+    | '/dashboard/_authenticated/servers/$serverId/channels'
+    | '/dashboard/_authenticated/servers/$serverId/publishing'
+    | '/dashboard/_authenticated/servers/$serverId/setup'
+    | '/dashboard/_authenticated/servers/$serverId/threads'
+    | '/__tenant/$host/channel/$channelId/'
+    | '/__tenant/$host/thread/$threadId/'
+    | '/dashboard/_authenticated/servers/$serverId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BlogRoute: typeof BlogRouteWithChildren
+  ChannelRoute: typeof ChannelRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
-  AuthSignInRoute: typeof AuthSignInRoute
+  OssProgramRoute: typeof OssProgramRoute
+  PricingRoute: typeof PricingRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  ServerRoute: typeof ServerRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ThreadRoute: typeof ThreadRouteWithChildren
+  _tenantHostRoute: typeof _tenantHostRouteWithChildren
+  ApiSearchRoute: typeof ApiSearchRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -175,33 +534,138 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_dashboard': {
-      id: '/_dashboard'
-      path: ''
-      fullPath: '/'
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channel': {
+      id: '/channel'
+      path: '/channel'
+      fullPath: '/channel'
+      preLoaderRoute: typeof ChannelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/sign-in': {
-      id: '/auth/sign-in'
-      path: '/auth/sign-in'
-      fullPath: '/auth/sign-in'
-      preLoaderRoute: typeof AuthSignInRouteImport
+    '/oss-program': {
+      id: '/oss-program'
+      path: '/oss-program'
+      fullPath: '/oss-program'
+      preLoaderRoute: typeof OssProgramRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_dashboard/servers/': {
-      id: '/_dashboard/servers/'
-      path: '/servers'
-      fullPath: '/servers/'
-      preLoaderRoute: typeof DashboardServersIndexRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/server': {
+      id: '/server'
+      path: '/server'
+      fullPath: '/server'
+      preLoaderRoute: typeof ServerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/thread': {
+      id: '/thread'
+      path: '/thread'
+      fullPath: '/thread'
+      preLoaderRoute: typeof ThreadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__tenant/$host': {
+      id: '/__tenant/$host'
+      path: '/__tenant/$host'
+      fullPath: '/__tenant/$host'
+      preLoaderRoute: typeof _tenantHostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/dashboard/_authenticated': {
+      id: '/dashboard/_authenticated'
+      path: ''
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardAuthenticatedRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/_dashboard/servers/new': {
-      id: '/_dashboard/servers/new'
-      path: '/servers/new'
-      fullPath: '/servers/new'
-      preLoaderRoute: typeof DashboardServersNewRouteImport
+    '/dashboard/sign-in': {
+      id: '/dashboard/sign-in'
+      path: '/sign-in'
+      fullPath: '/dashboard/sign-in'
+      preLoaderRoute: typeof DashboardSignInRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/thread/': {
+      id: '/thread/'
+      path: '/'
+      fullPath: '/thread/'
+      preLoaderRoute: typeof ThreadIndexRouteImport
+      parentRoute: typeof ThreadRoute
+    }
+    '/__tenant/$host/': {
+      id: '/__tenant/$host/'
+      path: '/'
+      fullPath: '/__tenant/$host/'
+      preLoaderRoute: typeof _tenantHostIndexRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/robots.txt': {
+      id: '/__tenant/$host/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/__tenant/$host/robots.txt'
+      preLoaderRoute: typeof _tenantHostRobotsDottxtRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/sitemap.xml': {
+      id: '/__tenant/$host/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/__tenant/$host/sitemap.xml'
+      preLoaderRoute: typeof _tenantHostSitemapDotxmlRouteImport
+      parentRoute: typeof _tenantHostRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -210,73 +674,285 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_dashboard/servers/$serverId/': {
-      id: '/_dashboard/servers/$serverId/'
+    '/channel/$channelId/': {
+      id: '/channel/$channelId/'
+      path: '/$channelId'
+      fullPath: '/channel/$channelId/'
+      preLoaderRoute: typeof ChannelChannelIdIndexRouteImport
+      parentRoute: typeof ChannelRoute
+    }
+    '/dashboard/_authenticated/': {
+      id: '/dashboard/_authenticated/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardAuthenticatedIndexRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
+    }
+    '/server/$serverId/': {
+      id: '/server/$serverId/'
+      path: '/$serverId'
+      fullPath: '/server/$serverId/'
+      preLoaderRoute: typeof ServerServerIdIndexRouteImport
+      parentRoute: typeof ServerRoute
+    }
+    '/thread/$threadId/$slug': {
+      id: '/thread/$threadId/$slug'
+      path: '/$threadId/$slug'
+      fullPath: '/thread/$threadId/$slug'
+      preLoaderRoute: typeof ThreadThreadIdSlugRouteImport
+      parentRoute: typeof ThreadRoute
+    }
+    '/thread/$threadId/{$slug}.md': {
+      id: '/thread/$threadId/{$slug}.md'
+      path: '/$threadId/{$slug}.md'
+      fullPath: '/thread/$threadId/{$slug}.md'
+      preLoaderRoute: typeof ThreadThreadIdChar123slugChar125DotmdRouteImport
+      parentRoute: typeof ThreadRoute
+    }
+    '/__tenant/$host/api/search': {
+      id: '/__tenant/$host/api/search'
+      path: '/api/search'
+      fullPath: '/__tenant/$host/api/search'
+      preLoaderRoute: typeof _tenantHostApiSearchRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/channel/': {
+      id: '/__tenant/$host/channel/'
+      path: '/channel'
+      fullPath: '/__tenant/$host/channel/'
+      preLoaderRoute: typeof _tenantHostChannelIndexRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/dashboard/_authenticated/servers/': {
+      id: '/dashboard/_authenticated/servers/'
+      path: '/servers'
+      fullPath: '/dashboard/servers/'
+      preLoaderRoute: typeof DashboardAuthenticatedServersIndexRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
+    }
+    '/dashboard/_authenticated/servers/new': {
+      id: '/dashboard/_authenticated/servers/new'
+      path: '/servers/new'
+      fullPath: '/dashboard/servers/new'
+      preLoaderRoute: typeof DashboardAuthenticatedServersNewRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
+    }
+    '/__tenant/$host/channel/$channelId/': {
+      id: '/__tenant/$host/channel/$channelId/'
+      path: '/channel/$channelId'
+      fullPath: '/__tenant/$host/channel/$channelId/'
+      preLoaderRoute: typeof _tenantHostChannelChannelIdIndexRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/channel/$channelId/$slug': {
+      id: '/__tenant/$host/channel/$channelId/$slug'
+      path: '/channel/$channelId/$slug'
+      fullPath: '/__tenant/$host/channel/$channelId/$slug'
+      preLoaderRoute: typeof _tenantHostChannelChannelIdSlugRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/thread/$threadId/': {
+      id: '/__tenant/$host/thread/$threadId/'
+      path: '/thread/$threadId'
+      fullPath: '/__tenant/$host/thread/$threadId/'
+      preLoaderRoute: typeof _tenantHostThreadThreadIdIndexRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/thread/$threadId/$slug': {
+      id: '/__tenant/$host/thread/$threadId/$slug'
+      path: '/thread/$threadId/$slug'
+      fullPath: '/__tenant/$host/thread/$threadId/$slug'
+      preLoaderRoute: typeof _tenantHostThreadThreadIdSlugRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/thread/$threadId/{$slug}.md': {
+      id: '/__tenant/$host/thread/$threadId/{$slug}.md'
+      path: '/thread/$threadId/{$slug}.md'
+      fullPath: '/__tenant/$host/thread/$threadId/{$slug}.md'
+      preLoaderRoute: typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRouteImport
+      parentRoute: typeof _tenantHostRoute
+    }
+    '/dashboard/_authenticated/servers/$serverId/': {
+      id: '/dashboard/_authenticated/servers/$serverId/'
       path: '/servers/$serverId'
-      fullPath: '/servers/$serverId/'
-      preLoaderRoute: typeof DashboardServersServerIdIndexRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/servers/$serverId/'
+      preLoaderRoute: typeof DashboardAuthenticatedServersServerIdIndexRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
     }
-    '/_dashboard/servers/$serverId/channels': {
-      id: '/_dashboard/servers/$serverId/channels'
+    '/dashboard/_authenticated/servers/$serverId/channels': {
+      id: '/dashboard/_authenticated/servers/$serverId/channels'
       path: '/servers/$serverId/channels'
-      fullPath: '/servers/$serverId/channels'
-      preLoaderRoute: typeof DashboardServersServerIdChannelsRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/servers/$serverId/channels'
+      preLoaderRoute: typeof DashboardAuthenticatedServersServerIdChannelsRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
     }
-    '/_dashboard/servers/$serverId/publishing': {
-      id: '/_dashboard/servers/$serverId/publishing'
+    '/dashboard/_authenticated/servers/$serverId/publishing': {
+      id: '/dashboard/_authenticated/servers/$serverId/publishing'
       path: '/servers/$serverId/publishing'
-      fullPath: '/servers/$serverId/publishing'
-      preLoaderRoute: typeof DashboardServersServerIdPublishingRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/servers/$serverId/publishing'
+      preLoaderRoute: typeof DashboardAuthenticatedServersServerIdPublishingRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
     }
-    '/_dashboard/servers/$serverId/setup': {
-      id: '/_dashboard/servers/$serverId/setup'
+    '/dashboard/_authenticated/servers/$serverId/setup': {
+      id: '/dashboard/_authenticated/servers/$serverId/setup'
       path: '/servers/$serverId/setup'
-      fullPath: '/servers/$serverId/setup'
-      preLoaderRoute: typeof DashboardServersServerIdSetupRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/servers/$serverId/setup'
+      preLoaderRoute: typeof DashboardAuthenticatedServersServerIdSetupRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
     }
-    '/_dashboard/servers/$serverId/threads': {
-      id: '/_dashboard/servers/$serverId/threads'
+    '/dashboard/_authenticated/servers/$serverId/threads': {
+      id: '/dashboard/_authenticated/servers/$serverId/threads'
       path: '/servers/$serverId/threads'
-      fullPath: '/servers/$serverId/threads'
-      preLoaderRoute: typeof DashboardServersServerIdThreadsRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/servers/$serverId/threads'
+      preLoaderRoute: typeof DashboardAuthenticatedServersServerIdThreadsRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
     }
   }
 }
 
+interface BlogRouteChildren {
+  BlogSlugRoute: typeof BlogSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogSlugRoute: BlogSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
+interface ChannelRouteChildren {
+  ChannelChannelIdIndexRoute: typeof ChannelChannelIdIndexRoute
+}
+
+const ChannelRouteChildren: ChannelRouteChildren = {
+  ChannelChannelIdIndexRoute: ChannelChannelIdIndexRoute,
+}
+
+const ChannelRouteWithChildren =
+  ChannelRoute._addFileChildren(ChannelRouteChildren)
+
+interface DashboardAuthenticatedRouteChildren {
+  DashboardAuthenticatedIndexRoute: typeof DashboardAuthenticatedIndexRoute
+  DashboardAuthenticatedServersNewRoute: typeof DashboardAuthenticatedServersNewRoute
+  DashboardAuthenticatedServersIndexRoute: typeof DashboardAuthenticatedServersIndexRoute
+  DashboardAuthenticatedServersServerIdChannelsRoute: typeof DashboardAuthenticatedServersServerIdChannelsRoute
+  DashboardAuthenticatedServersServerIdPublishingRoute: typeof DashboardAuthenticatedServersServerIdPublishingRoute
+  DashboardAuthenticatedServersServerIdSetupRoute: typeof DashboardAuthenticatedServersServerIdSetupRoute
+  DashboardAuthenticatedServersServerIdThreadsRoute: typeof DashboardAuthenticatedServersServerIdThreadsRoute
+  DashboardAuthenticatedServersServerIdIndexRoute: typeof DashboardAuthenticatedServersServerIdIndexRoute
+}
+
+const DashboardAuthenticatedRouteChildren: DashboardAuthenticatedRouteChildren =
+  {
+    DashboardAuthenticatedIndexRoute: DashboardAuthenticatedIndexRoute,
+    DashboardAuthenticatedServersNewRoute:
+      DashboardAuthenticatedServersNewRoute,
+    DashboardAuthenticatedServersIndexRoute:
+      DashboardAuthenticatedServersIndexRoute,
+    DashboardAuthenticatedServersServerIdChannelsRoute:
+      DashboardAuthenticatedServersServerIdChannelsRoute,
+    DashboardAuthenticatedServersServerIdPublishingRoute:
+      DashboardAuthenticatedServersServerIdPublishingRoute,
+    DashboardAuthenticatedServersServerIdSetupRoute:
+      DashboardAuthenticatedServersServerIdSetupRoute,
+    DashboardAuthenticatedServersServerIdThreadsRoute:
+      DashboardAuthenticatedServersServerIdThreadsRoute,
+    DashboardAuthenticatedServersServerIdIndexRoute:
+      DashboardAuthenticatedServersServerIdIndexRoute,
+  }
+
+const DashboardAuthenticatedRouteWithChildren =
+  DashboardAuthenticatedRoute._addFileChildren(
+    DashboardAuthenticatedRouteChildren,
+  )
+
 interface DashboardRouteChildren {
-  DashboardServersNewRoute: typeof DashboardServersNewRoute
-  DashboardServersIndexRoute: typeof DashboardServersIndexRoute
-  DashboardServersServerIdChannelsRoute: typeof DashboardServersServerIdChannelsRoute
-  DashboardServersServerIdPublishingRoute: typeof DashboardServersServerIdPublishingRoute
-  DashboardServersServerIdSetupRoute: typeof DashboardServersServerIdSetupRoute
-  DashboardServersServerIdThreadsRoute: typeof DashboardServersServerIdThreadsRoute
-  DashboardServersServerIdIndexRoute: typeof DashboardServersServerIdIndexRoute
+  DashboardAuthenticatedRoute: typeof DashboardAuthenticatedRouteWithChildren
+  DashboardSignInRoute: typeof DashboardSignInRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardServersNewRoute: DashboardServersNewRoute,
-  DashboardServersIndexRoute: DashboardServersIndexRoute,
-  DashboardServersServerIdChannelsRoute: DashboardServersServerIdChannelsRoute,
-  DashboardServersServerIdPublishingRoute:
-    DashboardServersServerIdPublishingRoute,
-  DashboardServersServerIdSetupRoute: DashboardServersServerIdSetupRoute,
-  DashboardServersServerIdThreadsRoute: DashboardServersServerIdThreadsRoute,
-  DashboardServersServerIdIndexRoute: DashboardServersServerIdIndexRoute,
+  DashboardAuthenticatedRoute: DashboardAuthenticatedRouteWithChildren,
+  DashboardSignInRoute: DashboardSignInRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
   DashboardRouteChildren,
 )
 
+interface ServerRouteChildren {
+  ServerServerIdIndexRoute: typeof ServerServerIdIndexRoute
+}
+
+const ServerRouteChildren: ServerRouteChildren = {
+  ServerServerIdIndexRoute: ServerServerIdIndexRoute,
+}
+
+const ServerRouteWithChildren =
+  ServerRoute._addFileChildren(ServerRouteChildren)
+
+interface ThreadRouteChildren {
+  ThreadIndexRoute: typeof ThreadIndexRoute
+  ThreadThreadIdSlugRoute: typeof ThreadThreadIdSlugRoute
+  ThreadThreadIdChar123slugChar125DotmdRoute: typeof ThreadThreadIdChar123slugChar125DotmdRoute
+}
+
+const ThreadRouteChildren: ThreadRouteChildren = {
+  ThreadIndexRoute: ThreadIndexRoute,
+  ThreadThreadIdSlugRoute: ThreadThreadIdSlugRoute,
+  ThreadThreadIdChar123slugChar125DotmdRoute:
+    ThreadThreadIdChar123slugChar125DotmdRoute,
+}
+
+const ThreadRouteWithChildren =
+  ThreadRoute._addFileChildren(ThreadRouteChildren)
+
+interface _tenantHostRouteChildren {
+  _tenantHostRobotsDottxtRoute: typeof _tenantHostRobotsDottxtRoute
+  _tenantHostSitemapDotxmlRoute: typeof _tenantHostSitemapDotxmlRoute
+  _tenantHostIndexRoute: typeof _tenantHostIndexRoute
+  _tenantHostApiSearchRoute: typeof _tenantHostApiSearchRoute
+  _tenantHostChannelIndexRoute: typeof _tenantHostChannelIndexRoute
+  _tenantHostChannelChannelIdSlugRoute: typeof _tenantHostChannelChannelIdSlugRoute
+  _tenantHostThreadThreadIdSlugRoute: typeof _tenantHostThreadThreadIdSlugRoute
+  _tenantHostThreadThreadIdChar123slugChar125DotmdRoute: typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRoute
+  _tenantHostChannelChannelIdIndexRoute: typeof _tenantHostChannelChannelIdIndexRoute
+  _tenantHostThreadThreadIdIndexRoute: typeof _tenantHostThreadThreadIdIndexRoute
+}
+
+const _tenantHostRouteChildren: _tenantHostRouteChildren = {
+  _tenantHostRobotsDottxtRoute: _tenantHostRobotsDottxtRoute,
+  _tenantHostSitemapDotxmlRoute: _tenantHostSitemapDotxmlRoute,
+  _tenantHostIndexRoute: _tenantHostIndexRoute,
+  _tenantHostApiSearchRoute: _tenantHostApiSearchRoute,
+  _tenantHostChannelIndexRoute: _tenantHostChannelIndexRoute,
+  _tenantHostChannelChannelIdSlugRoute: _tenantHostChannelChannelIdSlugRoute,
+  _tenantHostThreadThreadIdSlugRoute: _tenantHostThreadThreadIdSlugRoute,
+  _tenantHostThreadThreadIdChar123slugChar125DotmdRoute:
+    _tenantHostThreadThreadIdChar123slugChar125DotmdRoute,
+  _tenantHostChannelChannelIdIndexRoute: _tenantHostChannelChannelIdIndexRoute,
+  _tenantHostThreadThreadIdIndexRoute: _tenantHostThreadThreadIdIndexRoute,
+}
+
+const _tenantHostRouteWithChildren = _tenantHostRoute._addFileChildren(
+  _tenantHostRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BlogRoute: BlogRouteWithChildren,
+  ChannelRoute: ChannelRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
-  AuthSignInRoute: AuthSignInRoute,
+  OssProgramRoute: OssProgramRoute,
+  PricingRoute: PricingRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  ServerRoute: ServerRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ThreadRoute: ThreadRouteWithChildren,
+  _tenantHostRoute: _tenantHostRouteWithChildren,
+  ApiSearchRoute: ApiSearchRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
@@ -284,10 +960,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

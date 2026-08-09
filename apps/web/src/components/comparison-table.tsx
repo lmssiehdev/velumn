@@ -1,15 +1,14 @@
 "use client";
 
-import {
-	ArrowsSplitIcon,
-	DiscordLogoIcon,
-	LightningIcon,
-	RocketIcon,
-	ShieldIcon,
-	SparkleIcon,
-	UsersFourIcon,
-	WrenchIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import DiscordIcon from "@hugeicons/core-free-icons/DiscordIcon";
+import FlashIcon from "@hugeicons/core-free-icons/FlashIcon";
+import Rocket01Icon from "@hugeicons/core-free-icons/Rocket01Icon";
+import Shield01Icon from "@hugeicons/core-free-icons/Shield01Icon";
+import SparklesIcon from "@hugeicons/core-free-icons/SparklesIcon";
+import SplitIcon from "@hugeicons/core-free-icons/SplitIcon";
+import UserGroupIcon from "@hugeicons/core-free-icons/UserGroupIcon";
+import Wrench01Icon from "@hugeicons/core-free-icons/Wrench01Icon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { JSX } from "react";
 import {
 	Table,
@@ -30,9 +29,9 @@ const features: Feature[] = [
 	{
 		name: "Where you work",
 		Icon: (
-			<DiscordLogoIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-indigo-600"
-				weight="duotone"
+				icon={DiscordIcon}
 			/>
 		),
 		velumn: "Native Discord integration",
@@ -41,9 +40,9 @@ const features: Feature[] = [
 	{
 		name: "Setup time",
 		Icon: (
-			<LightningIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-yellow-500"
-				weight="duotone"
+				icon={FlashIcon}
 			/>
 		),
 		velumn: "Live in 2 minutes",
@@ -63,9 +62,9 @@ const features: Feature[] = [
 	{
 		name: "Design",
 		Icon: (
-			<SparkleIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-purple-500"
-				weight="duotone"
+				icon={SparklesIcon}
 			/>
 		),
 		velumn: "Modern, beautiful UI",
@@ -74,9 +73,9 @@ const features: Feature[] = [
 	{
 		name: "Community split",
 		Icon: (
-			<ArrowsSplitIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-red-500"
-				weight="duotone"
+				icon={SplitIcon}
 			/>
 		),
 		velumn: "Never, one home",
@@ -85,9 +84,9 @@ const features: Feature[] = [
 	{
 		name: "Moderation",
 		Icon: (
-			<ShieldIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-green-600"
-				weight="duotone"
+				icon={Shield01Icon}
 			/>
 		),
 		velumn: "Same mods, same tools",
@@ -96,9 +95,9 @@ const features: Feature[] = [
 	{
 		name: "Member experience",
 		Icon: (
-			<UsersFourIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-cyan-500"
-				weight="duotone"
+				icon={UserGroupIcon}
 			/>
 		),
 		velumn: "Stay in Discord",
@@ -107,9 +106,9 @@ const features: Feature[] = [
 	{
 		name: "Maintenance",
 		Icon: (
-			<WrenchIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-orange-500"
-				weight="duotone"
+				icon={Wrench01Icon}
 			/>
 		),
 		velumn: "Zero, we handle it",
@@ -118,9 +117,9 @@ const features: Feature[] = [
 	{
 		name: "Built for",
 		Icon: (
-			<RocketIcon
+			<HugeiconsIcon
 				className="inline-block mr-2 size-4 text-pink-500"
-				weight="duotone"
+				icon={Rocket01Icon}
 			/>
 		),
 		velumn: "New age startups",

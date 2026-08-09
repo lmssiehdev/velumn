@@ -1,26 +1,56 @@
-import { z } from "zod"
-
-const serverIdSchema = z.string().regex(/^\d+$/)
-
-export const threadSortSchema = z.enum([
+const threadSorts = [
   "newest",
   "title",
   "parentChannel",
   "messageCount",
-])
-export const threadDirectionSchema = z.enum(["asc", "desc"])
-export const threadPinnedSchema = z.enum(["pinned", "unpinned"])
+] as const
+const threadDirections = ["asc", "desc"] as const
+const threadPinnedFilters = ["pinned", "unpinned"] as const
 
-export const threadsSearchSchema = z.object({
-  q: z.string().trim().max(100).optional().catch(undefined),
-  channels: z.array(serverIdSchema).max(20).optional().catch(undefined),
-  pinned: threadPinnedSchema.optional().catch(undefined),
-  sort: threadSortSchema.optional().catch(undefined),
-  direction: threadDirectionSchema.optional().catch(undefined),
-  page: z.coerce.number().int().positive().optional().catch(undefined),
-})
+export type ThreadsSearch = {
+  q?: string
+  channels?: string[]
+  pinned?: (typeof threadPinnedFilters)[number]
+  sort?: (typeof threadSorts)[number]
+  direction?: (typeof threadDirections)[number]
+  page?: number
+}
 
-export type ThreadsSearch = z.infer<typeof threadsSearchSchema>
+export function parseThreadsSearch(search: Record<string, unknown>) {
+  const query = typeof search.q === "string" ? search.q.trim() : undefined
+  const channels =
+    Array.isArray(search.channels) &&
+    search.channels.length <= 20 &&
+    search.channels.every(
+      (channel): channel is string =>
+        typeof channel === "string" && /^\d+$/.test(channel)
+    )
+      ? search.channels
+      : undefined
+  const page = Number(search.page)
+
+  return {
+    ...(query && query.length <= 100 ? { q: query } : {}),
+    ...(channels ? { channels } : {}),
+    ...(includes(threadPinnedFilters, search.pinned)
+      ? { pinned: search.pinned }
+      : {}),
+    ...(includes(threadSorts, search.sort) ? { sort: search.sort } : {}),
+    ...(includes(threadDirections, search.direction)
+      ? { direction: search.direction }
+      : {}),
+    ...(Number.isInteger(page) && page > 0 ? { page } : {}),
+  } satisfies ThreadsSearch
+}
+
+export const threadsSearchSchema = { parse: parseThreadsSearch }
+
+function includes<const T extends readonly string[]>(
+  values: T,
+  value: unknown
+): value is T[number] {
+  return typeof value === "string" && values.includes(value)
+}
 
 export function normalizeThreadsSearch(search: ThreadsSearch) {
   const channels = [...new Set(search.channels ?? [])].sort()

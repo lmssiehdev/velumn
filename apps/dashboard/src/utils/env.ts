@@ -7,6 +7,7 @@ export const dashboardEnv = createEnv({
 		DATABASE_URL: z.url().min(1),
 		DISCORD_CLIENT_SECRET: z.string().min(1),
 		DISCORD_BOT_TOKEN: z.string().min(1),
+		BOT_API_SECRET: z.string().min(1).optional(),
 		BETTER_AUTH_SECRET: z.string().min(1),
 		AXIOM_TOKEN: z.string().min(1),
 		VERCEL_BEARER_TOKEN: z.string().min(1),

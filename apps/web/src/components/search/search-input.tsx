@@ -1,6 +1,7 @@
 "use client";
 
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr";
+import Search01Icon from "@hugeicons/core-free-icons/Search01Icon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -47,9 +48,9 @@ export function SearchInput({ serverId }: { serverId: string }) {
 				}}
 				className="flex h-10 items-center gap-2 border-b px-3 border border-input hover:bg-accent/80 cursor-pointer"
 			>
-				<MagnifyingGlassIcon
+				<HugeiconsIcon
 					className="size-5 shrink-0 opacity-50"
-					weight="bold"
+					icon={Search01Icon}
 				/>
 				<div className="text-muted-foreground w-full rounded-md bg-transparent text-sm outline-hidden mr-8">
 					Search community...

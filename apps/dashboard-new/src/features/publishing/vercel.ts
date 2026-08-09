@@ -3,8 +3,9 @@ import type { GetDomainConfigResponseBody } from "@vercel/sdk/models/getdomainco
 import type { GetProjectDomainResponseBody } from "@vercel/sdk/models/getprojectdomainop"
 import { Result, TaggedError, type Result as ResultType } from "better-result"
 
+import { requireVercelEnv } from "@/env.server"
+
 const REQUEST_TIMEOUT_MS = 15_000
-const CUSTOM_DOMAIN_PROJECT_ID = "prj_DtTSKM60p1hUvxppi3O3pR5nzDdr"
 
 const requestOptions = { timeoutMs: REQUEST_TIMEOUT_MS }
 
@@ -18,8 +19,14 @@ export type DomainCheckResult = {
   records: Array<{ type: string; name: string; value: string }>
 }
 
+export type DomainAddResult = "attached" | "unknown"
+
 type DomainProviderErrorCode =
-  "domain_taken" | "forbidden" | "not_found" | "unavailable" | "unknown"
+  | "domain_taken"
+  | "forbidden"
+  | "not_found"
+  | "unavailable"
+  | "unknown"
 type DomainProviderAction = "add" | "check" | "remove"
 
 export class DomainProviderFailure extends TaggedError(
@@ -33,23 +40,31 @@ export class DomainProviderFailure extends TaggedError(
 
 type ProviderResult<T> = ResultType<T, DomainProviderFailure>
 
-function getVercel() {
-  return new Vercel({ bearerToken: process.env.VERCEL_BEARER_TOKEN })
-}
-
-function getTeamId() {
-  return process.env.VERCEL_TEAM_ID
+function getVercel(action: DomainProviderAction) {
+  try {
+    const config = requireVercelEnv()
+    return Result.ok({
+      client: new Vercel({ bearerToken: config.bearerToken }),
+      projectId: config.projectId,
+      teamId: config.teamId,
+    })
+  } catch (error) {
+    return Result.err(toDomainProviderError(error, action))
+  }
 }
 
 export async function addProjectDomain(
   domain: string
-): Promise<ProviderResult<void>> {
+): Promise<ProviderResult<DomainAddResult>> {
+  const vercel = getVercel("add")
+  if (vercel.isErr()) return Result.err(vercel.error)
+  const { client, projectId, teamId } = vercel.value
   const result = await providerRequest(
     () =>
-      getVercel().projects.addProjectDomain(
+      client.projects.addProjectDomain(
         {
-          idOrName: CUSTOM_DOMAIN_PROJECT_ID,
-          teamId: getTeamId(),
+          idOrName: projectId,
+          teamId,
           requestBody: { name: domain },
         },
         requestOptions
@@ -57,60 +72,89 @@ export async function addProjectDomain(
     "add"
   )
 
-  if (result.isErr() && result.error.providerCode === "domain_already_in_use") {
-    return Result.ok()
+  if (
+    result.isErr() &&
+    (result.error.code === "domain_taken" ||
+      isAmbiguousProviderFailure(result.error))
+  ) {
+    const reconciliation = await providerRequest(
+      () =>
+        client.projects.getProjectDomain(
+          { idOrName: projectId, teamId, domain },
+          requestOptions
+        ),
+      "check"
+    )
+    if (reconciliation.isOk() && reconciliation.value.name === domain) {
+      return Result.ok("attached")
+    }
+    if (
+      reconciliation.isErr() &&
+      (reconciliation.error.code !== "not_found" ||
+        isAmbiguousProviderFailure(result.error))
+    ) {
+      // The add may have succeeded. Keep the local reservation until Vercel's
+      // project state can be checked conclusively.
+      return Result.ok("unknown")
+    }
   }
-  return result.map(() => undefined)
+  return result.map(() => "attached" as const)
 }
 
-export async function removeDomainFromProjectAndAccount(
+export async function removeDomainFromProject(
   domain: string
 ): Promise<ProviderResult<void>> {
-  const vercel = getVercel()
-  const teamId = getTeamId()
+  const vercel = getVercel("remove")
+  if (vercel.isErr()) return Result.err(vercel.error)
+  const { client, projectId, teamId } = vercel.value
   const projectRemoval = await providerRequest(
     () =>
-      vercel.projects.removeProjectDomain(
-        { idOrName: CUSTOM_DOMAIN_PROJECT_ID, teamId, domain },
+      client.projects.removeProjectDomain(
+        { idOrName: projectId, teamId, domain },
         requestOptions
       ),
     "remove"
   )
-  if (projectRemoval.isErr() && projectRemoval.error.code !== "not_found") {
+  if (projectRemoval.isOk() || projectRemoval.error.code === "not_found")
+    return Result.ok()
+  if (!isAmbiguousProviderFailure(projectRemoval.error))
     return Result.err(projectRemoval.error)
-  }
 
-  const accountRemoval = await providerRequest(
-    () => vercel.domains.deleteDomain({ domain, teamId }, requestOptions),
-    "remove"
+  const reconciliation = await providerRequest(
+    () =>
+      client.projects.getProjectDomain(
+        { idOrName: projectId, teamId, domain },
+        requestOptions
+      ),
+    "check"
   )
-  if (accountRemoval.isErr() && accountRemoval.error.code !== "not_found") {
-    return Result.err(accountRemoval.error)
-  }
-  return Result.ok()
+  return reconciliation.isErr() && reconciliation.error.code === "not_found"
+    ? Result.ok()
+    : Result.err(projectRemoval.error)
 }
 
 export async function getDomainStatus(
   domain: string
 ): Promise<ProviderResult<DomainCheckResult>> {
   const checkedAt = new Date().toISOString()
-  const vercel = getVercel()
-  const teamId = getTeamId()
+  const vercel = getVercel("check")
+  if (vercel.isErr()) return Result.err(vercel.error)
+  const { client, projectId, teamId } = vercel.value
   const [projectDomainResult, domainConfigResult] = await Promise.all([
     providerRequest(
       () =>
-        vercel.projects.getProjectDomain(
-          { idOrName: CUSTOM_DOMAIN_PROJECT_ID, teamId, domain },
+        client.projects.getProjectDomain(
+          { idOrName: projectId, teamId, domain },
           requestOptions
         ),
       "check"
     ),
     providerRequest(
       () =>
-        vercel.domains.getDomainConfig(
+        client.domains.getDomainConfig(
           {
             domain,
-            projectIdOrName: CUSTOM_DOMAIN_PROJECT_ID,
+            projectIdOrName: projectId,
             teamId,
           },
           requestOptions
@@ -128,8 +172,8 @@ export async function getDomainStatus(
   if (!projectDomain.verified) {
     const verificationResult = await providerRequest(
       () =>
-        vercel.projects.verifyProjectDomain(
-          { idOrName: CUSTOM_DOMAIN_PROJECT_ID, teamId, domain },
+        client.projects.verifyProjectDomain(
+          { idOrName: projectId, teamId, domain },
           requestOptions
         ),
       "check"
@@ -168,10 +212,12 @@ export async function getDomainStatus(
     failureReason: null,
     checkedAt,
     message: verified
-      ? "Domain is configured and ready to serve your forum."
+      ? "DNS is configured. Vercel may still be issuing the TLS certificate."
       : records.length > 0
         ? "Add the required DNS records, then verify again."
-        : "DNS changes are still propagating. Check again shortly.",
+        : domainConfig.misconfigured
+          ? "Vercel has not returned a recommended DNS record yet. Try again shortly."
+          : "DNS changes are still propagating. Check again shortly.",
     records,
   })
 }
@@ -203,7 +249,10 @@ function toDomainProviderError(error: unknown, action: DomainProviderAction) {
   const providerCode = getVercelErrorCode(error)
   const statusCode = getVercelStatusCode(error)
 
-  if (providerCode === "domain_taken") {
+  if (
+    providerCode === "domain_already_in_use" ||
+    providerCode === "domain_taken"
+  ) {
     return new DomainProviderFailure({
       code: "domain_taken",
       message:
@@ -236,11 +285,18 @@ function toDomainProviderError(error: unknown, action: DomainProviderAction) {
       statusCode,
     })
   }
-  if (statusCode === null || statusCode === 408 || statusCode >= 500) {
+  if (
+    statusCode === null ||
+    statusCode === 408 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  ) {
     return new DomainProviderFailure({
       code: "unavailable",
       message:
-        "Vercel is temporarily unavailable. Your last known domain state has not been changed.",
+        statusCode === 429
+          ? "Vercel is checking too many domains right now. Wait a moment and try again."
+          : "Vercel is temporarily unavailable. Your last known domain state has not been changed.",
       providerCode,
       statusCode,
     })
@@ -251,6 +307,14 @@ function toDomainProviderError(error: unknown, action: DomainProviderAction) {
     providerCode,
     statusCode,
   })
+}
+
+function isAmbiguousProviderFailure(error: DomainProviderFailure) {
+  return (
+    error.statusCode === null ||
+    error.statusCode === 408 ||
+    error.statusCode >= 500
+  )
 }
 
 function providerRequest<T>(
@@ -291,13 +355,8 @@ function toMisconfigurationRecords(
   const name = isApexDomain
     ? "@"
     : projectDomain.name.replace(`.${projectDomain.apexName}`, "")
-  return [
-    {
-      name,
-      type: isApexDomain ? "A" : "CNAME",
-      value: isApexDomain
-        ? (domainConfig.recommendedIPv4[0]?.value[0] ?? "76.76.21.21")
-        : (domainConfig.recommendedCNAME[0]?.value ?? "cname.vercel-dns.com"),
-    },
-  ]
+  const value = isApexDomain
+    ? domainConfig.recommendedIPv4[0]?.value[0]
+    : domainConfig.recommendedCNAME[0]?.value
+  return value ? [{ name, type: isApexDomain ? "A" : "CNAME", value }] : []
 }

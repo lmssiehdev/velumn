@@ -1,10 +1,13 @@
 import { ChannelType } from "discord-api-types/v10";
-import { and, count, desc, eq, isNull, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "..";
 import { dbChannel, dbServer } from "../schema";
 
 const mainSiteThreadFilter = and(
-	eq(dbChannel.type, ChannelType.PublicThread),
+	inArray(dbChannel.type, [
+		ChannelType.PublicThread,
+		ChannelType.AnnouncementThread,
+	]),
 	or(isNull(dbServer.customDomain), eq(dbServer.domainVerified, false)),
 );
 
@@ -41,7 +44,10 @@ export async function getThreadsCountForServer(serverId: string) {
 		.where(
 			and(
 				eq(dbChannel.serverId, serverId),
-				eq(dbChannel.type, ChannelType.PublicThread),
+				inArray(dbChannel.type, [
+					ChannelType.PublicThread,
+					ChannelType.AnnouncementThread,
+				]),
 			),
 		);
 
@@ -63,7 +69,10 @@ export async function getThreadsForServerSitemap(
 		.where(
 			and(
 				eq(dbChannel.serverId, serverId),
-				eq(dbChannel.type, ChannelType.PublicThread),
+				inArray(dbChannel.type, [
+					ChannelType.PublicThread,
+					ChannelType.AnnouncementThread,
+				]),
 			),
 		)
 		.orderBy(desc(dbChannel.id))

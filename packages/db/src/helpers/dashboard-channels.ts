@@ -23,7 +23,10 @@ export async function getDashboardChannels(
 		.where(
 			and(
 				eq(dbChannel.serverId, serverId),
-				eq(dbChannel.type, ChannelType.PublicThread),
+				inArray(dbChannel.type, [
+					ChannelType.PublicThread,
+					ChannelType.AnnouncementThread,
+				]),
 			),
 		)
 		.groupBy(dbChannel.parentId)
@@ -45,6 +48,7 @@ export async function getDashboardChannels(
 				inArray(dbChannel.type, [
 					ChannelType.GuildText,
 					ChannelType.GuildForum,
+					ChannelType.GuildAnnouncement,
 				]),
 			),
 		)

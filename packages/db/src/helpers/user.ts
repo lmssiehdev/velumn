@@ -10,6 +10,7 @@ import {
 	user,
 	userServers,
 } from "../schema";
+import { enqueueMeiliProjections } from "./indexing";
 
 export async function getAuthUser(userId: string) {
 	return await db.query.user.findFirst({
@@ -136,9 +137,21 @@ export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {
 		});
 }
 
-export async function ignoreDiscordUser(user: DBUser) {
-	try {
-		await db
+export async function ignoreDiscordUser(
+	user: DBUser,
+	database: Pick<typeof db, "transaction"> = db,
+) {
+	return await database.transaction(async (tx) => {
+		const messages = await tx
+			.select({
+				id: dbMessage.id,
+				partitionKey: dbMessage.primaryChannelId,
+				serverId: dbMessage.serverId,
+			})
+			.from(dbMessage)
+			.where(eq(dbMessage.authorId, user.id));
+
+		await tx
 			.insert(dbDiscordUser)
 			.values({
 				...user,
@@ -152,18 +165,15 @@ export async function ignoreDiscordUser(user: DBUser) {
 					isIgnored: true,
 				},
 			});
-		await db
-			.delete(dbAttachments)
-			.where(
+		if (messages.length > 0) {
+			await tx.delete(dbAttachments).where(
 				inArray(
 					dbAttachments.messageId,
-					db
-						.select({ id: dbMessage.id })
-						.from(dbMessage)
-						.where(eq(dbMessage.authorId, user.id)),
+					messages.map(({ id }) => id),
 				),
 			);
-		await db
+		}
+		await tx
 			.update(dbMessage)
 			.set({
 				content: "",
@@ -175,9 +185,19 @@ export async function ignoreDiscordUser(user: DBUser) {
 				isIgnored: true,
 			})
 			.where(eq(dbMessage.authorId, user.id));
-	} catch (error) {
-		console.log("failed_to_ignore_user", { error, user: user.id });
-	}
+		await enqueueMeiliProjections(
+			messages.map((message) => ({
+				operation: "message_delete",
+				entityId: message.id,
+				partitionKey: message.partitionKey ?? message.id,
+				serverId: message.serverId,
+				jobId: null,
+			})),
+			tx,
+		);
+
+		return messages.map(({ id }) => id);
+	});
 }
 
 export async function upsertUser(userId: string) {

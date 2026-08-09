@@ -1,5 +1,15 @@
 import { ChannelType } from "discord-api-types/v10";
-import { and, eq, exists, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import {
+	and,
+	eq,
+	exists,
+	gte,
+	inArray,
+	isNull,
+	lt,
+	or,
+	sql,
+} from "drizzle-orm";
 import { db } from "../index";
 import {
 	isPendingInviteFresh,
@@ -18,7 +28,6 @@ import {
 	type ServerPlan,
 	userServers,
 } from "../schema";
-import { buildConflictUpdateColumns } from "../utils/drizzle";
 
 export async function checkIfServerExistsForUser({
 	userId,
@@ -206,56 +215,132 @@ export async function getOnboardingLifecyclesForUser({
 	return lifecycles;
 }
 
-export async function completeBotInstallation({
-	server,
-	userId,
-	channels,
-}: {
-	server: Partial<DBServerInsert> & Pick<DBServerInsert, "id">;
-	userId: string;
-	channels: DBChannel[];
-}) {
-	const installation = { ...server, kickedAt: null };
-	const { id, invitedBy: _, ...updateFields } = installation;
+export type GatewayGuildInstallationInput = {
+	server: Pick<
+		DBServerInsert,
+		"description" | "icon" | "id" | "memberCount" | "name"
+	>;
+	channels: Array<
+		Pick<
+			DBChannel,
+			| "authorId"
+			| "botPermissions"
+			| "botPermissionsCheckedAt"
+			| "channelName"
+			| "id"
+			| "nsfw"
+			| "parentId"
+			| "position"
+			| "serverId"
+			| "type"
+		>
+	>;
+	/** Development-only installer used when no dashboard invite exists. */
+	developmentInstallerUserId?: string;
+};
 
-	await db.transaction(async (tx) => {
-		await tx
-			.insert(dbServer)
-			.values(installation as DBServerInsert)
-			.onConflictDoUpdate({
-				target: dbServer.id,
-				set: buildConflictUpdateColumns(
-					dbServer,
-					Object.keys(updateFields) as Array<keyof typeof updateFields>,
-				),
-			});
+export type GatewayGuildInstallationResult =
+	| { readonly _tag: "Installed"; readonly installerUserId: string }
+	| { readonly _tag: "Rejoined" }
+	| { readonly _tag: "Unauthorized" };
 
-		await tx
-			.insert(userServers)
-			.values({ userId, serverId: id })
-			.onConflictDoNothing();
+/**
+ * Authorizes and persists a gateway join as one serializable unit. Existing
+ * servers are trusted rejoins; dashboard-owned settings and memberships are
+ * deliberately not replaced.
+ */
+export async function completeGatewayGuildInstallation(
+	input: GatewayGuildInstallationInput,
+): Promise<GatewayGuildInstallationResult> {
+	return await db.transaction(
+		async (tx) => {
+			const [existing] = await tx
+				.select({ id: dbServer.id })
+				.from(dbServer)
+				.where(eq(dbServer.id, input.server.id))
+				.limit(1);
+			const [invite] = await tx
+				.delete(pendingDiscordInvite)
+				.where(
+					and(
+						eq(pendingDiscordInvite.serverId, input.server.id),
+						gte(
+							pendingDiscordInvite.updatedAt,
+							sql`clock_timestamp() - ${PENDING_INVITE_MAX_AGE_MS} * INTERVAL '1 millisecond'`,
+						),
+					),
+				)
+				.returning({ userId: pendingDiscordInvite.userId });
+			const installerUserId =
+				invite?.userId ?? input.developmentInstallerUserId;
 
-		if (channels.length > 0) {
-			await tx
-				.insert(dbChannel)
-				.values(channels)
-				.onConflictDoUpdate({
-					target: dbChannel.id,
-					set: {
-						channelName: sql.raw(`excluded.${dbChannel.channelName.name}`),
-					},
+			if (!existing && !installerUserId) return { _tag: "Unauthorized" };
+
+			let result: GatewayGuildInstallationResult;
+			if (existing) {
+				await tx
+					.update(dbServer)
+					.set({
+						name: input.server.name,
+						description: input.server.description,
+						memberCount: input.server.memberCount,
+						icon: input.server.icon,
+						kickedAt: null,
+					})
+					.where(eq(dbServer.id, input.server.id));
+				result = { _tag: "Rejoined" };
+			} else {
+				if (!installerUserId) {
+					throw new Error("Authorized installation is missing an installer");
+				}
+				await tx.insert(dbServer).values({
+					...input.server,
+					invitedBy: installerUserId,
+					kickedAt: null,
 				});
-		}
+				await tx
+					.insert(userServers)
+					.values({ userId: installerUserId, serverId: input.server.id })
+					.onConflictDoNothing();
+				result = { _tag: "Installed", installerUserId };
+			}
 
-		await tx
-			.delete(pendingDiscordInvite)
-			.where(
-				and(
-					eq(pendingDiscordInvite.serverId, id),
-					eq(pendingDiscordInvite.userId, userId),
-				),
-			);
-	});
+			if (input.channels.length > 0) {
+				await tx
+					.insert(dbChannel)
+					.values(
+						input.channels.map((channel) => ({
+							...channel,
+							indexingEnabled: false,
+						})),
+					)
+					.onConflictDoUpdate({
+						target: dbChannel.id,
+						set: {
+							parentId: sql.raw(`excluded.${dbChannel.parentId.name}`),
+							authorId: sql.raw(`excluded.${dbChannel.authorId.name}`),
+							channelName: sql.raw(`excluded.${dbChannel.channelName.name}`),
+							position: sql.raw(`excluded.${dbChannel.position.name}`),
+							nsfw: sql.raw(`excluded.${dbChannel.nsfw.name}`),
+							botPermissions: sql.raw(
+								`excluded.${dbChannel.botPermissions.name}`,
+							),
+							botPermissionsCheckedAt: sql.raw(
+								`excluded.${dbChannel.botPermissionsCheckedAt.name}`,
+							),
+							type: sql.raw(`excluded.${dbChannel.type.name}`),
+						},
+					});
+			}
+
+			await tx
+				.delete(pendingDiscordInvite)
+				.where(eq(pendingDiscordInvite.serverId, input.server.id));
+
+			return result;
+		},
+		{ isolationLevel: "serializable" },
+	);
 }
 
 export async function getChannelsInServer(
@@ -270,7 +355,11 @@ export async function getChannelsInServer(
 				{
 					serverId,
 					type: {
-						OR: [ChannelType.GuildText, ChannelType.GuildForum],
+						OR: [
+							ChannelType.GuildText,
+							ChannelType.GuildForum,
+							ChannelType.GuildAnnouncement,
+						],
 					},
 				},
 			],
@@ -296,7 +385,10 @@ export async function getExistingThreadCountsByChannel(
 		.where(
 			and(
 				eq(dbChannel.serverId, serverId),
-				eq(dbChannel.type, ChannelType.PublicThread),
+				inArray(dbChannel.type, [
+					ChannelType.PublicThread,
+					ChannelType.AnnouncementThread,
+				]),
 				inArray(dbChannel.parentId, channelIds),
 			),
 		)
@@ -325,38 +417,6 @@ export async function updateServer(
 
 	await db.update(dbServer).set(updateFields).where(eq(dbServer.id, id));
 }
-export async function upsertServer(server: Partial<DBServerInsert>) {
-	const { id, invitedBy, ...updateFields } = server;
-
-	await db
-		.insert(dbServer)
-		.values(server as DBServerInsert)
-		.onConflictDoUpdate({
-			target: dbServer.id,
-			set: buildConflictUpdateColumns(
-				dbServer,
-				Object.keys(updateFields) as Array<keyof typeof updateFields>,
-			),
-		});
-}
-
-export async function createBulkServers(servers: DBServer[]) {
-	if (servers.length === 0) {
-		return [];
-	}
-
-	const chunkSize = 25;
-	const chunks: DBServer[][] = [];
-	for (let i = 0; i < servers.length; i += chunkSize) {
-		chunks.push(servers.slice(i, i + chunkSize));
-	}
-	for await (const chunk of chunks) {
-		await db.insert(dbServer).values(chunk).onConflictDoNothing();
-	}
-
-	return servers;
-}
-
 export async function getAllServers() {
 	return await db.query.dbServer.findMany();
 }
@@ -430,13 +490,16 @@ export async function getAllThreads(
 		getBy === "server"
 			? {
 					serverId: id,
-					parentId: {
-						isNotNull: true as const,
+					type: {
+						OR: [ChannelType.PublicThread, ChannelType.AnnouncementThread],
 					},
 					...pinPredicate,
 				}
 			: {
 					parentId: id,
+					type: {
+						OR: [ChannelType.PublicThread, ChannelType.AnnouncementThread],
+					},
 					...pinPredicate,
 				};
 
@@ -536,7 +599,11 @@ export async function getTopicsInServer(serverId: string) {
 		.where(
 			and(
 				eq(dbChannel.serverId, serverId),
-				isNull(dbChannel.parentId),
+				inArray(dbChannel.type, [
+					ChannelType.GuildText,
+					ChannelType.GuildForum,
+					ChannelType.GuildAnnouncement,
+				]),
 				exists(
 					db
 						.select()

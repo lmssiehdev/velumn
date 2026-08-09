@@ -1,0 +1,20 @@
+{
+	"$schema": "https://opencode.ai/config.json",
+	"references": {
+		"bubblebuddy": {
+			"repository": "jpenilla/BubbleBuddy",
+			"branch": "master",
+			"description": "Primary reference for integrating discord.js with Effect 4 using scoped clients, listener lifecycles, FiberSet supervision, and drainable per-channel work."
+		},
+		"effect-smol": {
+			"repository": "Effect-TS/effect-smol",
+			"branch": "main",
+			"description": "Canonical Effect 4 implementation and test reference for current services, layers, scopes, fibers, queues, schedules, schemas, and testing APIs."
+		},
+		"executor": {
+			"repository": "UsefulSoftwareCo/executor",
+			"branch": "main",
+			"description": "Effect 4 application reference for service boundaries, typed error discipline, scoped resource ownership, Promise adapters, ManagedRuntime integration, and testing conventions."
+		}
+	}
+}

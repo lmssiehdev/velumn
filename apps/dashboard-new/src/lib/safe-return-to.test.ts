@@ -4,15 +4,21 @@ import { safeReturnTo } from "./safe-return-to"
 
 describe("safeReturnTo", () => {
   it("keeps internal dashboard paths", () => {
-    expect(safeReturnTo("/servers/example/threads?page=2")).toBe(
-      "/servers/example/threads?page=2"
-    )
+    expect(
+      safeReturnTo("/dashboard/servers/example/threads?page=2#message")
+    ).toBe("/dashboard/servers/example/threads?page=2#message")
+    expect(safeReturnTo("/dashboard")).toBe("/dashboard")
   })
 
-  it.each([undefined, "https://attacker.example", "//attacker.example"])(
-    "falls back for an unsafe return URL",
-    (value) => {
-      expect(safeReturnTo(value)).toBe("/servers")
-    }
-  )
+  it.each([
+    undefined,
+    "https://attacker.example",
+    "//attacker.example",
+    "/dashboard-evil",
+    "/dashboard/../api/auth/session",
+    "/servers/example",
+    "/pricing",
+  ])("falls back for an unsafe return URL", (value) => {
+    expect(safeReturnTo(value)).toBe("/dashboard/servers")
+  })
 })

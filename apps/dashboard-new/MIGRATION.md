@@ -38,6 +38,9 @@ Copy no architecture blindly. Preserve the useful constraint, then use the small
 - Custom domains cannot reach `/dashboard`, auth handlers, internal cache endpoints, private server-function surfaces, or internal tenant paths.
 - Defining `src/start.ts` requires explicitly installing the current TanStack CSRF middleware; do not assume the framework default remains installed.
 - TanStack Start, Router, Router plugin, SSR Query integration, and devtools are upgraded and tested as one compatible version set before the combined migration.
+- Nitro is pinned with the TanStack package set. Production verification forces the Vercel preset and inspects the generated Build Output API artifact rather than a generic or stale server build.
+- Oxfmt is the application formatter, including native Tailwind class sorting. Prettier and its Tailwind plugin are not part of the combined application toolchain.
+- Markdown uses an explicit `.md` URL representation such as `/thread/$threadId/$slug.md`. Public `/markdown/*` paths and `Accept`-selected Markdown variants are not preserved.
 
 ## Target Request Surfaces
 
@@ -227,18 +230,28 @@ The migration preserves the bot invalidation HTTP contract until all producers m
 
 ## Domain Lifecycle
 
-Do not preserve `customDomain` plus `domainVerified` as the eventual complete provider state. Additive schema work should support at least:
+`db_domain_lifecycle` is the durable provider-operation state. The existing
+`db_server.customDomain` and `db_server.domainVerified` columns remain an
+atomically maintained compatibility projection for routing and existing reads.
+The lifecycle row is retained as an `unconfigured` tombstone after removal so
+its monotonically increasing generation closes same-hostname ABA races.
 
 ```text
 unconfigured
 provisioning
-pending_dns
+pending
 verified
 removing
-provider_error
 ```
 
-Removal makes the domain unservable in the database first, hard-purges routing caches, then performs provider cleanup idempotently with retries. Copy Dub's tombstone/background-cleanup principle, not its implementation complexity.
+Every provider operation captures a generation and may persist its result only
+when the server, hostname, status, and generation still match. Provider errors
+remain observations rather than lifecycle phases: unresolved adds stay
+`provisioning`, unresolved removals stay `removing`, and verification outages do
+not replace the last known state. Removal makes the domain unservable in the
+database first, then removes only the Vercel project-domain association
+idempotently. Hard cache purging and background reconciliation remain required
+before production cutover.
 
 ## Quality Gates
 
@@ -287,8 +300,8 @@ Status: complete
 - Current TanStack Start scaffold with SSR and generated file routes
 - Tailwind 4 and shadcn/Base UI design system
 - Responsive authenticated-shell composition with desktop navigation and mobile sheet
-- `/servers` directory with lifecycle-specific states and actions
-- `/servers/$serverId` operational overview with disconnected, indexing, coverage, publishing, and recent-content states
+- `/dashboard/servers` directory with lifecycle-specific states and actions
+- `/dashboard/servers/$serverId` operational overview with disconnected, indexing, coverage, publishing, and recent-content states
 - Typed minimal browser payloads
 - Typed provider failures translated to serializable route results
 - Placeholder routes preserving the target information architecture
@@ -300,7 +313,7 @@ Status: in progress
 
 - [x] Move the application to `apps/dashboard-new` so it can consume workspace packages
 - [x] Configure Better Auth with `tanstackStartCookies()` and mount `/api/auth/$`
-- [x] Add `/auth/sign-in` with a validated, same-origin return URL
+- [x] Add `/dashboard/sign-in` with a validated, dashboard-only return URL
 - [x] Protect the pathless dashboard layout using a server-side session check on every navigation
 - [x] Normalize dashboard environment variable names and isolate the local rewrite origin
 - [x] Add sign-out and session-expiry redirects on navigation
@@ -318,9 +331,9 @@ Reads are batched: one membership query plus three parallel aggregate queries, r
 
 Status: in progress
 
-- [x] Implement `/servers/new` with refresh-aware Discord guild discovery
+- [x] Implement `/dashboard/servers/new` with refresh-aware Discord guild discovery
 - [x] Batch installation lifecycle reads for the Discord guild list
-- [x] Implement authoritative `/servers/$serverId/setup` state resolution
+- [x] Implement authoritative `/dashboard/servers/$serverId/setup` state resolution
 - [x] Add explicit invite, reconnect, and channel-selection mutations
 - [x] Add Discord guild permission refresh only where installation requires it
 - [x] Poll persisted bot-installation state without client lifecycle ownership
@@ -338,7 +351,7 @@ Status: in progress
 - [x] Channels table with staged changes, discard/save behavior, and navigation blocking
 - [x] Publishing settings with persisted domain state and independent verification mutations
 - [x] Explicit loading, first-use empty, filtered empty, disconnected, mutation, and error states
-- [x] Race-safe domain transitions, idempotent Vercel errors, pending-only polling, and provider-outage recovery
+- [x] Generation-CAS domain transitions, durable retry states, project-only Vercel cleanup, pending-only polling, and provider-outage recovery
 
 Threads use a narrow authorized projection of public Discord threads with valid
 same-server parents. Search, parent-channel and pinned filters, sorting, and
@@ -347,12 +360,14 @@ timestamp, so the default is truthful Discord thread creation order and the
 `lastIndexedAt` field remains `null` rather than deriving a misleading value
 from the indexing cursor.
 
-Publishing verifies ownership after reading the current Vercel state and uses
-the verification response immediately. Domain writes use compare-and-set
-transitions so stale verification cannot restore a removed domain. Detailed DNS
-records, provider errors, and check times remain session state until additive
-schema work makes them durable. Public custom-host and redirect decisions read
-the indexed domain state directly rather than relying on cross-application cache
+Publishing reserves ownership before provider mutation and reconciles ambiguous
+Vercel responses against project-domain state. Lifecycle and compatibility
+projection writes share one transaction, and generation-based compare-and-set
+transitions prevent stale verification or removal from affecting a later
+lifecycle of the same hostname. Detailed DNS records, provider errors, and check
+times remain request state; transitional lifecycle phases are durable. Public
+custom-host and redirect decisions continue to read the indexed compatibility
+projection directly rather than relying on cross-application cache
 revalidation.
 
 ## Checkpoint 5: Production Readiness
@@ -360,7 +375,7 @@ revalidation.
 Status: pending
 
 - [x] React Query hydration and targeted invalidation for onboarding
-- Vercel/Nitro deployment configuration
+- [x] Vercel/Nitro deployment configuration
 - Error reporting, structured logging, and safe user-facing messages
 - Accessibility and keyboard review
 - Desktop and mobile visual regression coverage
@@ -371,43 +386,106 @@ Status: pending
 
 Status: pending
 
-- [ ] Align the TanStack Start, Router, router plugin, SSR Query, and devtools versions
-- [ ] Configure and verify the production Vercel/Nitro adapter
+- [x] Align the TanStack Start, Router, router plugin, SSR Query, and devtools versions
+- [x] Configure and verify the production Vercel/Nitro adapter
 - [ ] Capture public route, metadata, response, request-count, and bundle baselines from the Next app
-- [ ] Move existing dashboard URLs and auth UI beneath `/dashboard`
-- [ ] Make `__root.tsx` a neutral document with no dashboard-only imports or requests
-- [ ] Scope dashboard metadata, fonts, styles, devtools, Query preloading, and shell behavior to the dashboard route island
-- [ ] Add validated server-only and client-safe environment modules
-- [ ] Add server/browser dependency restrictions and production bundle scans
-- [ ] Add `src/start.ts` with explicit CSRF, request IDs, structured request logging, and server-function logging
+- [x] Move existing dashboard URLs and auth UI beneath `/dashboard`
+- [x] Make `__root.tsx` a neutral document with no dashboard-only imports or requests
+- [x] Scope dashboard metadata, fonts, styles, devtools, Query preloading, and shell behavior to the dashboard route island
+- [x] Add validated server-only and client-safe environment modules
+- [x] Add production bundle scans; server/browser dependency restrictions are enforced in ESLint
+- [x] Add `src/start.ts` with explicit CSRF, request IDs, structured request logging, and server-function logging
 - [ ] Replace generic unauthorized errors with stable typed HTTP outcomes
 
 Acceptance gate: the existing dashboard works at `/dashboard`, marketing `/` can render without session work, and the production artifact contains no accidental root-level dashboard dependency.
 
+The neutral root currently renders a request-free public placeholder. Dashboard
+metadata, CSS, Outfit font files, development-only devtools, shell composition,
+and React Query views are owned below the `/dashboard` route. Loader code is
+split independently so the production `/` response does not preload dashboard
+auth or query chunks; synchronous search validation uses small dependency-free
+parsers instead of pulling Zod into the public root bundle.
+
+The pinned compatible package set is Start `1.168.40`, Router `1.170.23`,
+Router plugin `1.168.27`, SSR Query `1.167.1`, and Router Devtools
+`1.167.1`. The built-server isolation check renders `/` through the production
+Fetch handler, rejects private route assets and server-only signatures, verifies
+request IDs, and proves a cross-site server-function request receives `403`.
+Server environment reads are lazy and grouped by feature so incomplete OAuth,
+indexing, or Vercel configuration fails explicitly without forcing unrelated
+tests to provide every credential.
+
+Nitro `3.0.260610-beta` is pinned because it is the current documented Nitro 3
+release with Vite 8 support. `nitro()` follows `tanstackStart()` in the Vite
+plugin order and is omitted only in Vitest's `test` mode. Production
+verification forces `NITRO_PRESET=vercel`, then reads the generated
+`.vercel/output` artifact directly. The check requires Build Output API v3, a
+streaming `nodejs22.x` function, immutable asset routing, and the dynamic
+`/__server` destination before exercising the emitted function's Fetch
+handler. Root bundle isolation, request IDs, and cross-site CSRF rejection pass
+against that Vercel function.
+
+The adapter proof does not alter an existing Vercel project. Use a separate
+preview project rooted at `apps/dashboard-new`, keep framework detection and
+the output directory automatic, and use `bun run build`. Nitro selects the
+Vercel preset in the hosted environment; `bun run verify:production` forces the
+same preset locally. A real preview deployment and staging tenant domain remain
+Checkpoint 7 work.
+
 ## Checkpoint 7: Host Routing Spike
 
-Status: pending
+Status: in progress
 
-- [ ] Extract a pure host and path decision function from the current proxy behavior
-- [ ] Implement a thin custom Start server-entry adapter that rewrites tenant requests before route matching
-- [ ] Preserve explicit `.md` and negotiated Markdown behavior intentionally
-- [ ] Reject dashboard, auth, private API, server-function, and internal tenant paths on custom hosts
-- [ ] Verify trusted proxy handling for forwarded host and protocol
-- [ ] Test canonical, preview, localhost, tenant, unknown, malformed, and malicious suffix hosts
+- [x] Extract a pure host and path decision function from the current proxy behavior
+- [x] Implement a thin custom Start server-entry adapter that rewrites tenant requests before route matching
+- [x] Standardize Markdown on explicit `.md` URLs and remove negotiated/internal public paths
+- [x] Reject dashboard, auth, private API, server-function, and internal tenant paths on custom hosts
+- [x] Define and verify the trusted request-authority and protocol policy at the Start/Nitro boundary
+- [x] Test canonical, preview, localhost, tenant, unknown, malformed, and malicious suffix hosts
 - [ ] Deploy one staging tenant domain against the real Vercel adapter
 
 Acceptance gate: `tenant-test` reaches a hidden tenant route in a production deployment; unknown hosts and privileged tenant-host paths fail closed; direct internal paths are unreachable.
 
 If the pinned Start/Nitro stack cannot safely transform the request before Router matching, stop and choose between a custom fetch server entry or host-aware shared loaders. Do not spread hostname branching through every component.
 
+`src/server.ts` is the supported pre-dispatch boundary for the pinned Start
+stack. Request middleware cannot replace the URL used for server-function
+classification or Router history, so the custom entry wraps the default Start
+Fetch handler and forwards its request options unchanged. The pure decision
+function accepts only the exact canonical host, exact Vercel deployment hosts
+provided by the runtime, and explicit local loopbacks outside production. It
+does not trust arbitrary `.vercel.app` or ngrok suffixes.
+
+The adapter compares an optional `Host` header with the normalized request URL,
+requires HTTPS for recognized production hosts, and rejects ambiguous or
+disagreeing authorities. Nitro/Vercel remains responsible for constructing the
+request URL from its trusted proxy boundary; application code does not select an
+arbitrary comma-separated forwarded host. Tenant candidates can reach only the
+forum and machine-route allowlist. Hashed assets and the favicon are the only
+shared pass-throughs. Dashboard, auth/API, server functions, OG, direct
+Markdown, unsupported paths, and direct `/__tenant` requests fail before Start
+dispatch.
+
+Allowed tenant requests, including `/thread/$threadId/$slug.md`, rewrite to the escaped internal `/__tenant/$host`
+namespace. Its spike route performs an exact `customDomain` plus
+`domainVerified` lookup and returns only server ID and name; unknown domains
+remain `404`. The Vercel artifact check proves canonical routing and CSRF still
+work while direct internal paths, tenant-host privileged paths, unknown-host
+paths, and authority disagreement fail closed. RFC 7763 registers `.md` for
+`text/markdown`; using the explicit suffix avoids `Vary: Accept` cache variants.
+The eventual representation returns `text/markdown; charset=utf-8`. Unsuffixed
+thread URLs always return HTML, regardless of `Accept`, and `/markdown/*` stays
+unreachable. A fixture-backed verified-domain HTTP test and the real
+staging-domain deployment remain open.
+
 ## Checkpoint 8: Public Repository And Cache
 
-Status: pending
+Status: in progress
 
-- [ ] Define publication rules once and cover them with a visibility matrix
-- [ ] Add verified public-tenant and managed-server database capabilities
+- [x] Define publication rules once and cover them with a visibility matrix
+- [x] Add verified public-tenant and managed-server database capabilities
 - [ ] Add narrow list, page, metadata, OG, Markdown, search, and sitemap projections
-- [ ] Add request-scoped deduplication for tenant and public entity reads
+- [x] Add request-scoped deduplication for tenant and public entity reads
 - [ ] Choose and implement the durable shared cache backend
 - [ ] Add hard-purge, soft-refresh, and single-flight behavior
 - [ ] Preserve bot invalidation endpoints with a dedicated scoped credential
@@ -418,21 +496,67 @@ Status: pending
 
 Acceptance gate: all public representations consume the publication-aware boundary; hard purge never returns acknowledged stale content; concurrent cold requests produce one regeneration per key.
 
+`@repo/db/publication` owns the fail-closed thread visibility policy and its
+named matrix. A public thread requires an active server, a public-thread type,
+an enabled root parent of a supported type in the same server, and a visible
+starter message. Archived and locked Discord threads remain readable; those
+states affect participation rather than publication. Disabling a parent channel
+unpublishes its existing threads as well as stopping future indexing.
+
+The repository issues opaque capabilities only after an exact, active
+verified-domain lookup, active public-server lookup, or authenticated membership
+lookup. Metadata, cursor-list, and bounded thread-page projections return
+narrow route-safe DTOs; the page loads at most the starter plus 100 replies and
+fetches their attachments in one second query. The Start server entry opens an
+`AsyncLocalStorage` read map for each request so repeated capability, tenant,
+metadata, list, and page reads share one in-flight promise; failures are removed
+for retry and no result survives the request.
+
+The main-host `/thread/$threadId/$slug` loader calls one validated
+`createServerFn`, then shares its SSR-hydrated result with `head()` and the
+synchronous view. Canonical-domain and wrong-slug decisions produce one final
+`308`. Router freshness, preload freshness, and retention remain zero and HTTP
+responses use `no-store` until durable hard invalidation exists; this avoids
+serving acknowledged privacy removals from client or CDN stale caches. The
+explicit `{$slug}[.]md` server route returns `text/markdown`, canonical Link
+headers, and agent-readable YAML metadata. HTML advertises it with a
+`text/markdown` alternate link. Unsuffixed thread requests are forced through
+the HTML representation regardless of `Accept`, and public `/markdown/*` stays
+absent. This follows TanStack's loader/server-function/server-route boundaries
+and Vercel's `.md` agent-resource convention without content negotiation.
+
+Production-shaped `EXPLAIN (ANALYZE, BUFFERS)` for a seven-message thread used
+the existing channel, message, user, server, and attachment indexes: the page
+query executed in 0.65 ms with 55 shared-buffer hits and no reads, while the
+attachment query executed in 0.17 ms with eight hits and no reads. No speculative
+index was added. OG, search, sitemap, and tenant-host rendering projections
+remain open and must reuse the same publication boundary.
+
 ## Checkpoint 9: Static Public Routes And Blog
 
-Status: pending
+Status: in progress
 
 - [ ] Migrate `/`, `/pricing`, `/oss-program`, and `/discord`
 - [ ] Resolve the duplicate `/` and `/new-landing` ownership intentionally
 - [ ] Replace `next/font` with intentional self-hosted route-scoped fonts
 - [ ] Establish one shared reset and scoped marketing/forum/dashboard token roots
-- [ ] Replace the Next MDX pipeline with a validated Vite content manifest
-- [ ] Add build-time draft, placeholder, metadata, date, and empty-body checks
+- [x] Replace the Next MDX pipeline with a validated Vite content manifest
+- [x] Add build-time draft, placeholder, metadata, date, and empty-body checks
 - [ ] Migrate `/blog` and `/blog/$slug` with prerender and unknown-slug behavior
 - [ ] Migrate responsive images with explicit dimensions and loading policy
 - [ ] Update all dashboard links to `/dashboard`
 
 Acceptance gate: marketing and blog routes pass metadata and visual parity without downloading dashboard CSS, fonts, JS, or auth data.
+
+The blog uses the official MDX Rollup plugin before React and an intentionally
+small eager Vite manifest for metadata, source validation, and article
+components. Only `content/blog/published/*.mdx` enters the manifest; drafts live
+outside that glob so unpublished source is not emitted as an article asset.
+`/blog` and `/blog/$slug` render through a route-scoped stylesheet; unknown and
+unpublished slugs return `404`, and dashboard navigation disables preloading.
+The only legacy MDX file is an empty placeholder and remains unpublished, so a
+real article success state and prerendering are still required before the blog
+route item is complete.
 
 ## Checkpoint 10: Shared Public Forum
 
@@ -507,7 +631,7 @@ The first audit identified these concrete cleanup items for migration tracking:
 - Dashboard route modules for publishing, setup, channels, and threads are oversized; split them by feature ownership before adding public route complexity.
 - Dashboard devtools are currently imported from the root and must be development-only lazy imports.
 - `auth-functions.ts` dynamically imports the auth module; current TanStack guidance prefers static server-function imports.
-- The Vercel project ID is hardcoded in the publishing adapter and must be validated runtime configuration.
+- The Vercel project ID was moved from the publishing adapter into validated runtime configuration.
 - The current synthetic role, bot-online, indexing, and publication labels remain separate schema/product debt and must not be mistaken for authoritative runtime data.
 
 These findings are a starting point, not a closed list. Each migrated route requires a change-scoped review against its old behavior and this target architecture.

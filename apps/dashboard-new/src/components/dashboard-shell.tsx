@@ -45,10 +45,13 @@ const navigation = [
 export function DashboardShell({ shell }: { shell: DashboardShellData }) {
   const matchRoute = useMatchRoute()
   const isSetupFlow = Boolean(
-    matchRoute({ to: "/servers/new", fuzzy: true }) ||
-    matchRoute({ to: "/servers/$serverId/setup", fuzzy: true })
+    matchRoute({ to: "/dashboard/servers/new", fuzzy: true }) ||
+    matchRoute({ to: "/dashboard/servers/$serverId/setup", fuzzy: true })
   )
-  const params = matchRoute({ to: "/servers/$serverId", fuzzy: true })
+  const params = matchRoute({
+    to: "/dashboard/servers/$serverId",
+    fuzzy: true,
+  })
   const serverId = params ? params.serverId : null
   const activeServer = shell.servers.find((server) => server.id === serverId)
 
@@ -56,7 +59,7 @@ export function DashboardShell({ shell }: { shell: DashboardShellData }) {
     return (
       <div className="min-h-svh bg-background text-foreground">
         <header className="flex h-14 items-center border-b bg-background px-5 sm:px-8">
-          <Link to="/servers" className="flex items-center gap-2.5">
+          <Link to="/dashboard/servers" className="flex items-center gap-2.5">
             <BrandMark className="size-6 rounded-md" />
             <span className="text-sm font-semibold tracking-[-0.02em]">
               velumn
@@ -74,7 +77,7 @@ export function DashboardShell({ shell }: { shell: DashboardShellData }) {
             </a>
             <span className="mx-1 h-4 w-px bg-border" />
             <Link
-              to="/servers"
+              to="/dashboard/servers"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Exit setup
@@ -116,7 +119,7 @@ export function DashboardShell({ shell }: { shell: DashboardShellData }) {
 
           <div className="flex min-w-0 items-center gap-2 text-sm">
             <Link
-              to="/servers"
+              to="/dashboard/servers"
               className="text-muted-foreground transition-colors hover:text-foreground"
             >
               Servers
@@ -161,7 +164,7 @@ export function DashboardShell({ shell }: { shell: DashboardShellData }) {
                     authClient.signOut({
                       fetchOptions: {
                         onSuccess: () => {
-                          window.location.href = "/auth/sign-in"
+                          window.location.href = "/dashboard/sign-in"
                         },
                       },
                     })
@@ -203,7 +206,9 @@ function ShellNavigation({
 
       <div className="px-4 pt-6 pb-2">
         <Link
-          to={activeServer ? "/servers/$serverId" : "/servers"}
+          to={
+            activeServer ? "/dashboard/servers/$serverId" : "/dashboard/servers"
+          }
           params={activeServer ? { serverId: activeServer.id } : {}}
           className="flex w-full items-center gap-2 rounded-lg bg-secondary px-2 py-2 text-left transition-colors hover:bg-muted"
         >
@@ -234,7 +239,7 @@ function ShellNavigation({
         {activeServer ? (
           <div className="space-y-1">
             {navigation.map((item) => {
-              const to = `/servers/${activeServer.id}${item.path}`
+              const to = `/dashboard/servers/${activeServer.id}${item.path}`
               const active = item.path
                 ? Boolean(matchRoute({ to, fuzzy: true }))
                 : Boolean(matchRoute({ to, fuzzy: false }))
@@ -256,7 +261,7 @@ function ShellNavigation({
           </div>
         ) : (
           <Link
-            to="/servers"
+            to="/dashboard/servers"
             className="flex h-9 items-center gap-2 rounded-lg bg-accent px-2 text-sm font-medium text-accent-foreground"
           >
             <Settings2 className="size-4" />
