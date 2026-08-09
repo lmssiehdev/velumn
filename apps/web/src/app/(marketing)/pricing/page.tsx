@@ -15,7 +15,7 @@ export const dynamic = "force-static";
 export const metadata: Metadata = buildPageMetadata({
 	title: "Simple Pricing for Searchable Discord Answers",
 	description:
-		"Start publishing Discord threads for free. Upgrade to use your own domain and get priority support for $89 per month.",
+		"Start publishing Discord threads for free. Upgrade to use your own domain and get priority support for $125 per month.",
 	canonicalUrl: absoluteUrl("/pricing"),
 });
 
@@ -153,7 +153,7 @@ function Pricing() {
 						features={proFeatures}
 						featured
 						name="Pro"
-						price="$89"
+						price="$125"
 					>
 						<DashboardLink eventKey="pricingStartTrial" fullWidth size="lg">
 							Start 7-day trial
