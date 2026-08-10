@@ -54,12 +54,12 @@
 }
 
 .thread-page {
-  padding: 0;
+  padding-inline: 1rem;
 }
 
 .thread-heading {
   margin-block: 1.5rem;
-  padding-inline: 0.75rem;
+  padding-inline: 0;
 }
 
 .thread-title {
