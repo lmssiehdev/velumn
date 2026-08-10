@@ -1,6 +1,6 @@
 import {
 	checkIfServerExistsForUser,
-	getChannelsInServer,
+	getOnboardingLifecycleForUser,
 } from "@repo/db/helpers/servers";
 import type { DBServer } from "@repo/db/schema/discord";
 import type { RawDiscordGuild } from "@/app/onboarding/_fetchUserGuilds";
@@ -42,28 +42,19 @@ export async function getOnboardingStatus({
 		return { status: "inviting-bot" };
 	}
 
-	const userServer = await checkIfServerExistsForUser({
-		userId,
-		serverId,
-	});
+	const lifecycle = await getOnboardingLifecycleForUser({ userId, serverId });
+	if (lifecycle === "invite_required") {
+		return { status: "onboarding", reason: "server_not_found_in_db" };
+	}
+	if (lifecycle === "waiting_for_bot") return { status: "inviting-bot" };
+	if (lifecycle === "select_channels") return { status: "selecting-channels" };
 
-	if (!userServer || !userServer.server) {
+	const userServer = await checkIfServerExistsForUser({ userId, serverId });
+	if (!userServer?.server) {
 		return { status: "onboarding", reason: "server_not_found_in_db" };
 	}
 
-	// If onboarding is finished, user is done
-	if (userServer.finishedOnboarding) {
-		return { status: "finished", server: userServer.server };
-	}
-
-	// Check if server has channels (bot is invited)
-	const serverChannels = await getChannelsInServer(serverId);
-	if (serverChannels.length > 0) {
-		return { status: "selecting-channels" };
-	}
-
-	// Server exists but no channels - need to invite bot
-	return { status: "inviting-bot" };
+	return { status: "finished", server: userServer.server };
 }
 
 export async function checkIfUserHasPermissionsForServerFromApi(

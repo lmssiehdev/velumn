@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowsOutSimpleIcon } from "@phosphor-icons/react/dist/ssr";
+import Download01Icon from "@hugeicons/core-free-icons/Download01Icon";
+import Maximize02Icon from "@hugeicons/core-free-icons/Maximize02Icon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { DBAttachments } from "@repo/db/helpers/validation";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
 import { memo, Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -140,7 +141,7 @@ const CodeViewerInner = ({ attachment }: { attachment: DBAttachments }) => {
 				className="h-7 text-xs shrink-0"
 				onClick={handleDownload}
 			>
-				<Download className="size-4" />
+				<HugeiconsIcon className="size-4" icon={Download01Icon} />
 			</Button>
 		);
 	}
@@ -163,7 +164,7 @@ const CodeViewerInner = ({ attachment }: { attachment: DBAttachments }) => {
 						className="h-6 w-6 shrink-0"
 						onClick={() => setIsExpanded(true)}
 					>
-						<ArrowsOutSimpleIcon className="size-4" />
+						<HugeiconsIcon className="size-4" icon={Maximize02Icon} />
 					</Button>
 					<span className="leading-normal ">Expand</span>
 				</div>

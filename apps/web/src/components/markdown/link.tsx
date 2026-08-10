@@ -1,11 +1,10 @@
 "use client";
 
-import {
-	CaretRightIcon,
-	ChatTeardropIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import ChevronRightIcon from "@hugeicons/core-free-icons/ChevronRightIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { DBMessage } from "@repo/db/schema/discord";
 import { ChannelType } from "discord-api-types/v10";
+import { ChatTeardropIcon } from "@/components/icons/phosphor-chat";
 import { ChannelIcon } from "./mention";
 
 export function MarkdownLink({
@@ -39,14 +38,20 @@ export function MarkdownLink({
 							<ChannelIcon type={channel.parent?.type} />
 							<span>{channel.parent?.name}</span>
 						</span>
-						<CaretRightIcon className="inline-block size-2.5 text-purple-800" />
+						<HugeiconsIcon
+							className="inline-block size-2.5 text-purple-800"
+							icon={ChevronRightIcon}
+						/>
 					</span>
 				)}
 				<ChannelIcon type={channel.type} />
 				<span>{shortenedMessage}</span>
 				{message && (
 					<span className="inline-block space-x-0.5 align-middle text-xs">
-						<CaretRightIcon className="inline-block size-2.5 text-purple-800" />
+						<HugeiconsIcon
+							className="inline-block size-2.5 text-purple-800"
+							icon={ChevronRightIcon}
+						/>
 						<ChatTeardropIcon
 							className="inline-block size-4 text-purple-800"
 							size={32}

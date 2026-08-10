@@ -1,3 +1,4 @@
+import { getServerInfo } from "@repo/db/helpers/servers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { FrontPageSidebar } from "@/components/forum/shell";
 import { ThreadList } from "@/components/forum/thread-list";
@@ -7,7 +8,7 @@ import {
 	hasVerifiedCustomDomain,
 } from "@/lib/domains";
 import { buildPageMetadata, toDescription } from "@/lib/seo";
-import { getAllThreadsCached, getServerInfoCached } from "@/utils/cache";
+import { getAllThreadsCached } from "@/utils/cache";
 import {
 	buildPaginatedRedirectPath,
 	type ForumSearchParams,
@@ -21,7 +22,7 @@ export async function generateMetadata({
 }) {
 	const { id } = await params;
 
-	const server = await getServerInfoCached(id);
+	const server = await getServerInfo(id);
 
 	if (!server) {
 		return {
@@ -53,7 +54,7 @@ export default async function Page({
 
 	const searchParamsPage = await parseForumPage(resolvedSearchParams);
 
-	const server = await getServerInfoCached(id);
+	const server = await getServerInfo(id);
 
 	if (!server) {
 		notFound();

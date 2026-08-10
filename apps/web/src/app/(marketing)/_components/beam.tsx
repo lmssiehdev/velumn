@@ -1,16 +1,17 @@
 "use client";
 
+import ChatGptIcon from "@hugeicons/core-free-icons/ChatGptIcon";
+import DiscordIcon from "@hugeicons/core-free-icons/DiscordIcon";
+import HeartIcon from "@hugeicons/core-free-icons/HeartIcon";
+import NewTwitterIcon from "@hugeicons/core-free-icons/NewTwitterIcon";
+import RefreshIcon from "@hugeicons/core-free-icons/RefreshIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useRef, useState } from "react";
 import {
-	ArrowsClockwiseIcon,
 	ChatCircleIcon,
 	ChatIcon,
 	ChatsTeardropIcon,
-	DiscordLogoIcon,
-	HeartIcon,
-	OpenAiLogoIcon,
-	XLogoIcon,
-} from "@phosphor-icons/react/dist/ssr";
-import { useRef, useState } from "react";
+} from "@/components/icons/phosphor-chat";
 import { Twemoji } from "@/components/markdown/emoji";
 import { ThreadIcon } from "@/components/markdown/mention";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
@@ -118,7 +119,10 @@ function DiscordView() {
 	return (
 		<div className="p-3 flex h-full flex-col">
 			<div className="mb-3 border-b pb-2">
-				<DiscordLogoIcon className="size-4 mr-2 inline-block" />
+				<HugeiconsIcon
+					className="size-4 mr-2 inline-block"
+					icon={DiscordIcon}
+				/>
 				<span className="text-sm font-semibold text-gray-700">
 					Discord threads discoverable on Google?
 				</span>
@@ -280,7 +284,10 @@ function ChatView() {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="mb-3 border-b pb-2">
-				<OpenAiLogoIcon className="size-4 inline-block mr-1.5" />
+				<HugeiconsIcon
+					className="size-4 inline-block mr-1.5"
+					icon={ChatGptIcon}
+				/>
 				<span className="text-sm font-semibold text-gray-700">ChatGPT</span>
 			</div>
 
@@ -381,7 +388,10 @@ function SocialView() {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="mb-3 border-b pb-2">
-				<XLogoIcon className="size-4 inline-block mr-1.5" />
+				<HugeiconsIcon
+					className="size-4 inline-block mr-1.5"
+					icon={NewTwitterIcon}
+				/>
 			</div>
 
 			<div className="flex-1 space-y-3 overflow-y-auto px-1">
@@ -422,11 +432,11 @@ function SocialView() {
 									<span className="text-xs">2</span>
 								</div>
 								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
-									<ArrowsClockwiseIcon className="size-4" weight="regular" />
+									<HugeiconsIcon className="size-4" icon={RefreshIcon} />
 									<span className="text-xs">1</span>
 								</div>
 								<div className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-800">
-									<HeartIcon className="size-4" weight="regular" />
+									<HugeiconsIcon className="size-4" icon={HeartIcon} />
 									<span className="text-xs">13</span>
 								</div>
 							</div>

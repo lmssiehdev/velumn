@@ -1,40 +1,27 @@
-import { getThreadsCountTotal } from "@repo/db/helpers/sitemap";
-import { getAllPosts } from "@/app/blog/_lib/posts";
+import {
+	encodeSitemapRange,
+	getCanonicalSitemapPartitions,
+} from "@repo/db/helpers/sitemap";
 import { absoluteUrl } from "@/lib/seo";
-import { buildSitemapIndexXml, buildStaticSitemapEntries } from "@/lib/sitemap";
+import { buildSitemapIndexXml } from "@/lib/sitemap";
 
-export const revalidate = 86_400;
+export const dynamic = "force-dynamic";
 
 export const LIMIT = 47_000;
 
 export async function GET() {
-	const [count, posts] = await Promise.all([
-		getThreadsCountTotal(),
-		getAllPosts(),
-	]);
-	const numSitemaps = Math.ceil(count / LIMIT);
-	const staticEntries = buildStaticSitemapEntries(posts);
-	const latestStaticLastmod = staticEntries.reduce(
-		(latest, entry) => (entry.lastmod > latest ? entry.lastmod : latest),
-		staticEntries[0]?.lastmod ?? new Date().toISOString(),
-	);
-	const threadSitemapEntries = Array.from(
-		{ length: numSitemaps },
-		(_, index) => ({
-			loc: absoluteUrl(`/sitemap.xml/${index}`),
-		}),
-	);
+	const partitions = await getCanonicalSitemapPartitions(LIMIT);
 
 	const sitemap = buildSitemapIndexXml([
-		{
-			loc: absoluteUrl("/sitemap.xml/static"),
-			lastmod: latestStaticLastmod,
-		},
-		...threadSitemapEntries,
+		{ loc: absoluteUrl("/sitemap.xml/static") },
+		...partitions.map((partition) => ({
+			loc: absoluteUrl(`/sitemap.xml/${encodeSitemapRange(partition)}`),
+		})),
 	]);
 
 	return new Response(sitemap, {
 		headers: {
+			"Cache-Control": "no-store",
 			"Content-Type": "application/xml",
 		},
 	});

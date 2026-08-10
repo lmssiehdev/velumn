@@ -1,0 +1,25 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/.env"],
+      "outputs": [".output/**", "dist/**"],
+      "env": [
+        "NODE_ENV",
+        "NITRO_PRESET",
+        "VELUMN_CANONICAL_URL",
+        "VELUMN_DASHBOARD_NEW_URL",
+        "VERCEL_URL",
+        "VERCEL_BRANCH_URL",
+        "BETTER_AUTH_SECRET",
+        "DISCORD_CLIENT_ID",
+        "DISCORD_CLIENT_SECRET",
+        "BOT_API_URL",
+        "BOT_API_SECRET",
+        "VERCEL_BEARER_TOKEN",
+        "VERCEL_PROJECT_ID",
+        "VERCEL_TEAM_ID"
+      ]
+    }
+  }
+}

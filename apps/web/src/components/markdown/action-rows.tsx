@@ -7,6 +7,18 @@ import { buttonVariants } from "../ui/button";
 import { DiscordEmojiToImage } from "./emoji";
 
 type DBDiscordComponent = NonNullable<DBMessage["components"]>[number];
+type DBButtonComponent = Extract<
+	DBDiscordComponent["components"][number],
+	{ style: number }
+>;
+
+function isButtonComponent(
+	component: DBDiscordComponent["components"][number],
+): component is DBButtonComponent {
+	return (
+		component.type === ComponentType.Button && !("unsupported" in component)
+	);
+}
 
 export function ActionRows({
 	components,
@@ -27,7 +39,7 @@ function Row({ components }: { components: DBDiscordComponent["components"] }) {
 	return (
 		<div className="flex items-center flex-wrap gap-2">
 			{components.map((c, idx) => {
-				if (c.type === ComponentType.Button) {
+				if (isButtonComponent(c)) {
 					return <ButtonRow key={idx} component={c} />;
 				}
 				return null;
@@ -36,11 +48,7 @@ function Row({ components }: { components: DBDiscordComponent["components"] }) {
 	);
 }
 
-function ButtonRow({
-	component,
-}: {
-	component: DBDiscordComponent["components"][number];
-}) {
+function ButtonRow({ component }: { component: DBButtonComponent }) {
 	return (
 		<button
 			onClick={() => {

@@ -1,0 +1,35 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "categories": {
+    "correctness": "error"
+  },
+  "plugins": ["eslint", "typescript", "unicorn", "react", "oxc"],
+  "ignorePatterns": [".output/**", ".vercel/**", "src/routeTree.gen.ts"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react",
+            "importNames": ["useEffect", "useLayoutEffect"],
+            "message": "Model state through loaders, queries, events, or external-store subscriptions instead."
+          }
+        ]
+      }
+    ],
+    "eslint/no-restricted-properties": [
+      "error",
+      {
+        "property": "useEffect",
+        "message": "Model state through loaders, queries, events, or external-store subscriptions instead."
+      },
+      {
+        "property": "useLayoutEffect",
+        "message": "Model state through loaders, queries, events, or external-store subscriptions instead."
+      }
+    ]
+  }
+}

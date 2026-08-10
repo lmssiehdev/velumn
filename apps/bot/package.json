@@ -1,39 +1,37 @@
 {
 	"name": "bot",
 	"type": "module",
-	"main": "src/index.ts",
+	"main": "src/main.ts",
 	"scripts": {
-		"with-env": "bun --env-file=../../.env",
-		"dev": "NODE_ENV=development bun --watch with-env src/index.ts",
-		"start-indexing": "NODE_ENV=development bun with-env src/index.ts --index",
-		"start": "NODE_ENV=production bun with-env run src/index.ts --index",
-		"test": "bun test",
-		"type-check": "bunx tsc --noEmit"
+		"dev": "NODE_ENV=development bun --env-file=../../.env --watch src/main.ts",
+		"start": "NODE_ENV=production bun --env-file=../../.env src/main.ts",
+		"test": "bun run test:unit && bun run test:effect",
+		"test:unit": "bun test tests",
+		"test:effect": "vitest run src",
+		"test:effect:watch": "vitest src",
+		"type-check": "tsc --noEmit"
 	},
 	"devDependencies": {
-		"@repo/typescript-config": "workspace:^"
+		"@effect/vitest": "4.0.0-beta.106",
+		"@repo/typescript-config": "workspace:^",
+		"vitest": "4.1.10"
 	},
 	"dependencies": {
+		"@repo/api": "workspace:*",
 		"@aws-sdk/client-s3": "^3.888.0",
 		"@aws-sdk/lib-storage": "^3.888.0",
-		"@hono/trpc-server": "^0.4.1",
+		"@effect/platform-bun": "4.0.0-beta.106",
 		"@repo/db": "workspace:*",
 		"@repo/logger": "workspace:*",
-		"@sapphire/decorators": "^6.2.0",
-		"@sapphire/discord.js-utilities": "^7.3.3",
-		"@sapphire/framework": "^5.5.0",
-		"@sapphire/plugin-api": "^8.3.1",
-		"@sapphire/plugin-logger": "^4.1.0",
 		"@t3-oss/env-core": "^0.13.10",
 		"@types/bun": "^1.2.23",
-		"croner": "^9.1.0",
-		"discord-api-types": "^0.38.24",
-		"discord.js": "~14.22.1",
+		"discord-api-types": "0.38.53",
+		"discord.js": "14.27.0",
 		"drizzle-orm": "^0.44.7",
-		"hono": "^4.11.3",
-		"isomorphic-dompurify": "^2.32.0",
+		"effect": "4.0.0-beta.106",
 		"meilisearch": "^0.54.0",
 		"pg": "^8.16.3",
+		"posthog-node": "5.48.1",
 		"zod": "^4.2.1"
 	}
 }

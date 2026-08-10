@@ -35,18 +35,40 @@ export function normalizeDomain(input: string) {
 		: `https://${trimmed}`;
 	const parsed = new URL(withScheme);
 
+	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+		throw new Error("Domain must use HTTP or HTTPS.");
+	}
+	if (parsed.username || parsed.password || parsed.port) {
+		throw new Error("Domain must not include credentials or a port.");
+	}
 	if (parsed.pathname !== "/" || parsed.search || parsed.hash) {
 		throw new Error("Domain must not include a path, query string, or hash.");
 	}
 
-	const normalized = normalizeHostHeader(parsed.host);
+	const normalized = normalizeHostname(parsed.hostname);
 	ensureNoPathSearchOrHash(normalized);
 
-	if (normalized === "localhost" || normalized === "127.0.0.1") {
+	if (
+		normalized === "localhost" ||
+		normalized.startsWith("[") ||
+		/^\d+\.\d+\.\d+\.\d+$/.test(normalized) ||
+		normalized.startsWith("*.")
+	) {
 		throw new Error("Domain must be publicly routable.");
 	}
 
 	if (!/\./.test(normalized)) {
+		throw new Error("Domain must be a valid hostname.");
+	}
+	if (
+		normalized.length > 253 ||
+		normalized
+			.split(".")
+			.some(
+				(label) =>
+					label.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label),
+			)
+	) {
 		throw new Error("Domain must be a valid hostname.");
 	}
 

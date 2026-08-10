@@ -1,0 +1,1 @@
+ALTER TYPE "indexing_checkpoint_kind" ADD VALUE 'reconciliation_selection';

@@ -1,8 +1,6 @@
-import {
-	ChatIcon,
-	ChatsCircleIcon,
-	HashIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import HashIcon from "@hugeicons/core-free-icons/HashIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { getServerInfo } from "@repo/db/helpers/servers";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
 import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
 import {
@@ -22,6 +20,7 @@ import { ServerInfo } from "@/components/forum/shell";
 import { anonymizeName, MessagePost } from "@/components/forum/thread-message";
 import { HashProvider } from "@/components/forum/thread-message-highlight";
 import type { ThreadMessagesWithMetadata } from "@/components/forum/thread-types";
+import { ChatIcon, ChatsCircleIcon } from "@/components/icons/phosphor-chat";
 import { ThreadIcon } from "@/components/markdown/mention";
 import ThreadFeedback from "@/components/thread-feedback";
 import {
@@ -94,9 +93,10 @@ export default async function Page({ params }: PageProps) {
 		notFound();
 	}
 
-	if (hasVerifiedCustomDomain(thread.server)) {
+	const routingServer = await getServerInfo(thread.serverId);
+	if (hasVerifiedCustomDomain(routingServer)) {
 		const targetPath = getThreadPath(threadId, thread.channelName!);
-		permanentRedirect(getCustomDomainUrl(thread.server, targetPath));
+		permanentRedirect(getCustomDomainUrl(routingServer, targetPath));
 	}
 
 	const threadUrlWithSlug = slugifyThreadUrl({
@@ -196,7 +196,7 @@ export default async function Page({ params }: PageProps) {
 							{thread.parent?.type === ChannelType.GuildForum ? (
 								<ChatsCircleIcon className="size-3.5" />
 							) : (
-								<HashIcon className="size-3.5" weight="bold" />
+								<HugeiconsIcon className="size-3.5" icon={HashIcon} />
 							)}
 							{thread.parent?.channelName}
 						</Link>

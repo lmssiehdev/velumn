@@ -1,0 +1,31 @@
+{
+	"name": "@repo/api",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./client": "./src/client.ts",
+		"./contracts": "./src/contracts.ts",
+		"./router": "./src/router.ts",
+		"./server": "./src/server.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@hono/trpc-server": "^0.4.1",
+		"@repo/logger": "workspace:*",
+		"@repo/utils": "workspace:*",
+		"@trpc/server": "11.15.0",
+		"hono": "^4.11.3",
+		"isomorphic-dompurify": "^2.32.0",
+		"zod": "^4.2.1"
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@types/bun": "^1.2.23",
+		"typescript": "5.9.2",
+		"vitest": "4.1.10"
+	}
+}

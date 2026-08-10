@@ -37,7 +37,6 @@ const nextConfig: NextConfig = {
 	},
 	experimental: {
 		mdxRs: true,
-		optimizePackageImports: ["@phosphor-icons/react"],
 	},
 };
 

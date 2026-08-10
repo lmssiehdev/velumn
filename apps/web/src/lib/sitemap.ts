@@ -3,7 +3,7 @@ import { absoluteUrl } from "@/lib/seo";
 
 export type SitemapUrlEntry = {
 	loc: string;
-	lastmod: string;
+	lastmod?: string;
 	changefreq?: string;
 	priority?: string;
 };
@@ -33,8 +33,12 @@ export function buildUrlSetXml(entries: SitemapUrlEntry[]) {
 ${entries
 	.map(
 		(entry) => `  <url>
-    <loc>${xmlEscape(entry.loc)}</loc>
-    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>${
+    <loc>${xmlEscape(entry.loc)}</loc>${
+			entry.lastmod
+				? `
+    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>`
+				: ""
+		}${
 			entry.changefreq
 				? `
     <changefreq>${xmlEscape(entry.changefreq)}</changefreq>`
@@ -58,30 +62,29 @@ ${entries
 	.map(
 		(entry) => `  <sitemap>
     <loc>${xmlEscape(entry.loc)}</loc>
-			${
-				entry.lastmod
-					? `\n    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>`
-					: ""
-			}
+			${entry.lastmod ? `\n    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>` : ""}
   </sitemap>`,
 	)
 	.join("\n")}
 </sitemapindex>`;
 }
 
-export function buildStaticSitemapEntries(posts: BlogSitemapPost[]) {
-	const now = new Date().toISOString();
-
+export function buildStaticSitemapEntries(
+	posts: BlogSitemapPost[],
+): SitemapUrlEntry[] {
 	return [
 		{
 			loc: absoluteUrl("/"),
-			lastmod: now,
 			changefreq: "weekly",
 			priority: "1.0",
 		},
 		{
 			loc: absoluteUrl("/pricing"),
-			lastmod: now,
+			changefreq: "monthly",
+			priority: "0.8",
+		},
+		{
+			loc: absoluteUrl("/oss-program"),
 			changefreq: "monthly",
 			priority: "0.8",
 		},
@@ -93,7 +96,6 @@ export function buildStaticSitemapEntries(posts: BlogSitemapPost[]) {
 		},
 		{
 			loc: absoluteUrl("/blog"),
-			lastmod: now,
 			changefreq: "weekly",
 			priority: "0.7",
 		},
@@ -103,5 +105,5 @@ export function buildStaticSitemapEntries(posts: BlogSitemapPost[]) {
 			changefreq: "monthly",
 			priority: "0.6",
 		})),
-	] satisfies SitemapUrlEntry[];
+	];
 }

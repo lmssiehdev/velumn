@@ -1,0 +1,220 @@
+@import "@fontsource-variable/outfit";
+
+:root:has(.blog-surface) body {
+  margin: 0;
+}
+
+.blog-surface {
+  min-height: 100svh;
+  background: #fafaf9;
+  color: #1c1917;
+  font-family:
+    "Outfit Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.blog-shell {
+  width: min(calc(100% - 2rem), 45rem);
+  margin-inline: auto;
+}
+
+.blog-header {
+  border-block-end: 1px solid #e7e5e4;
+}
+
+.blog-header__inner {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.blog-header a,
+.blog-back-link,
+.blog-post-link {
+  color: inherit;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.2em;
+}
+
+.blog-brand {
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.blog-header nav {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.875rem;
+}
+
+.blog-header a:focus-visible,
+.blog-back-link:focus-visible,
+.blog-post-link:focus-visible {
+  border-radius: 0.125rem;
+  outline: 2px solid currentColor;
+  outline-offset: 0.25rem;
+}
+
+.blog-main {
+  padding-block: clamp(3rem, 9vw, 6rem);
+}
+
+.blog-eyebrow {
+  margin: 0 0 0.75rem;
+  color: #78716c;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.blog-title {
+  max-width: 18ch;
+  margin: 0;
+  font-size: clamp(2.5rem, 9vw, 4.75rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.blog-intro {
+  max-width: 38rem;
+  margin: 1.5rem 0 0;
+  color: #57534e;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.blog-post-list {
+  display: grid;
+  gap: 2rem;
+  margin: 3.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blog-post-list article {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.blog-post-list time,
+.blog-article time {
+  color: #78716c;
+  font-size: 0.8125rem;
+}
+
+.blog-post-link {
+  width: fit-content;
+  font-size: 1.625rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.blog-post-description {
+  max-width: 60ch;
+  margin: 0;
+  color: #57534e;
+  line-height: 1.6;
+}
+
+.blog-empty {
+  margin-block-start: 3.5rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid #e7e5e4;
+  color: #57534e;
+}
+
+.blog-article {
+  padding-block: clamp(2.5rem, 8vw, 5rem);
+}
+
+.blog-back-link {
+  display: inline-block;
+  margin-block-end: 3rem;
+  font-size: 0.875rem;
+}
+
+.blog-article h1 {
+  max-width: 20ch;
+  margin: 0.75rem 0 1.25rem;
+  font-size: clamp(2.25rem, 8vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.blog-article__description {
+  max-width: 42rem;
+  margin: 0;
+  color: #57534e;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.blog-prose {
+  max-width: 65ch;
+  margin-block-start: 3.5rem;
+  font-size: 1rem;
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
+
+.blog-prose h2,
+.blog-prose h3 {
+  margin-block: 2.5rem 1rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.blog-prose h2 {
+  font-size: 1.75rem;
+}
+
+.blog-prose h3 {
+  font-size: 1.375rem;
+}
+
+.blog-prose a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+.blog-not-found {
+  padding-block: clamp(4rem, 12vw, 8rem);
+}
+
+.blog-not-found h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.blog-not-found p {
+  margin-block: 1rem 2rem;
+  color: #57534e;
+}
+
+@media (max-width: 30rem) {
+  .blog-header__inner {
+    min-height: 3.5rem;
+  }
+
+  .blog-header nav {
+    gap: 1rem;
+  }
+}

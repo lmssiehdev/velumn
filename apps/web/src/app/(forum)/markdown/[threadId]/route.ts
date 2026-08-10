@@ -1,3 +1,4 @@
+import { getServerInfo } from "@repo/db/helpers/servers";
 import {
 	formatThreadAsMarkdown,
 	MarkdownResponse,
@@ -23,9 +24,10 @@ export async function GET(
 		return MarkdownResponse(content);
 	}
 
-	if (hasVerifiedCustomDomain(thread.server)) {
+	const routingServer = await getServerInfo(thread.serverId);
+	if (hasVerifiedCustomDomain(routingServer)) {
 		return Response.redirect(
-			getCustomDomainUrl(thread.server, `/markdown/${threadId}`),
+			getCustomDomainUrl(routingServer, `/markdown/${threadId}`),
 			308,
 		);
 	}

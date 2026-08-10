@@ -1,0 +1,16 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"endOfLine": "lf",
+	"printWidth": 80,
+	"sortPackageJson": false,
+	"tabWidth": 2,
+	"useTabs": true,
+	"ignorePatterns": [
+		"**/.next/**",
+		"**/.output/**",
+		"**/.vercel/**",
+		"**/dist/**",
+		"**/drizzle/**",
+		"dump/**"
+	]
+}

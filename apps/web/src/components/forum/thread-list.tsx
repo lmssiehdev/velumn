@@ -1,12 +1,11 @@
-import {
-	CaretLeftIcon,
-	CaretRightIcon,
-	ChatIcon,
-	PushPinIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import ChevronLeftIcon from "@hugeicons/core-free-icons/ChevronLeftIcon";
+import ChevronRightIcon from "@hugeicons/core-free-icons/ChevronRightIcon";
+import PinIcon from "@hugeicons/core-free-icons/PinIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import { snowflakeToReadableDate } from "@repo/utils/helpers/time";
 import Link from "next/link";
+import { ChatIcon } from "@/components/icons/phosphor-chat";
 import { Button } from "@/components/ui/button";
 import { anonymizeName } from "./thread-message";
 import type { ThreadListData } from "./thread-types";
@@ -69,7 +68,7 @@ export function ThreadList({
 							className="flex items-center gap-2 text-neutral-700 text-sm"
 							href={`${hrefBase}?page=${page - 1}`}
 						>
-							<CaretLeftIcon />
+							<HugeiconsIcon icon={ChevronLeftIcon} />
 							Prev
 						</Link>
 					</Button>
@@ -81,7 +80,7 @@ export function ThreadList({
 							href={`${hrefBase}?page=${page + 1}`}
 						>
 							Next
-							<CaretRightIcon />
+							<HugeiconsIcon icon={ChevronRightIcon} />
 						</Link>
 					</Button>
 				)}
@@ -123,7 +122,7 @@ function ThreadItem({ data }: { data: ThreadListData["threads"][number] }) {
 				</div>
 			</div>
 			<div className="flex items-center gap-4">
-				{data.pinned && <PushPinIcon className="size-5" />}
+				{data.pinned && <HugeiconsIcon className="size-5" icon={PinIcon} />}
 				<div className="flex items-center gap-2">
 					<ChatIcon className="size-5" />
 					<span className="text-sm">{Math.max(0, messagesCount - 1)}</span>

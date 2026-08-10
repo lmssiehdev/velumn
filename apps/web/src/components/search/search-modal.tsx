@@ -1,16 +1,16 @@
 /** biome-ignore-all lint/security/noDangerouslySetInnerHtml: sanitized on the server :) */
 "use client";
 
-import {
-	CaretRightIcon,
-	ChatTeardropIcon,
-	MagnifyingGlassIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import ChevronRightIcon from "@hugeicons/core-free-icons/ChevronRightIcon";
+import Search01Icon from "@hugeicons/core-free-icons/Search01Icon";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { slugifyThreadUrl } from "@repo/utils/helpers/slugify";
 import type { TRPCClient } from "@trpc/client";
 import { useDebounce } from "@uidotdev/usehooks";
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { ChatTeardropIcon } from "@/components/icons/phosphor-chat";
 import { ThreadIcon } from "@/components/markdown/mention";
 import {
 	CommandDialog,
@@ -84,9 +84,9 @@ export default function SearchModal({
 				data-slot="command-input-wrapper"
 				className="flex h-9 items-center gap-2 border-b px-3"
 			>
-				<MagnifyingGlassIcon
+				<HugeiconsIcon
 					className="size-5 shrink-0 opacity-50"
-					weight="bold"
+					icon={Search01Icon}
 				/>
 				<input
 					autoComplete="off"
@@ -110,7 +110,10 @@ export default function SearchModal({
 				<CommandEmpty>
 					{debouncedQuery.length === 0 ? (
 						<div className="py-4 text-center">
-							<MagnifyingGlassIcon className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+							<HugeiconsIcon
+								className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3"
+								icon={Search01Icon}
+							/>
 							<p className="text-muted-foreground text-sm">
 								Start typing to search the community
 							</p>
@@ -137,7 +140,10 @@ export default function SearchModal({
 						</div>
 						<CommandGroup className="p-0!">
 							{results?.map((hit) => {
-								const { content, title, channelName, threadUrl } = hit;
+								const { content, title, channelName } = hit;
+								const threadUrl =
+									slugifyThreadUrl({ id: hit.threadId, name: hit.title }) +
+									(hit.isThreadStarter ? "" : `#${hit.id}`);
 								const contentExist = content !== "";
 								return (
 									<Link
@@ -166,7 +172,10 @@ export default function SearchModal({
 													/>
 													{contentExist && (
 														<>
-															<CaretRightIcon className="inline-block size-3! shrink-0" />
+															<HugeiconsIcon
+																className="inline-block size-3! shrink-0"
+																icon={ChevronRightIcon}
+															/>
 															<span
 																className="truncate"
 																dangerouslySetInnerHTML={{ __html: title! }}
@@ -190,7 +199,10 @@ export default function SearchModal({
 												)}
 											</div>
 											<div className="w-5 flex justify-end shrink-0">
-												<CaretRightIcon className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+												<HugeiconsIcon
+													className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+													icon={ChevronRightIcon}
+												/>
 											</div>
 										</CommandItem>
 									</Link>

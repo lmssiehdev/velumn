@@ -43,3 +43,4 @@ dump/**
 # Local
 /resources
 /inspiration
+.env*

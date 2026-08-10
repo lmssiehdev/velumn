@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@font-face {
+  font-family: "Questrial";
+  src: url("../../assets/Questrial-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@theme inline {
+  --font-sans: "Questrial", sans-serif;
+}
+
+:root:has(.new-landing-surface) body {
+  margin: 0;
+  background: #f7f5ed;
+}
+
+.new-landing-surface {
+  min-width: 20rem;
+  overflow-x: clip;
+  font-family: "Questrial", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.new-landing-surface *,
+.new-landing-surface *::before,
+.new-landing-surface *::after {
+  box-sizing: border-box;
+}

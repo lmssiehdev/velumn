@@ -1,14 +1,14 @@
+import { getServerInfoByDomain } from "@repo/db/helpers/servers";
 import { normalizeHostHeader } from "@repo/utils/helpers/domains";
 import { notFound } from "next/navigation";
 import {
 	getAllMessagesInThreadsCache,
 	getChannelInfoCached,
-	getServerInfoByDomainCache,
 } from "@/utils/cache";
 
 export async function getTenantServerOrNotFound(domainParam: string) {
 	const domain = normalizeHostHeader(decodeURIComponent(domainParam));
-	const server = await getServerInfoByDomainCache(domain);
+	const server = await getServerInfoByDomain(domain);
 
 	if (!server) {
 		notFound();

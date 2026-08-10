@@ -1,4 +1,6 @@
-import { ArrowUpRightIcon, FileIcon } from "@phosphor-icons/react/dist/ssr";
+import ArrowUpRight03Icon from "@hugeicons/core-free-icons/ArrowUpRight03Icon";
+import File02Icon from "@hugeicons/core-free-icons/File02Icon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { DBAttachments } from "@repo/db/helpers/validation";
 import { constructDiscordLink } from "@repo/utils/helpers/discord";
 import { getEmbedFileInfo } from "@repo/utils/helpers/misc";
@@ -77,7 +79,7 @@ function FileShowcase({ attachments, metadata }: AttachmentsProp) {
 						className="group relative mt-2 flex w-full max-w-md gap-2.5 border border-neutral-300 p-4 shadow"
 					>
 						<div className="flex items-center justify-center">
-							<FileIcon className="size-10" weight="thin" />
+							<HugeiconsIcon className="size-10" icon={File02Icon} />
 						</div>
 						<div className="flex flex-col overflow-hidden">
 							<a
@@ -103,7 +105,10 @@ function FileShowcase({ attachments, metadata }: AttachmentsProp) {
 										href={attachmentMessageUrl}
 										target="_blank"
 									>
-										<ArrowUpRightIcon className="size-6" weight={"bold"} />
+										<HugeiconsIcon
+											className="size-6"
+											icon={ArrowUpRight03Icon}
+										/>
 									</a>
 								</TooltipTrigger>
 								<TooltipContent>

@@ -1,6 +1,8 @@
-import { ChatsCircleIcon, HashIcon } from "@phosphor-icons/react/dist/ssr";
+import HashIcon from "@hugeicons/core-free-icons/HashIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { DBMessage } from "@repo/db/schema/discord";
 import { ChannelType } from "discord-api-types/v10";
+import { ChatsCircleIcon } from "@/components/icons/phosphor-chat";
 import { cn } from "@/lib/utils";
 
 type MentionType = "channel" | "role" | "user";
@@ -109,7 +111,7 @@ export function ChannelIcon({ type }: { type: number }) {
 		case ChannelType.PublicThread:
 			return <ThreadIcon className="inline-block size-4" />;
 		default:
-			return <HashIcon className="inline-block size-4" weight="bold" />;
+			return <HugeiconsIcon className="inline-block size-4" icon={HashIcon} />;
 	}
 }
 

@@ -19,24 +19,150 @@ const partialEmojiSchema = z
 	})
 	.nullable();
 
+const componentEmojiSchema = partialEmojiSchema.optional();
+
+const buttonComponentSchema = z.object({
+	type: z.literal(ComponentType.Button),
+	style: z.number(),
+	disabled: z.boolean().default(false),
+	label: z.string().nullable().optional(),
+	url: z.string().nullable().optional(),
+	customId: z.string().nullable().optional(),
+	emoji: componentEmojiSchema,
+});
+
+const selectBaseShape = {
+	customId: z.string(),
+	placeholder: z.string().nullable().optional(),
+	minValues: z.number().int().nonnegative().optional(),
+	maxValues: z.number().int().nonnegative().optional(),
+	disabled: z.boolean().default(false),
+};
+
+const stringSelectComponentSchema = z.object({
+	type: z.literal(ComponentType.StringSelect),
+	...selectBaseShape,
+	options: z.array(
+		z.object({
+			label: z.string(),
+			value: z.string(),
+			description: z.string().nullable().optional(),
+			emoji: componentEmojiSchema,
+			default: z.boolean().optional(),
+		}),
+	),
+});
+
+const autoSelectComponentSchema = z.object({
+	type: z.union([
+		z.literal(ComponentType.UserSelect),
+		z.literal(ComponentType.RoleSelect),
+		z.literal(ComponentType.MentionableSelect),
+		z.literal(ComponentType.ChannelSelect),
+	]),
+	...selectBaseShape,
+	channelTypes: z.array(z.number()).optional(),
+	defaultValues: z
+		.array(z.object({ id: z.string(), type: z.string() }))
+		.optional(),
+});
+
+const actionRowItemSchema = z.union([
+	buttonComponentSchema,
+	stringSelectComponentSchema,
+	autoSelectComponentSchema,
+	z.object({ type: z.number(), unsupported: z.literal(true) }),
+]);
+
 //
 // Rows Schema
 //
 export const rowsSchema = z.object({
 	type: z.literal(ComponentType.ActionRow),
-	components: z.array(
+	components: z.array(actionRowItemSchema),
+});
+
+const mediaSchema = z.object({ url: z.string() });
+const textDisplayComponentSchema = z.object({
+	type: z.literal(ComponentType.TextDisplay),
+	content: z.string(),
+	id: z.number().int().optional(),
+});
+const thumbnailComponentSchema = z.object({
+	type: z.literal(ComponentType.Thumbnail),
+	media: mediaSchema,
+	description: z.string().nullable().optional(),
+	spoiler: z.boolean().optional(),
+});
+const separatorComponentSchema = z.object({
+	type: z.literal(ComponentType.Separator),
+	divider: z.boolean().optional(),
+	spacing: z.number().optional(),
+});
+const mediaGalleryComponentSchema = z.object({
+	type: z.literal(ComponentType.MediaGallery),
+	items: z.array(
 		z.object({
-			type: z.literal(ComponentType.Button),
-			style: z.number(),
-			disabled: z.boolean().default(false),
-			label: z.string().nullable(),
-			url: z.string().nullable(),
-			emoji: partialEmojiSchema,
+			media: mediaSchema,
+			description: z.string().nullable().optional(),
+			spoiler: z.boolean().optional(),
 		}),
 	),
 });
+const fileComponentSchema = z.object({
+	type: z.literal(ComponentType.File),
+	file: mediaSchema,
+	spoiler: z.boolean().optional(),
+});
+const unknownComponentSchema = z.object({
+	type: z.number(),
+	unsupported: z.literal(true),
+});
 
+const sectionComponentSchema = z.object({
+	type: z.literal(ComponentType.Section),
+	components: z.array(textDisplayComponentSchema),
+	accessory: z
+		.union([thumbnailComponentSchema, buttonComponentSchema])
+		.optional(),
+});
+
+type MessageComponentSchema =
+	| z.infer<typeof rowsSchema>
+	| z.infer<typeof textDisplayComponentSchema>
+	| z.infer<typeof sectionComponentSchema>
+	| z.infer<typeof separatorComponentSchema>
+	| z.infer<typeof mediaGalleryComponentSchema>
+	| z.infer<typeof fileComponentSchema>
+	| {
+			type: typeof ComponentType.Container;
+			accentColor?: number | null;
+			spoiler?: boolean;
+			components: MessageComponentSchema[];
+	  }
+	| z.infer<typeof unknownComponentSchema>;
+
+const messageComponentSchema: z.ZodType<MessageComponentSchema> = z.lazy(() =>
+	z.union([
+		rowsSchema,
+		textDisplayComponentSchema,
+		sectionComponentSchema,
+		separatorComponentSchema,
+		mediaGalleryComponentSchema,
+		fileComponentSchema,
+		z.object({
+			type: z.literal(ComponentType.Container),
+			accentColor: z.number().nullable().optional(),
+			spoiler: z.boolean().optional(),
+			components: z.array(messageComponentSchema),
+		}),
+		unknownComponentSchema,
+	]),
+);
+
+export const messageComponentsSchema = z.array(messageComponentSchema);
 export type RowsSchema = z.infer<typeof rowsSchema>;
+export type MessageComponentsSchema = z.infer<typeof messageComponentsSchema>;
 
 //
 // Metadata Schema
@@ -63,21 +189,52 @@ export const internalLinksSchema = z.object({
 });
 
 export type MessageMetadataSchema = z.infer<typeof messageMetadataSchema>;
+const resolvedRecord = <T extends z.ZodObject>(schema: T) =>
+	z
+		.union([z.record(z.string(), schema), collectionToRecord(schema)])
+		.optional();
+
 export const messageMetadataSchema = z
 	.object({
-		channels: collectionToRecord(
+		flags: z.number().int().nonnegative().optional(),
+		reference: z
+			.object({
+				type: z.number().int().optional(),
+				messageId: z.string().nullable().optional(),
+				channelId: z.string().nullable().optional(),
+				guildId: z.string().nullable().optional(),
+			})
+			.optional(),
+		webhook: z
+			.object({
+				name: z.string().optional(),
+				avatar: z.string().nullable().optional(),
+				id: z.string().optional(),
+				type: z.number().int().nullable().optional(),
+				displayName: z.string().nullable().optional(),
+				avatarUrl: z.string().nullable().optional(),
+			})
+			.optional(),
+		interaction: z
+			.object({
+				id: z.string(),
+				type: z.number().int().nullable().optional(),
+				applicationId: z.string().nullable().optional(),
+			})
+			.optional(),
+		channels: resolvedRecord(
 			z.object({
 				name: z.string(),
 				type: z.number(),
 			}),
 		),
-		roles: collectionToRecord(
+		roles: resolvedRecord(
 			z.object({
 				name: z.string(),
 				color: z.number(),
 			}),
 		),
-		users: collectionToRecord(
+		users: resolvedRecord(
 			z.object({
 				username: z.string(),
 				globalName: z.string().nullable(),

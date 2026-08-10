@@ -1,7 +1,7 @@
 import { getAllPosts } from "@/app/blog/_lib/posts";
 import { buildStaticSitemapEntries, buildUrlSetXml } from "@/lib/sitemap";
 
-export const revalidate = 86_400;
+export const dynamic = "force-dynamic";
 
 export async function GET() {
 	const posts = await getAllPosts();
@@ -9,6 +9,7 @@ export async function GET() {
 
 	return new Response(sitemap, {
 		headers: {
+			"Cache-Control": "no-store",
 			"Content-Type": "application/xml",
 		},
 	});

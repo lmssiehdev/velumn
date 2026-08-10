@@ -1,4 +1,5 @@
-import { ArrowBendUpRightIcon } from "@phosphor-icons/react/dist/ssr";
+import ArrowTurnUpIcon from "@hugeicons/core-free-icons/ArrowTurnUpIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { DBSnapshotSchema } from "@repo/db/helpers/validation";
 import type { DBMessage } from "@repo/db/schema/discord";
 import dayjs from "dayjs";
@@ -228,7 +229,10 @@ export function DiscordUIMessage({
 		<div className="prose">
 			<blockquote className="quote">
 				<div className="space-x-1">
-					<ArrowBendUpRightIcon className="inline-flex size-4" />
+					<HugeiconsIcon
+						className="inline-flex size-4"
+						icon={ArrowTurnUpIcon}
+					/>
 					<span className="text-neutral-700 text-sm">Forwarded</span>
 				</div>
 				<div className="[&_img]:my-0">

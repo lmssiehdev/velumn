@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../index";
 import { type DBChannel, dbChannel } from "../schema";
+import { enqueueIndexingChannelRefreshes } from "./indexing";
 
 export async function updateVote(
 	threadId: string,
@@ -9,33 +10,66 @@ export async function updateVote(
 	const field = type === "upvote" ? dbChannel.upvotes : dbChannel.downvotes;
 	return await db
 		.update(dbChannel)
-		.set({ [field.name]: sql`${dbChannel.upvotes} + 1` })
+		.set({ [field.name]: sql`${field} + 1` })
 		.where(eq(dbChannel.id, threadId));
 }
 
-export async function setBulkIndexingStatus(
-	channels: { channelId: string; status: boolean }[],
-) {
+export async function setServerChannelSelection({
+	serverId,
+	channels,
+}: {
+	serverId: string;
+	channels: { channelId: string; status: boolean }[];
+}) {
 	if (channels.length === 0) {
 		return;
+	}
+
+	const channelIds = channels.map((channel) => channel.channelId);
+	if (new Set(channelIds).size !== channelIds.length) {
+		throw new Error("Channel selection contains duplicate channel IDs");
+	}
+
+	const serverChannels = await db
+		.select({ id: dbChannel.id })
+		.from(dbChannel)
+		.where(
+			and(eq(dbChannel.serverId, serverId), inArray(dbChannel.id, channelIds)),
+		);
+	if (serverChannels.length !== channelIds.length) {
+		throw new Error("Channel selection contains channels from another server");
 	}
 
 	const enableIds = channels.filter((c) => c.status).map((c) => c.channelId);
 	const disableIds = channels.filter((c) => !c.status).map((c) => c.channelId);
 
-	if (enableIds.length > 0) {
-		await db
-			.update(dbChannel)
-			.set({ indexingEnabled: true })
-			.where(inArray(dbChannel.id, enableIds));
-	}
+	await db.transaction(async (tx) => {
+		if (enableIds.length > 0) {
+			await tx
+				.update(dbChannel)
+				.set({ indexingEnabled: true })
+				.where(
+					and(
+						eq(dbChannel.serverId, serverId),
+						inArray(dbChannel.id, enableIds),
+					),
+				);
+		}
 
-	if (disableIds.length > 0) {
-		await db
-			.update(dbChannel)
-			.set({ indexingEnabled: false })
-			.where(and(inArray(dbChannel.id, disableIds)));
-	}
+		if (disableIds.length > 0) {
+			await tx
+				.update(dbChannel)
+				.set({ indexingEnabled: false })
+				.where(
+					and(
+						eq(dbChannel.serverId, serverId),
+						inArray(dbChannel.id, disableIds),
+					),
+				);
+		}
+
+		await enqueueIndexingChannelRefreshes({ serverId, channelIds }, tx);
+	});
 }
 
 export async function getChannelInfo(channelId: string) {

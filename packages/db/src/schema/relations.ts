@@ -21,12 +21,35 @@ export const relations = defineRelations(schema, (r) => ({
 	},
 	dbServer: {
 		channels: r.many.dbChannel(),
+		indexingJobs: r.many.dbIndexingJob(),
+		domainLifecycle: r.one.dbDomainLifecycle({
+			from: r.dbServer.id,
+			to: r.dbDomainLifecycle.serverId,
+		}),
 		users: r.many.userServers(),
+	},
+	dbDomainLifecycle: {
+		server: r.one.dbServer({
+			from: r.dbDomainLifecycle.serverId,
+			to: r.dbServer.id,
+		}),
 	},
 	dbChannel: {
 		backlinks: r.many.dbThreadBacklink({
 			from: r.dbChannel.id,
 			to: r.dbThreadBacklink.toThreadId,
+		}),
+		incomingBacklinks: r.many.dbThreadBacklink({
+			from: r.dbChannel.id,
+			to: r.dbThreadBacklink.toThreadId,
+		}),
+		outgoingBacklinks: r.many.dbThreadBacklink({
+			from: r.dbChannel.id,
+			to: r.dbThreadBacklink.fromThreadId,
+		}),
+		children: r.many.dbChannel({
+			from: r.dbChannel.id,
+			to: r.dbChannel.parentId,
 		}),
 		parent: r.one.dbChannel({
 			from: r.dbChannel.parentId,
@@ -41,6 +64,13 @@ export const relations = defineRelations(schema, (r) => ({
 			to: r.dbServer.id,
 		}),
 		messages: r.many.dbMessage(),
+		forumTags: r.many.dbForumTag(),
+		appliedTags: r.many.dbChannelAppliedTag(),
+		indexingCheckpoint: r.one.dbIndexingCheckpoint({
+			from: r.dbChannel.id,
+			to: r.dbIndexingCheckpoint.channelId,
+		}),
+		indexingJobs: r.many.dbIndexingJob(),
 	},
 	dbMessage: {
 		channel: r.one.dbChannel({
@@ -52,6 +82,24 @@ export const relations = defineRelations(schema, (r) => ({
 			to: r.dbDiscordUser.id,
 		}),
 		attachments: r.many.dbAttachments(),
+		backlinks: r.many.dbThreadBacklink(),
+	},
+	dbForumTag: {
+		channel: r.one.dbChannel({
+			from: r.dbForumTag.channelId,
+			to: r.dbChannel.id,
+		}),
+		applications: r.many.dbChannelAppliedTag(),
+	},
+	dbChannelAppliedTag: {
+		channel: r.one.dbChannel({
+			from: r.dbChannelAppliedTag.channelId,
+			to: r.dbChannel.id,
+		}),
+		tag: r.one.dbForumTag({
+			from: r.dbChannelAppliedTag.tagId,
+			to: r.dbForumTag.id,
+		}),
 	},
 	dbAttachments: {
 		message: r.one.dbMessage({
@@ -70,6 +118,10 @@ export const relations = defineRelations(schema, (r) => ({
 		}),
 	},
 	dbThreadBacklink: {
+		fromMessage: r.one.dbMessage({
+			from: r.dbThreadBacklink.fromMessageId,
+			to: r.dbMessage.id,
+		}),
 		toThread: r.one.dbChannel({
 			from: r.dbThreadBacklink.toThreadId,
 			to: r.dbChannel.id,
@@ -77,6 +129,34 @@ export const relations = defineRelations(schema, (r) => ({
 		fromThread: r.one.dbChannel({
 			from: r.dbThreadBacklink.fromThreadId,
 			to: r.dbChannel.id,
+		}),
+	},
+	dbIndexingCheckpoint: {
+		channel: r.one.dbChannel({
+			from: r.dbIndexingCheckpoint.channelId,
+			to: r.dbChannel.id,
+		}),
+		updatedByJob: r.one.dbIndexingJob({
+			from: r.dbIndexingCheckpoint.updatedByJobId,
+			to: r.dbIndexingJob.id,
+		}),
+	},
+	dbIndexingJob: {
+		server: r.one.dbServer({
+			from: r.dbIndexingJob.serverId,
+			to: r.dbServer.id,
+		}),
+		channel: r.one.dbChannel({
+			from: r.dbIndexingJob.channelId,
+			to: r.dbChannel.id,
+		}),
+		checkpoints: r.many.dbIndexingCheckpoint(),
+		meiliProjections: r.many.dbMeiliProjection(),
+	},
+	dbMeiliProjection: {
+		job: r.one.dbIndexingJob({
+			from: r.dbMeiliProjection.jobId,
+			to: r.dbIndexingJob.id,
 		}),
 	},
 }));
