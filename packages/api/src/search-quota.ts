@@ -30,24 +30,10 @@ export interface RedisCommandSender {
 
 export function normalizeIp(rawIp: string): string | undefined {
 	let ip = rawIp.trim();
-
-	if (!ip) {
-		return;
-	}
-
-	if (ip === "::1") {
-		ip = "127.0.0.1";
-	}
-
-	if (ip.startsWith("::ffff:")) {
-		ip = ip.slice("::ffff:".length);
-	}
-
-	if (isIP(ip) === 0) {
-		return;
-	}
-
-	return ip;
+	if (!ip) return;
+	if (ip === "::1") ip = "127.0.0.1";
+	if (ip.startsWith("::ffff:")) ip = ip.slice("::ffff:".length);
+	return isIP(ip) === 0 ? undefined : ip;
 }
 
 export function getTrustedClientIp({
@@ -59,10 +45,7 @@ export function getTrustedClientIp({
 	readonly expectedSecret: string;
 	readonly propagatedIp?: string;
 }): string | undefined {
-	if (providedSecret !== expectedSecret || !propagatedIp) {
-		return;
-	}
-
+	if (providedSecret !== expectedSecret || !propagatedIp) return;
 	return normalizeIp(propagatedIp);
 }
 
@@ -74,7 +57,6 @@ export async function consumePublicSearchQuota(
 	if (!normalizedIp) {
 		return { allowed: false, retryAfterSeconds: MINUTE_IN_SECONDS };
 	}
-
 	const result = await client.send("EVAL", [
 		consumeFixedWindowScript,
 		"1",
@@ -90,7 +72,6 @@ export async function consumePublicSearchQuota(
 	) {
 		throw new Error("Redis returned an invalid public search quota result");
 	}
-
 	return {
 		allowed: Number(result[0]) === 1,
 		retryAfterSeconds: Math.max(0, Math.ceil(Number(result[1]))),

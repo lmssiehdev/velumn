@@ -8,7 +8,6 @@
 		"build": "bun run type-check && bun with-env run next build --turbopack",
 		"build:prod": "next build --turbopack",
 		"start": "next start",
-		"lint": "biome check",
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -54,7 +53,6 @@
 		"zod": "^4.1.12"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.2.0",
 		"@tailwindcss/postcss": "^4.1.16",
 		"@types/node": "^20.19.25",
 		"@types/react": "^19.2.7",

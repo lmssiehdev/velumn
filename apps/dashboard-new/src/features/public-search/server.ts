@@ -6,9 +6,9 @@ import {
   resolvePublicThreadServer,
   resolveVerifiedPublicTenant,
 } from "@repo/db/helpers/public-content"
+import type { BotRouter } from "@repo/api/client"
 import { createTRPCClient, httpLink, TRPCClientError } from "@trpc/client"
 
-import type { BotRouter } from "../../../../bot/src/helpers/trpc"
 import { requireIndexingEnv } from "@/env.server"
 import {
   canonicalPublicSearchRequestSchema,

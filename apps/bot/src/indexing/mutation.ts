@@ -163,6 +163,10 @@ export const makeIndexMutationProcessor = (
 							.deleteGuild(mutation.guildId, new Date(mutation.observedAt))
 							.pipe(Effect.mapError(repositoryFailure));
 						return;
+					default:
+						return yield* Effect.die(
+							new TypeError("Unsupported persisted index mutation"),
+						);
 				}
 			},
 		);

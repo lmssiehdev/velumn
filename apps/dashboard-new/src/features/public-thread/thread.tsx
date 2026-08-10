@@ -10,6 +10,7 @@ import {
 } from "./icons"
 import type { PublicThreadMessage, PublicThreadPage } from "./contracts"
 import { ThreadFeedback } from "./thread-feedback"
+import { formatFullDate, formatRelativeDate } from "@/lib/date"
 
 export function PublicThreadView({
   contentId = "public-forum-content",
@@ -94,6 +95,9 @@ function MessagePost({
   message: PublicThreadMessage
   isOriginalPost?: boolean
 }) {
+  const avatarUrl = safeAvatarUrl(
+    message.author.webhook?.avatar ?? message.author.avatar
+  )
   return (
     <article
       className={`thread-message${isOriginalPost ? " is-original" : ""}`}
@@ -102,18 +106,8 @@ function MessagePost({
       {message.reference && <ReferenceMessage reference={message.reference} />}
       <div className="thread-message__row">
         <div className="thread-message__avatar">
-          {safeAvatarUrl(
-            message.author.webhook?.avatar ?? message.author.avatar
-          ) ? (
-            <img
-              alt=""
-              height="37"
-              loading="lazy"
-              src={safeAvatarUrl(
-                message.author.webhook?.avatar ?? message.author.avatar
-              )}
-              width="37"
-            />
+          {avatarUrl ? (
+            <img alt="" height="37" loading="lazy" src={avatarUrl} width="37" />
           ) : (
             <DiscordIcon />
           )}
@@ -295,8 +289,7 @@ function ServerInfo({
       </a>
       <div className="thread-server-card__members">
         <span aria-hidden="true" />
-        {new Intl.NumberFormat("en-US").format(thread.server.memberCount)}{" "}
-        members
+        {memberCountFormatter.format(thread.server.memberCount)} members
       </div>
       {thread.server.description && <p>{thread.server.description}</p>}
       {thread.server.joinUrl && (
@@ -313,37 +306,7 @@ function ServerInfo({
   )
 }
 
-function formatRelativeDate(value: string) {
-  const date = new Date(value)
-  const seconds = Math.round((date.getTime() - Date.now()) / 1000)
-  const ranges: Array<[number, Intl.RelativeTimeFormatUnit]> = [
-    [60, "second"],
-    [60, "minute"],
-    [24, "hour"],
-    [7, "day"],
-    [4.345, "week"],
-    [12, "month"],
-    [Number.POSITIVE_INFINITY, "year"],
-  ]
-  let amount = seconds
-  for (const [range, unit] of ranges) {
-    if (Math.abs(amount) < range) {
-      return new Intl.RelativeTimeFormat("en-US", { numeric: "auto" }).format(
-        Math.round(amount),
-        unit
-      )
-    }
-    amount /= range
-  }
-  return formatFullDate(value)
-}
-
-function formatFullDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value))
-}
+const memberCountFormatter = new Intl.NumberFormat("en-US")
 
 function safeAvatarUrl(value: string | null) {
   if (!value) return undefined

@@ -145,11 +145,11 @@ export class SearchIndex extends Context.Service<
 				new SearchIndexError({ operation, cause });
 			const waitForTask = (
 				operation: SearchOperation,
-				task: ReturnType<typeof index.addDocuments>,
+				task: () => ReturnType<typeof index.addDocuments>,
 			) =>
 				Effect.tryPromise({
 					try: async () => {
-						const result = await task.waitTask({ timeout: taskTimeout });
+						const result = await task().waitTask({ timeout: taskTimeout });
 						if (result.status !== "succeeded") {
 							throw result.error ?? new Error(`Search task ${result.status}`);
 						}
@@ -161,27 +161,23 @@ export class SearchIndex extends Context.Service<
 				addDocuments: (documents) =>
 					documents.length === 0
 						? Effect.void
-						: waitForTask(
-								"addDocuments",
+						: waitForTask("addDocuments", () =>
 								index.addDocuments([...documents], { primaryKey: "id" }),
 							),
 				updateDocuments: (documents) =>
 					documents.length === 0
 						? Effect.void
-						: waitForTask(
-								"updateDocuments",
+						: waitForTask("updateDocuments", () =>
 								index.updateDocuments([...documents], { primaryKey: "id" }),
 							),
 				deleteMessages: (messageIds) => {
 					if (messageIds.length === 0) return Effect.void;
-					return waitForTask(
-						"deleteMessages",
+					return waitForTask("deleteMessages", () =>
 						index.deleteDocuments([...messageIds]),
 					);
 				},
 				deleteThread: (threadId) =>
-					waitForTask(
-						"deleteThread",
+					waitForTask("deleteThread", () =>
 						index.deleteDocuments({
 							filter: `threadId = ${JSON.stringify(threadId)}`,
 						}),
@@ -198,8 +194,7 @@ export class SearchIndex extends Context.Service<
 						Effect.flatMap((documents) =>
 							documents.results.length === 0
 								? Effect.void
-								: waitForTask(
-										"updateThreadTitle",
+								: waitForTask("updateThreadTitle", () =>
 										index.updateDocuments(
 											documents.results.map(({ id }) => ({ id, title })),
 										),

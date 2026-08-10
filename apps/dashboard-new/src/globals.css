@@ -4,7 +4,7 @@
 
 @font-face {
   font-family: "Questrial";
-  src: url("../../web/assets/Questrial-Regular.ttf") format("truetype");
+  src: url("./assets/Questrial-Regular.ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
   font-display: swap;

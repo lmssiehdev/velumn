@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as ChannelRouteImport } from './routes/channel'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DiscordRouteImport } from './routes/discord'
+import { Route as OgRouteImport } from './routes/og'
 import { Route as OssProgramRouteImport } from './routes/oss-program'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -23,8 +25,11 @@ import { Route as _tenantHostRouteImport } from './routes/[_]_tenant/$host'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as ChannelIndexRouteImport } from './routes/channel/index'
 import { Route as DashboardAuthenticatedRouteImport } from './routes/dashboard/_authenticated'
 import { Route as DashboardSignInRouteImport } from './routes/dashboard/sign-in'
+import { Route as ServerIndexRouteImport } from './routes/server/index'
+import { Route as SitemapDotxmlIdRouteImport } from './routes/sitemap[.]xml/$id'
 import { Route as ThreadIndexRouteImport } from './routes/thread/index'
 import { Route as _tenantHostIndexRouteImport } from './routes/[_]_tenant/$host/index'
 import { Route as _tenantHostRobotsDottxtRouteImport } from './routes/[_]_tenant/$host/robots[.]txt'
@@ -37,6 +42,7 @@ import { Route as ThreadThreadIdSlugRouteImport } from './routes/thread/$threadI
 import { Route as ThreadThreadIdChar123slugChar125DotmdRouteImport } from './routes/thread/$threadId/{$slug}[.]md'
 import { Route as _tenantHostApiSearchRouteImport } from './routes/[_]_tenant/$host/api/search'
 import { Route as _tenantHostChannelIndexRouteImport } from './routes/[_]_tenant/$host/channel/index'
+import { Route as _tenantHostSitemapDotxmlIdRouteImport } from './routes/[_]_tenant/$host/sitemap[.]xml/$id'
 import { Route as DashboardAuthenticatedServersIndexRouteImport } from './routes/dashboard/_authenticated/servers/index'
 import { Route as DashboardAuthenticatedServersNewRouteImport } from './routes/dashboard/_authenticated/servers/new'
 import { Route as _tenantHostChannelChannelIdIndexRouteImport } from './routes/[_]_tenant/$host/channel/$channelId/index'
@@ -68,6 +74,16 @@ const ChannelRoute = ChannelRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscordRoute = DiscordRouteImport.update({
+  id: '/discord',
+  path: '/discord',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgRoute = OgRouteImport.update({
+  id: '/og',
+  path: '/og',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OssProgramRoute = OssProgramRouteImport.update({
@@ -120,6 +136,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => BlogRoute,
 } as any)
+const ChannelIndexRoute = ChannelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ChannelRoute,
+} as any)
 const DashboardAuthenticatedRoute = DashboardAuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => DashboardRoute,
@@ -128,6 +149,16 @@ const DashboardSignInRoute = DashboardSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
   getParentRoute: () => DashboardRoute,
+} as any)
+const ServerIndexRoute = ServerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ServerRoute,
+} as any)
+const SitemapDotxmlIdRoute = SitemapDotxmlIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => SitemapDotxmlRoute,
 } as any)
 const ThreadIndexRoute = ThreadIndexRouteImport.update({
   id: '/',
@@ -192,6 +223,12 @@ const _tenantHostChannelIndexRoute = _tenantHostChannelIndexRouteImport.update({
   path: '/channel/',
   getParentRoute: () => _tenantHostRoute,
 } as any)
+const _tenantHostSitemapDotxmlIdRoute =
+  _tenantHostSitemapDotxmlIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => _tenantHostSitemapDotxmlRoute,
+  } as any)
 const DashboardAuthenticatedServersIndexRoute =
   DashboardAuthenticatedServersIndexRouteImport.update({
     id: '/servers/',
@@ -270,20 +307,25 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRouteWithChildren
   '/channel': typeof ChannelRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/discord': typeof DiscordRoute
+  '/og': typeof OgRoute
   '/oss-program': typeof OssProgramRoute
   '/pricing': typeof PricingRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/server': typeof ServerRouteWithChildren
-  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRouteWithChildren
   '/thread': typeof ThreadRouteWithChildren
   '/__tenant/$host': typeof _tenantHostRouteWithChildren
   '/api/search': typeof ApiSearchRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dashboard/sign-in': typeof DashboardSignInRoute
+  '/sitemap.xml/$id': typeof SitemapDotxmlIdRoute
   '/blog/': typeof BlogIndexRoute
+  '/channel/': typeof ChannelIndexRoute
+  '/server/': typeof ServerIndexRoute
   '/thread/': typeof ThreadIndexRoute
   '/__tenant/$host/robots.txt': typeof _tenantHostRobotsDottxtRoute
-  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRoute
+  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/thread/$threadId/$slug': typeof ThreadThreadIdSlugRoute
   '/thread/$threadId/{$slug}.md': typeof ThreadThreadIdChar123slugChar125DotmdRoute
@@ -292,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardAuthenticatedIndexRoute
   '/server/$serverId/': typeof ServerServerIdIndexRoute
   '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
+  '/__tenant/$host/sitemap.xml/$id': typeof _tenantHostSitemapDotxmlIdRoute
   '/dashboard/servers/new': typeof DashboardAuthenticatedServersNewRoute
   '/__tenant/$host/channel/': typeof _tenantHostChannelIndexRoute
   '/dashboard/servers/': typeof DashboardAuthenticatedServersIndexRoute
@@ -308,20 +351,23 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/channel': typeof ChannelRouteWithChildren
   '/dashboard': typeof DashboardAuthenticatedIndexRoute
+  '/discord': typeof DiscordRoute
+  '/og': typeof OgRoute
   '/oss-program': typeof OssProgramRoute
   '/pricing': typeof PricingRoute
   '/robots.txt': typeof RobotsDottxtRoute
-  '/server': typeof ServerRouteWithChildren
-  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRouteWithChildren
   '/api/search': typeof ApiSearchRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dashboard/sign-in': typeof DashboardSignInRoute
+  '/sitemap.xml/$id': typeof SitemapDotxmlIdRoute
   '/blog': typeof BlogIndexRoute
+  '/channel': typeof ChannelIndexRoute
+  '/server': typeof ServerIndexRoute
   '/thread': typeof ThreadIndexRoute
   '/__tenant/$host/robots.txt': typeof _tenantHostRobotsDottxtRoute
-  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRoute
+  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/thread/$threadId/$slug': typeof ThreadThreadIdSlugRoute
   '/thread/$threadId/{$slug}.md': typeof ThreadThreadIdChar123slugChar125DotmdRoute
@@ -329,6 +375,7 @@ export interface FileRoutesByTo {
   '/channel/$channelId': typeof ChannelChannelIdIndexRoute
   '/server/$serverId': typeof ServerServerIdIndexRoute
   '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
+  '/__tenant/$host/sitemap.xml/$id': typeof _tenantHostSitemapDotxmlIdRoute
   '/dashboard/servers/new': typeof DashboardAuthenticatedServersNewRoute
   '/__tenant/$host/channel': typeof _tenantHostChannelIndexRoute
   '/dashboard/servers': typeof DashboardAuthenticatedServersIndexRoute
@@ -349,21 +396,26 @@ export interface FileRoutesById {
   '/blog': typeof BlogRouteWithChildren
   '/channel': typeof ChannelRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/discord': typeof DiscordRoute
+  '/og': typeof OgRoute
   '/oss-program': typeof OssProgramRoute
   '/pricing': typeof PricingRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/server': typeof ServerRouteWithChildren
-  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRouteWithChildren
   '/thread': typeof ThreadRouteWithChildren
   '/__tenant/$host': typeof _tenantHostRouteWithChildren
   '/api/search': typeof ApiSearchRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dashboard/_authenticated': typeof DashboardAuthenticatedRouteWithChildren
   '/dashboard/sign-in': typeof DashboardSignInRoute
+  '/sitemap.xml/$id': typeof SitemapDotxmlIdRoute
   '/blog/': typeof BlogIndexRoute
+  '/channel/': typeof ChannelIndexRoute
+  '/server/': typeof ServerIndexRoute
   '/thread/': typeof ThreadIndexRoute
   '/__tenant/$host/robots.txt': typeof _tenantHostRobotsDottxtRoute
-  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRoute
+  '/__tenant/$host/sitemap.xml': typeof _tenantHostSitemapDotxmlRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/thread/$threadId/$slug': typeof ThreadThreadIdSlugRoute
   '/thread/$threadId/{$slug}.md': typeof ThreadThreadIdChar123slugChar125DotmdRoute
@@ -372,6 +424,7 @@ export interface FileRoutesById {
   '/dashboard/_authenticated/': typeof DashboardAuthenticatedIndexRoute
   '/server/$serverId/': typeof ServerServerIdIndexRoute
   '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
+  '/__tenant/$host/sitemap.xml/$id': typeof _tenantHostSitemapDotxmlIdRoute
   '/dashboard/_authenticated/servers/new': typeof DashboardAuthenticatedServersNewRoute
   '/__tenant/$host/channel/': typeof _tenantHostChannelIndexRoute
   '/dashboard/_authenticated/servers/': typeof DashboardAuthenticatedServersIndexRoute
@@ -393,6 +446,8 @@ export interface FileRouteTypes {
     | '/blog'
     | '/channel'
     | '/dashboard'
+    | '/discord'
+    | '/og'
     | '/oss-program'
     | '/pricing'
     | '/robots.txt'
@@ -403,7 +458,10 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/blog/$slug'
     | '/dashboard/sign-in'
+    | '/sitemap.xml/$id'
     | '/blog/'
+    | '/channel/'
+    | '/server/'
     | '/thread/'
     | '/__tenant/$host/robots.txt'
     | '/__tenant/$host/sitemap.xml'
@@ -415,6 +473,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/server/$serverId/'
     | '/__tenant/$host/api/search'
+    | '/__tenant/$host/sitemap.xml/$id'
     | '/dashboard/servers/new'
     | '/__tenant/$host/channel/'
     | '/dashboard/servers/'
@@ -431,17 +490,20 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/channel'
     | '/dashboard'
+    | '/discord'
+    | '/og'
     | '/oss-program'
     | '/pricing'
     | '/robots.txt'
-    | '/server'
     | '/sitemap.xml'
     | '/api/search'
     | '/blog/$slug'
     | '/dashboard/sign-in'
+    | '/sitemap.xml/$id'
     | '/blog'
+    | '/channel'
+    | '/server'
     | '/thread'
     | '/__tenant/$host/robots.txt'
     | '/__tenant/$host/sitemap.xml'
@@ -452,6 +514,7 @@ export interface FileRouteTypes {
     | '/channel/$channelId'
     | '/server/$serverId'
     | '/__tenant/$host/api/search'
+    | '/__tenant/$host/sitemap.xml/$id'
     | '/dashboard/servers/new'
     | '/__tenant/$host/channel'
     | '/dashboard/servers'
@@ -471,6 +534,8 @@ export interface FileRouteTypes {
     | '/blog'
     | '/channel'
     | '/dashboard'
+    | '/discord'
+    | '/og'
     | '/oss-program'
     | '/pricing'
     | '/robots.txt'
@@ -482,7 +547,10 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/dashboard/_authenticated'
     | '/dashboard/sign-in'
+    | '/sitemap.xml/$id'
     | '/blog/'
+    | '/channel/'
+    | '/server/'
     | '/thread/'
     | '/__tenant/$host/robots.txt'
     | '/__tenant/$host/sitemap.xml'
@@ -494,6 +562,7 @@ export interface FileRouteTypes {
     | '/dashboard/_authenticated/'
     | '/server/$serverId/'
     | '/__tenant/$host/api/search'
+    | '/__tenant/$host/sitemap.xml/$id'
     | '/dashboard/_authenticated/servers/new'
     | '/__tenant/$host/channel/'
     | '/dashboard/_authenticated/servers/'
@@ -514,11 +583,13 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRouteWithChildren
   ChannelRoute: typeof ChannelRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
+  DiscordRoute: typeof DiscordRoute
+  OgRoute: typeof OgRoute
   OssProgramRoute: typeof OssProgramRoute
   PricingRoute: typeof PricingRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   ServerRoute: typeof ServerRouteWithChildren
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRouteWithChildren
   ThreadRoute: typeof ThreadRouteWithChildren
   _tenantHostRoute: typeof _tenantHostRouteWithChildren
   ApiSearchRoute: typeof ApiSearchRoute
@@ -553,6 +624,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discord': {
+      id: '/discord'
+      path: '/discord'
+      fullPath: '/discord'
+      preLoaderRoute: typeof DiscordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og': {
+      id: '/og'
+      path: '/og'
+      fullPath: '/og'
+      preLoaderRoute: typeof OgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/oss-program': {
@@ -625,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/channel/': {
+      id: '/channel/'
+      path: '/'
+      fullPath: '/channel/'
+      preLoaderRoute: typeof ChannelIndexRouteImport
+      parentRoute: typeof ChannelRoute
+    }
     '/dashboard/_authenticated': {
       id: '/dashboard/_authenticated'
       path: ''
@@ -638,6 +730,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/sign-in'
       preLoaderRoute: typeof DashboardSignInRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/server/': {
+      id: '/server/'
+      path: '/'
+      fullPath: '/server/'
+      preLoaderRoute: typeof ServerIndexRouteImport
+      parentRoute: typeof ServerRoute
+    }
+    '/sitemap.xml/$id': {
+      id: '/sitemap.xml/$id'
+      path: '/$id'
+      fullPath: '/sitemap.xml/$id'
+      preLoaderRoute: typeof SitemapDotxmlIdRouteImport
+      parentRoute: typeof SitemapDotxmlRoute
     }
     '/thread/': {
       id: '/thread/'
@@ -722,6 +828,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/__tenant/$host/channel/'
       preLoaderRoute: typeof _tenantHostChannelIndexRouteImport
       parentRoute: typeof _tenantHostRoute
+    }
+    '/__tenant/$host/sitemap.xml/$id': {
+      id: '/__tenant/$host/sitemap.xml/$id'
+      path: '/$id'
+      fullPath: '/__tenant/$host/sitemap.xml/$id'
+      preLoaderRoute: typeof _tenantHostSitemapDotxmlIdRouteImport
+      parentRoute: typeof _tenantHostSitemapDotxmlRoute
     }
     '/dashboard/_authenticated/servers/': {
       id: '/dashboard/_authenticated/servers/'
@@ -823,10 +936,12 @@ const BlogRouteChildren: BlogRouteChildren = {
 const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
 
 interface ChannelRouteChildren {
+  ChannelIndexRoute: typeof ChannelIndexRoute
   ChannelChannelIdIndexRoute: typeof ChannelChannelIdIndexRoute
 }
 
 const ChannelRouteChildren: ChannelRouteChildren = {
+  ChannelIndexRoute: ChannelIndexRoute,
   ChannelChannelIdIndexRoute: ChannelChannelIdIndexRoute,
 }
 
@@ -883,15 +998,29 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 )
 
 interface ServerRouteChildren {
+  ServerIndexRoute: typeof ServerIndexRoute
   ServerServerIdIndexRoute: typeof ServerServerIdIndexRoute
 }
 
 const ServerRouteChildren: ServerRouteChildren = {
+  ServerIndexRoute: ServerIndexRoute,
   ServerServerIdIndexRoute: ServerServerIdIndexRoute,
 }
 
 const ServerRouteWithChildren =
   ServerRoute._addFileChildren(ServerRouteChildren)
+
+interface SitemapDotxmlRouteChildren {
+  SitemapDotxmlIdRoute: typeof SitemapDotxmlIdRoute
+}
+
+const SitemapDotxmlRouteChildren: SitemapDotxmlRouteChildren = {
+  SitemapDotxmlIdRoute: SitemapDotxmlIdRoute,
+}
+
+const SitemapDotxmlRouteWithChildren = SitemapDotxmlRoute._addFileChildren(
+  SitemapDotxmlRouteChildren,
+)
 
 interface ThreadRouteChildren {
   ThreadIndexRoute: typeof ThreadIndexRoute
@@ -909,9 +1038,23 @@ const ThreadRouteChildren: ThreadRouteChildren = {
 const ThreadRouteWithChildren =
   ThreadRoute._addFileChildren(ThreadRouteChildren)
 
+interface _tenantHostSitemapDotxmlRouteChildren {
+  _tenantHostSitemapDotxmlIdRoute: typeof _tenantHostSitemapDotxmlIdRoute
+}
+
+const _tenantHostSitemapDotxmlRouteChildren: _tenantHostSitemapDotxmlRouteChildren =
+  {
+    _tenantHostSitemapDotxmlIdRoute: _tenantHostSitemapDotxmlIdRoute,
+  }
+
+const _tenantHostSitemapDotxmlRouteWithChildren =
+  _tenantHostSitemapDotxmlRoute._addFileChildren(
+    _tenantHostSitemapDotxmlRouteChildren,
+  )
+
 interface _tenantHostRouteChildren {
   _tenantHostRobotsDottxtRoute: typeof _tenantHostRobotsDottxtRoute
-  _tenantHostSitemapDotxmlRoute: typeof _tenantHostSitemapDotxmlRoute
+  _tenantHostSitemapDotxmlRoute: typeof _tenantHostSitemapDotxmlRouteWithChildren
   _tenantHostIndexRoute: typeof _tenantHostIndexRoute
   _tenantHostApiSearchRoute: typeof _tenantHostApiSearchRoute
   _tenantHostChannelIndexRoute: typeof _tenantHostChannelIndexRoute
@@ -924,7 +1067,7 @@ interface _tenantHostRouteChildren {
 
 const _tenantHostRouteChildren: _tenantHostRouteChildren = {
   _tenantHostRobotsDottxtRoute: _tenantHostRobotsDottxtRoute,
-  _tenantHostSitemapDotxmlRoute: _tenantHostSitemapDotxmlRoute,
+  _tenantHostSitemapDotxmlRoute: _tenantHostSitemapDotxmlRouteWithChildren,
   _tenantHostIndexRoute: _tenantHostIndexRoute,
   _tenantHostApiSearchRoute: _tenantHostApiSearchRoute,
   _tenantHostChannelIndexRoute: _tenantHostChannelIndexRoute,
@@ -945,11 +1088,13 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRouteWithChildren,
   ChannelRoute: ChannelRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
+  DiscordRoute: DiscordRoute,
+  OgRoute: OgRoute,
   OssProgramRoute: OssProgramRoute,
   PricingRoute: PricingRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   ServerRoute: ServerRouteWithChildren,
-  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRouteWithChildren,
   ThreadRoute: ThreadRouteWithChildren,
   _tenantHostRoute: _tenantHostRouteWithChildren,
   ApiSearchRoute: ApiSearchRoute,

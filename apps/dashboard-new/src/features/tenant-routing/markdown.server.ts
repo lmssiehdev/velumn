@@ -1,4 +1,5 @@
 import { loadTenantThread } from "./repository.server"
+import { formatUtcDate } from "@/lib/date"
 
 export async function getTenantThreadMarkdown(
   hostname: string,
@@ -82,10 +83,5 @@ function escapeMarkdown(value: string) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(new Date(value))
+  return formatUtcDate(value, "long")
 }

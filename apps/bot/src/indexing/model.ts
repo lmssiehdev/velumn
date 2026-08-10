@@ -255,7 +255,6 @@ export type IndexErrorClassification =
 	| "database"
 	| "projection-submission"
 	| "projection-completion"
-	| "cache-invalidation"
 	| "cancelled"
 	| "configuration";
 
@@ -268,7 +267,6 @@ export type IndexOperation =
 	| "commit-mutation"
 	| "submit-projection"
 	| "complete-projection"
-	| "invalidate-cache"
 	| "coordinate-job";
 
 export class IndexingOperationError extends Schema.TaggedError<IndexingOperationError>()(
@@ -281,7 +279,6 @@ export class IndexingOperationError extends Schema.TaggedError<IndexingOperation
 			"commit-mutation",
 			"submit-projection",
 			"complete-projection",
-			"invalidate-cache",
 			"coordinate-job",
 		]),
 		classification: Schema.Literals([
@@ -295,7 +292,6 @@ export class IndexingOperationError extends Schema.TaggedError<IndexingOperation
 			"database",
 			"projection-submission",
 			"projection-completion",
-			"cache-invalidation",
 			"cancelled",
 			"configuration",
 		]),

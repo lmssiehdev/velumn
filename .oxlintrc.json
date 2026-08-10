@@ -1,0 +1,28 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"categories": {
+		"correctness": "error"
+	},
+	"plugins": ["eslint", "typescript", "unicorn", "oxc"],
+	"ignorePatterns": [
+		"**/.next/**",
+		"**/.output/**",
+		"**/.vercel/**",
+		"**/dist/**",
+		"**/drizzle/**",
+		"dump/**"
+	],
+	"rules": {
+		"eslint/no-unused-vars": [
+			"error",
+			{
+				"argsIgnorePattern": "^_",
+				"caughtErrorsIgnorePattern": "^_",
+				"varsIgnorePattern": "^_"
+			}
+		],
+		"typescript/no-non-null-asserted-optional-chain": "off",
+		"unicorn/no-await-in-promise-methods": "off",
+		"unicorn/no-empty-file": "off"
+	}
+}

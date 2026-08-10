@@ -29,6 +29,7 @@ describe("sitemap helpers", () => {
 			"https://velumn.com/blog/discord-search-sucks",
 		]);
 		expect(entries.at(-1)?.lastmod).toBe("2026-02-05");
+		expect(entries.slice(0, 4).every((entry) => !entry.lastmod)).toBe(true);
 	});
 
 	it("renders a valid sitemap index with lastmod entries", () => {
@@ -68,5 +69,11 @@ describe("sitemap helpers", () => {
 		expect(xml).toContain("<urlset");
 		expect(xml).toContain("<changefreq>weekly</changefreq>");
 		expect(xml).toContain("<priority>1.0</priority>");
+	});
+
+	it("omits lastmod in urlsets when it is unknown", () => {
+		const xml = buildUrlSetXml([{ loc: "https://velumn.com/" }]);
+
+		expect(xml).not.toContain("<lastmod>");
 	});
 });

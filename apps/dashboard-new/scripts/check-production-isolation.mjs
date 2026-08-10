@@ -134,6 +134,10 @@ assert(
   html.includes("Help more people find"),
   "Public root rendered unexpected content"
 )
+assert(
+  !html.includes("dashboard.velumn.com"),
+  "Public root still links to the legacy dashboard host"
+)
 
 const htmlAssets = new Set(
   [...html.matchAll(/(?:href|src)="(\/assets\/[^"?]+)(?:\?[^"}]*)?"/g)].map(
@@ -143,7 +147,8 @@ const htmlAssets = new Set(
 
 for (const asset of htmlAssets) {
   assert(
-    publicAssets.has(asset) || (asset.endsWith(".css") && !dashboardCss.has(asset)),
+    publicAssets.has(asset) ||
+      (asset.endsWith(".css") && !dashboardCss.has(asset)),
     `HTML loads an undeclared public asset: ${asset}`
   )
   assert(
@@ -233,6 +238,22 @@ await assertStatus(
   404,
   "legacy Markdown path"
 )
+await assertRedirect(
+  server,
+  new Request("https://velumn.com/discord"),
+  308,
+  "https://discord.gg/B23gNekHPy",
+  "Discord invite"
+)
+for (const pathname of ["/server", "/channel", "/thread"]) {
+  await assertRedirect(
+    server,
+    new Request(`https://velumn.com${pathname}`),
+    307,
+    "https://velumn.com/",
+    `bare ${pathname} route`
+  )
+}
 
 const csrfResponse = await server.fetch(
   new Request(`https://velumn.com/_serverFn/${serverFunctionId}`, {
@@ -311,5 +332,23 @@ async function assertStatus(server, request, expectedStatus, label) {
   assert(
     result.status === expectedStatus,
     `Expected ${label} to return ${expectedStatus}, received ${result.status}`
+  )
+}
+
+async function assertRedirect(
+  server,
+  request,
+  expectedStatus,
+  location,
+  label
+) {
+  const result = await server.fetch(request)
+  assert(
+    result.status === expectedStatus,
+    `Expected ${label} to return ${expectedStatus}, received ${result.status}`
+  )
+  assert(
+    new URL(result.headers.get("location"), request.url).href === location,
+    `Expected ${label} to redirect to ${location}, received ${result.headers.get("location")}`
   )
 }

@@ -1,17 +1,15 @@
 import { trpcServer } from "@hono/trpc-server";
 import { apiLogger } from "@repo/logger";
-import type { Client } from "discord.js";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { getHonoIp, getTrustedClientIp } from "./helpers/rate-limit";
-import { createBotRouter } from "./helpers/trpc";
-import type { BotApiOperations } from "./http/operations";
+import type { BotApiOperations } from "./contracts";
+import * as rateLimit from "./rate-limit";
+import { createBotRouter } from "./router";
 
 export interface BotApiOptions {
 	readonly allowedOrigins: readonly string[];
 	readonly apiSecret: string;
-	readonly discordClient: Client<true>;
 	readonly operations: BotApiOperations;
 }
 
@@ -22,11 +20,9 @@ const customLogger = (message: string, ...rest: string[]) => {
 export const makeBotApi = ({
 	allowedOrigins,
 	apiSecret,
-	discordClient,
 	operations,
 }: BotApiOptions) => {
-	const router = createBotRouter({ apiSecret, discordClient });
-
+	const router = createBotRouter({ apiSecret, rateLimit });
 	return new Hono()
 		.use(logger(customLogger))
 		.use(
@@ -47,8 +43,8 @@ export const makeBotApi = ({
 					const secret = context.req.header("x-velumn-secret");
 					return {
 						secret,
-						ip: getHonoIp(context),
-						trustedClientIp: getTrustedClientIp({
+						ip: rateLimit.getHonoIp(context),
+						trustedClientIp: rateLimit.getTrustedClientIp({
 							providedSecret: secret,
 							expectedSecret: apiSecret,
 							propagatedIp: context.req.header("x-velumn-client-ip"),
@@ -70,3 +66,7 @@ export const makeBotApi = ({
 			);
 		});
 };
+
+export type { BotApiOperations } from "./contracts";
+export type { BotRouter } from "./router";
+export { createBotRouter, toSearchExcerpt } from "./router";

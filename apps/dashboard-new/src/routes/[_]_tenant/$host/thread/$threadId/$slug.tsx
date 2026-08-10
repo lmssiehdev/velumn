@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 
+import { buildDiscussionForumPostingScripts } from "@/features/public-thread/structured-data"
 import {
   TenantRouteError,
   TenantRouteNotFound,
@@ -34,7 +35,17 @@ export const Route = createFileRoute("/__tenant/$host/thread/$threadId/$slug")({
             { name: "description", content: loaderData.description },
             { property: "og:type", content: "article" },
             { property: "og:title", content: loaderData.title },
+            {
+              property: "og:description",
+              content: loaderData.description,
+            },
             { property: "og:url", content: loaderData.canonical.url },
+            { property: "og:image", content: loaderData.canonical.imageUrl },
+            { property: "og:image:width", content: "1200" },
+            { property: "og:image:height", content: "630" },
+            { property: "og:image:alt", content: loaderData.title },
+            { name: "twitter:card", content: "summary_large_image" },
+            { name: "twitter:image", content: loaderData.canonical.imageUrl },
           ],
           links: [
             { rel: "canonical", href: loaderData.canonical.url },
@@ -45,6 +56,7 @@ export const Route = createFileRoute("/__tenant/$host/thread/$threadId/$slug")({
               title: `${loaderData.title} as Markdown`,
             },
           ],
+          scripts: buildDiscussionForumPostingScripts(loaderData),
         }
       : {},
   component: TenantThread,

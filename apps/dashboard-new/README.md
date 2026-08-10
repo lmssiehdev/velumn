@@ -24,14 +24,14 @@ bun run dev
 
 The dashboard uses authorized, narrow Drizzle projections backed by the shared Better Auth database. See `MIGRATION.md` for the active checkpoint and integration gates.
 
-Discord authentication requires `NEXT_PUBLIC_DISCORD_CLIENT_ID`,
+Discord authentication requires `DISCORD_CLIENT_ID`,
 `DISCORD_CLIENT_SECRET`, and `BETTER_AUTH_SECRET`. Production also requires
 `VELUMN_DASHBOARD_NEW_URL`. `DATABASE_URL` must use a write-capable role because
 Better Auth persists OAuth state, users, accounts, and sessions. Configure
 Discord's redirect URI as `http://localhost:3001/api/auth/callback/discord` for
 local development.
 
-Initial indexing requires `NEXT_PUBLIC_VELUMN_API_URL` and `DISCORD_BOT_TOKEN`.
+Initial indexing requires `BOT_API_URL` and `BOT_API_SECRET`.
 Domain publishing requires `VERCEL_BEARER_TOKEN` and `VERCEL_PROJECT_ID`, with
 `VERCEL_TEAM_ID` when the project belongs to a team. Optional feature groups
 must be either complete or absent. Domain mutations are scoped to that project.
@@ -54,7 +54,7 @@ HTTP links plus YAML metadata for agent clients. Both HTML and Markdown remain
 ## Verification
 
 ```bash
-bun run typecheck
+bun run type-check
 bun run lint
 bun test
 bun run verify:production

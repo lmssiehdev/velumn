@@ -10,8 +10,20 @@
 		"transit": {
 			"dependsOn": ["^transit"]
 		},
-		"lint": {
+		"lint:eslint": {
 			"dependsOn": ["transit"]
+		},
+		"lint:eslint:fix": {
+			"dependsOn": ["transit"],
+			"cache": false
+		},
+		"//#lint:oxlint": {},
+		"//#lint:oxlint:fix": {
+			"cache": false
+		},
+		"//#format": {},
+		"//#format:fix": {
+			"cache": false
 		},
 		"type-check": {
 			"dependsOn": ["transit"]

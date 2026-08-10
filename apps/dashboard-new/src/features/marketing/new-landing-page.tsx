@@ -132,9 +132,7 @@ function Navigation() {
             buttonBase,
             "h-8 gap-1.5 rounded-full bg-[#20201e] px-4 text-white shadow-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#393936] active:translate-y-0 active:scale-[0.98] has-[>svg]:px-2.5"
           )}
-          href="https://dashboard.velumn.com"
-          rel="noopener"
-          target="_blank"
+          href="/dashboard"
         >
           Start free trial
           <ArrowUpRight />
@@ -170,9 +168,7 @@ function Hero() {
               buttonBase,
               "h-12 w-full rounded-full bg-[#20201e] px-6 text-base font-semibold text-white shadow-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#393936] active:translate-y-0 active:scale-[0.98] has-[>svg]:px-4 sm:w-auto"
             )}
-            href="https://dashboard.velumn.com"
-            rel="noopener"
-            target="_blank"
+            href="/dashboard"
           >
             Start free trial
             <ArrowRight />
@@ -819,9 +815,7 @@ function FinalCTA() {
             buttonBase,
             "mt-9 h-12 rounded-full bg-[#20201e] px-7 text-base font-semibold text-white shadow-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#393936] active:translate-y-0 active:scale-[0.98] has-[>svg]:px-4"
           )}
-          href="https://dashboard.velumn.com"
-          rel="noopener"
-          target="_blank"
+          href="/dashboard"
         >
           Start free trial
           <ArrowUpRight />

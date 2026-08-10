@@ -1,7 +1,7 @@
+import type { BotApiOptions } from "@repo/api/server";
 import type { Server } from "bun";
 import { Effect, Layer, Redacted, Schema, type Scope } from "effect";
 import type { SearchIndex } from "../adapters/search";
-import type { BotApiOptions } from "../api-server";
 import { BotConfig } from "../config/bot-config";
 import { DiscordClient } from "../discord/client";
 import type { ReconciliationJobs } from "../indexing/jobs";
@@ -33,7 +33,7 @@ export class BotHttpServerError extends Schema.TaggedError<BotHttpServerError>()
 ) {}
 
 const defaultMakeFetch = async (options: BotApiOptions) => {
-	const { makeBotApi } = await import("../api-server");
+	const { makeBotApi } = await import("@repo/api/server");
 	return makeBotApi(options).fetch;
 };
 
@@ -54,13 +54,12 @@ export const makeBotHttpServer = (
 > =>
 	Effect.gen(function* () {
 		const config = yield* BotConfig;
-		const discord = yield* DiscordClient;
+		yield* DiscordClient;
 		const readiness = yield* Readiness;
 		const operations = yield* makeBotApiOperations();
 		const apiOptions: BotApiOptions = {
 			allowedOrigins: config.allowedOrigins,
 			apiSecret: Redacted.value(config.apiSecret),
-			discordClient: discord.client,
 			operations,
 		};
 		const fetch = yield* Effect.tryPromise({

@@ -22,11 +22,10 @@ const serverEnvSchema = z.object({
   VERCEL_URL: optionalString,
   VERCEL_BRANCH_URL: optionalString,
   BETTER_AUTH_SECRET: optionalString,
-  NEXT_PUBLIC_DISCORD_CLIENT_ID: optionalString,
+  DISCORD_CLIENT_ID: optionalString,
   DISCORD_CLIENT_SECRET: optionalString,
-  NEXT_PUBLIC_VELUMN_API_URL: optionalOrigin,
+  BOT_API_URL: optionalOrigin,
   BOT_API_SECRET: optionalString,
-  DISCORD_BOT_TOKEN: optionalString,
   VERCEL_BEARER_TOKEN: optionalString,
   VERCEL_PROJECT_ID: optionalString,
   VERCEL_TEAM_ID: optionalString,
@@ -53,7 +52,7 @@ export function getAuthEnv() {
   }
 
   const discord = optionalGroup("Discord OAuth", {
-    NEXT_PUBLIC_DISCORD_CLIENT_ID: env.NEXT_PUBLIC_DISCORD_CLIENT_ID,
+    DISCORD_CLIENT_ID: env.DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET: env.DISCORD_CLIENT_SECRET,
   })
 
@@ -62,7 +61,7 @@ export function getAuthEnv() {
     secret: env.BETTER_AUTH_SECRET,
     discord: discord
       ? {
-          clientId: discord.NEXT_PUBLIC_DISCORD_CLIENT_ID,
+          clientId: discord.DISCORD_CLIENT_ID,
           clientSecret: discord.DISCORD_CLIENT_SECRET,
         }
       : null,
@@ -81,7 +80,7 @@ export function getHostRoutingEnv() {
 }
 
 export function requireDiscordClientId() {
-  const clientId = getEnv().NEXT_PUBLIC_DISCORD_CLIENT_ID
+  const clientId = getEnv().DISCORD_CLIENT_ID
   if (!clientId) throw new Error("Discord client is not configured")
   return clientId
 }
@@ -89,13 +88,13 @@ export function requireDiscordClientId() {
 export function requireIndexingEnv() {
   const env = getEnv()
   const config = optionalGroup("Indexing service", {
-    NEXT_PUBLIC_VELUMN_API_URL: env.NEXT_PUBLIC_VELUMN_API_URL,
-    DISCORD_BOT_TOKEN: env.BOT_API_SECRET ?? env.DISCORD_BOT_TOKEN,
+    BOT_API_URL: env.BOT_API_URL,
+    BOT_API_SECRET: env.BOT_API_SECRET,
   })
   if (!config) throw new Error("Indexing service is not configured")
   return {
-    apiOrigin: config.NEXT_PUBLIC_VELUMN_API_URL,
-    secret: config.DISCORD_BOT_TOKEN,
+    apiOrigin: config.BOT_API_URL,
+    secret: config.BOT_API_SECRET,
   }
 }
 

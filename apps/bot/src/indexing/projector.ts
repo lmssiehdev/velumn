@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Clock, Context, Effect, Layer, Option } from "effect";
+import { Cause, Clock, Context, Effect, Layer, Option } from "effect";
 import {
 	IndexingRepository,
 	type IndexingRepositoryFailure,
@@ -11,6 +11,8 @@ import {
 	SearchIndex,
 } from "../adapters/search";
 import { BotConfig } from "../config/bot-config";
+import { ErrorCapture } from "../observability/error-capture";
+import { normalizeError, safeBoundaryMetadata } from "../observability/policy";
 import { Readiness } from "../runtime/readiness";
 
 export interface MeiliProjectorOptions {
@@ -77,48 +79,104 @@ export const projectMeiliBatch = (
 		yield* Effect.sync(() => validateOptions(options));
 		const repository = yield* IndexingRepository;
 		const search = yield* SearchIndex;
+		const errorCapture = yield* ErrorCapture;
 		const now = yield* Clock.currentTimeMillis;
-		const rows = yield* repository.claim({
-			leaseOwner: options.leaseOwner,
-			leaseExpiresAt: new Date(now + options.leaseDurationMs),
-			limit: options.batchSize,
-			now: new Date(now),
-		});
+		const rows = yield* repository
+			.claim({
+				leaseOwner: options.leaseOwner,
+				leaseExpiresAt: new Date(now + options.leaseDurationMs),
+				limit: options.batchSize,
+				now: new Date(now),
+			})
+			.pipe(
+				Effect.catch((error) => {
+					const normalized = normalizeError(error);
+					return Effect.fail(error).pipe(
+						Effect.tapCause((cause) =>
+							errorCapture.captureCause(cause, {
+								boundary: "projector_poll_attempt",
+								operation: "projector.poll",
+							}),
+						),
+						Effect.withSpan("projector.poll", {
+							root: true,
+							attributes: {
+								"operation.name": "projector.poll",
+								"operation.outcome": "failed",
+								"error.type": normalized.type,
+								...(normalized.typedOperation
+									? { "error.classification": normalized.typedOperation }
+									: {}),
+							},
+						}),
+					);
+				}),
+			);
+		if (rows.length === 0) return { claimedCount: 0, failedCount: 0 };
 
-		const partitions = new Map<string, MeiliProjection[]>();
-		for (const row of rows) {
-			const partition = partitions.get(row.partitionKey);
-			if (partition) partition.push(row);
-			else partitions.set(row.partitionKey, [row]);
-		}
-		const partitionFailedCounts = yield* Effect.forEach(
-			partitions.values(),
-			(rows) =>
-				Effect.reduce(
-					[...rows].sort((left, right) => left.id - right.id),
-					() => ({ continuePartition: true, failedCount: 0 }),
-					(state, row) =>
-						state.continuePartition
-							? processProjection(options, repository, search, row).pipe(
-									Effect.map((disposition) => ({
-										continuePartition: disposition !== "deferred",
-										failedCount:
-											state.failedCount + (disposition === "failed" ? 1 : 0),
-									})),
-								)
-							: Effect.succeed(state),
+		return yield* Effect.gen(function* () {
+			const partitions = new Map<string, MeiliProjection[]>();
+			for (const row of rows) {
+				const partition = partitions.get(row.partitionKey);
+				if (partition) partition.push(row);
+				else partitions.set(row.partitionKey, [row]);
+			}
+			const partitionFailedCounts = yield* Effect.forEach(
+				partitions.values(),
+				(rows) =>
+					Effect.reduce(
+						[...rows].sort((left, right) => left.id - right.id),
+						() => ({ continuePartition: true, failedCount: 0 }),
+						(state, row) =>
+							state.continuePartition
+								? processProjection(options, repository, search, row).pipe(
+										Effect.withSpan("projector.projection", {
+											attributes: {
+												"operation.name": "projector.projection",
+												projectionId: row.id,
+												"retry.attempt": row.attemptCount,
+											},
+										}),
+										Effect.map((disposition) => ({
+											continuePartition: disposition !== "deferred",
+											failedCount:
+												state.failedCount + (disposition === "failed" ? 1 : 0),
+										})),
+									)
+								: Effect.succeed(state),
+					),
+				{
+					concurrency: options.partitionConcurrency,
+				},
+			);
+			const result = {
+				claimedCount: rows.length,
+				failedCount: partitionFailedCounts.reduce(
+					(total, partition) => total + partition.failedCount,
+					0,
 				),
-			{
-				concurrency: options.partitionConcurrency,
-			},
-		);
-		return {
-			claimedCount: rows.length,
-			failedCount: partitionFailedCounts.reduce(
-				(total, partition) => total + partition.failedCount,
-				0,
+			};
+			yield* Effect.annotateCurrentSpan({
+				"batch.claimed_count": result.claimedCount,
+				"batch.failed_count": result.failedCount,
+				"operation.outcome": result.failedCount > 0 ? "failed" : "completed",
+			});
+			return result;
+		}).pipe(
+			Effect.tapCause((cause) =>
+				errorCapture.captureCause(cause, {
+					boundary: "projector_poll_attempt",
+					operation: "projector.poll",
+				}),
 			),
-		};
+			Effect.withSpan("projector.poll", {
+				root: true,
+				attributes: {
+					"operation.name": "projector.poll",
+					"batch.claimed_count": rows.length,
+				},
+			}),
+		);
 	}).pipe(
 		Effect.ensuring(
 			IndexingRepository.use((repository) =>
@@ -165,10 +223,21 @@ const failureDisposition = (
 	error: SearchError | IndexingRepositoryFailure,
 ) => {
 	const code = errorCode(error);
+	const annotate = (outcome: "completed" | "failed" | "deferred") =>
+		Effect.annotateCurrentSpan({
+			"operation.outcome": outcome,
+			"error.type": error._tag,
+			"error.classification": code,
+			"retry.classification": outcome,
+			"retry.attempt": projection.attemptCount,
+		});
 	if (deletion && isSearchNotFoundError(error)) {
 		return repository
 			.complete(projection.id, options.leaseOwner)
-			.pipe(Effect.as("completed" as const));
+			.pipe(
+				Effect.andThen(annotate("completed")),
+				Effect.as("completed" as const),
+			);
 	}
 	if (
 		!deletion &&
@@ -177,7 +246,7 @@ const failureDisposition = (
 	) {
 		return repository
 			.fail(projection.id, options.leaseOwner, code)
-			.pipe(Effect.as("failed" as const));
+			.pipe(Effect.andThen(annotate("failed")), Effect.as("failed" as const));
 	}
 	return Clock.currentTimeMillis.pipe(
 		Effect.flatMap((now) =>
@@ -188,6 +257,7 @@ const failureDisposition = (
 				new Date(now + retryDelay(options, projection.attemptCount)),
 			),
 		),
+		Effect.andThen(annotate("deferred")),
 		Effect.as("deferred" as const),
 	);
 };
@@ -265,6 +335,7 @@ export const layerMeiliProjector = (
 	Layer.effect(
 		MeiliProjector,
 		Effect.gen(function* () {
+			yield* Effect.sync(() => validateOptions(options));
 			if (
 				!Number.isInteger(options.pollingIntervalMs) ||
 				options.pollingIntervalMs <= 0
@@ -275,6 +346,7 @@ export const layerMeiliProjector = (
 			}
 			const config = yield* BotConfig;
 			const readiness = yield* Readiness;
+			const errorCapture = yield* ErrorCapture;
 			yield* readiness.setProjectorReady(true);
 			yield* Effect.addFinalizer(() => readiness.setProjectorReady(false));
 
@@ -286,7 +358,12 @@ export const layerMeiliProjector = (
 				> = Effect.suspend(() =>
 					projectMeiliBatch(options).pipe(
 						Effect.tapError((error) =>
-							Effect.logError("Meili projector poll failed", { error }),
+							Effect.logError(
+								"Meili projector poll failed",
+								safeBoundaryMetadata(Cause.fail(error), {
+									boundary: "projector_poll_attempt",
+								}),
+							),
 						),
 						Effect.catch(() =>
 							Effect.succeed({ claimedCount: 0, failedCount: 0 }),
@@ -309,7 +386,31 @@ export const layerMeiliProjector = (
 						Effect.andThen(poll),
 					),
 				);
-				yield* Effect.forkScoped(poll);
+				yield* Effect.forkScoped(
+					poll.pipe(
+						Effect.onExit((exit) =>
+							readiness.setProjectorReady(false).pipe(
+								Effect.andThen(
+									exit._tag === "Success" ||
+										!Cause.hasInterruptsOnly(exit.cause)
+										? errorCapture
+												.captureCause(
+													exit._tag === "Failure"
+														? exit.cause
+														: Cause.die(new Error("Projector poll completed")),
+													{
+														boundary: "projector_poll_fiber",
+														operation: "projector.poll",
+													},
+												)
+												.pipe(Effect.asVoid)
+										: Effect.void,
+								),
+							),
+						),
+					),
+					{ startImmediately: true },
+				);
 			} else {
 				yield* Effect.logInfo(
 					"Meili projector disabled because Meilisearch is not configured",

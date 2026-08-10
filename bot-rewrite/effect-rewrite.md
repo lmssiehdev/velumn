@@ -20,20 +20,20 @@ Indexing moved after the runtime foundation and is now wired into the root layer
 
 ### Module map
 
-| Responsibility | Implementation |
-| --- | --- |
-| Entrypoint and composition | `apps/bot/src/main.ts`, `apps/bot/src/runtime/app-layer.ts` |
-| Configuration/readiness | `apps/bot/src/config/bot-config.ts`, `apps/bot/src/runtime/readiness.ts` |
-| Discord resource and callbacks | `apps/bot/src/discord/client.ts`, `apps/bot/src/discord/events.ts` |
-| Explicit commands | `apps/bot/src/commands/registry.ts`, `apps/bot/src/commands/manage-account.ts` |
-| Scoped HTTP/Effect bridge | `apps/bot/src/http/server.ts`, `apps/bot/src/http/operations.ts`, `apps/bot/src/helpers/trpc.ts` |
-| Workspace adapters | `apps/bot/src/adapters/repository.ts`, `indexing-repository.ts`, `search.ts`, `storage.ts` |
-| Indexing runtime | `apps/bot/src/indexing/`; see [`indexing.md`](./indexing.md) for the detailed map |
-| Database migration/boundary | `packages/db/src/drizzle/20260809030731_nervous_landau/`, `20260809143437_fair_reconciliation/`, `20260809144204_dizzy_shadow_king/`, `packages/db/src/helpers/indexing.ts`, `packages/db/src/schema/indexing.ts` |
+| Responsibility                 | Implementation                                                                                                                                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entrypoint and composition     | `apps/bot/src/main.ts`, `apps/bot/src/runtime/app-layer.ts`                                                                                                                                                                                                                       |
+| Configuration/readiness        | `apps/bot/src/config/bot-config.ts`, `apps/bot/src/runtime/readiness.ts`                                                                                                                                                                                                          |
+| Discord resource and callbacks | `apps/bot/src/discord/client.ts`, `apps/bot/src/discord/events.ts`                                                                                                                                                                                                                |
+| Explicit commands              | `apps/bot/src/commands/registry.ts`, `apps/bot/src/commands/manage-account.ts`                                                                                                                                                                                                    |
+| Scoped HTTP/Effect bridge      | `apps/bot/src/http/server.ts`, `apps/bot/src/http/operations.ts`, `apps/bot/src/helpers/trpc.ts`                                                                                                                                                                                  |
+| Workspace adapters             | `apps/bot/src/adapters/repository.ts`, `indexing-repository.ts`, `search.ts`, `storage.ts`                                                                                                                                                                                        |
+| Indexing runtime               | `apps/bot/src/indexing/`; see [`indexing.md`](./indexing.md) for the detailed map                                                                                                                                                                                                 |
+| Database migration/boundary    | `packages/db/src/drizzle/20260809030731_nervous_landau/`, `20260809143437_fair_reconciliation/`, `20260809144204_dizzy_shadow_king/`, `20260809160803_pale_puck/`, `20260809163522_deep_big_bertha/`, `packages/db/src/helpers/indexing.ts`, `packages/db/src/schema/indexing.ts` |
 
 ### Migration and cutover
 
-1. Apply `20260809030731_nervous_landau`, then the additive fairness and tombstone migrations `20260809143437_fair_reconciliation` and `20260809144204_dizzy_shadow_king` before starting the rewritten bot.
+1. Apply migrations in journal order through `20260809163522_deep_big_bertha` before starting the rewritten bot: `20260809030731_nervous_landau`, `20260809143437_fair_reconciliation`, `20260809144204_dizzy_shadow_king`, `20260809160803_pale_puck`, and `20260809163522_deep_big_bertha`. The final two create the durable gateway mutation inbox and enforce unique submission IDs. The dashboard publishing flow also requires the earlier `20260809015405_lively_wendigo` domain-lifecycle migration.
 2. Configure the existing Discord token plus `BOT_API_SECRET`; MeiliSearch and R2 remain optional complete configuration groups.
 3. Start only `apps/bot/src/main.ts`, verify `/health` readiness, command reconciliation, indexing coordinator/projector readiness, then run a scoped reconciliation and inspect its persisted job/projection results.
 4. The old `src/index.ts`, `.sapphirerc.json`, Sapphire commands/listeners, conversion helper, and legacy indexing modules are deleted. There is no parallel runtime or rollback path inside the bot package.
@@ -47,8 +47,8 @@ Run `bun --filter bot test` and `bun --filter bot type-check`. The current suite
 - Validate Discord login, command deployment, reconnect behavior, real gateway partials, permissions, archived-thread REST pagination, and graceful signal shutdown against a test guild.
 - Validate Meili backlog recovery, max-attempt failure visibility, and deletion with a real outage/restart; search is intentionally unavailable when Meili is omitted.
 - Browser-smoke public thread/search create, edit, delete, offline repair, and privacy behavior at desktop and narrow widths. `AttachmentStorage` is not connected to indexing persistence/projection, so R2 mirroring must not be assumed.
-- `getRawMessageData` remains intentionally unavailable. The API secret still has a temporary Discord-token fallback, and the protected `health` procedure still returns legacy `OK`; rotate callers and use `/health` for structured readiness.
-- PostHog/Axiom telemetry, centralized terminal error capture, cache invalidation, and production proxy/CORS behavior still require separate implementation or live validation.
+- `getRawMessageData` remains intentionally unavailable. The protected `health` procedure still returns legacy `OK`; use `/health` for structured readiness.
+- PostHog/Axiom telemetry, centralized terminal error capture, and production proxy/CORS behavior still require separate implementation or live validation. The unused legacy Next.js cache invalidation client has been removed; publication-sensitive web responses use `no-store`.
 
 ## Goals
 
@@ -124,19 +124,19 @@ We should not copy its generic Discord operation wrapper, manually maintained ac
 
 Use each reference for the problem it handles best:
 
-| Concern | Primary reference | Velumn decision |
-| --- | --- | --- |
-| Current Effect APIs and semantics | `effect-smol` / installed Effect source | Verify every runtime, scope, queue, scheduling, and test primitive against the pinned version. |
-| Promise/framework boundary | Executor | Keep Effect as the canonical API and expose one narrow Promise facade at tRPC/Hono. |
-| Typed integration contracts | Executor | Use operation-specific inputs, outputs, and error unions instead of generic SDK callback escape hatches. |
-| Public error shaping and capture | Executor | Capture once at the terminal boundary, return opaque errors with correlation IDs, and preserve typed failures internally. |
-| Discord span and metric placement | AnswerOverflow | Follow its event, command, Discord REST, guild/channel/thread, and indexing hierarchy. |
-| Outcome truthfulness | Executor | Annotate recovered and success-channel failures explicitly so traces and analytics do not report false success. |
-| Discord callback lifecycle | Velumn current implementation | Keep scoped listeners and `FiberSet`; do not replace them with AnswerOverflow's manual active-fiber map. |
-| Gateway plus reconciliation | AnswerOverflow | Use live events for freshness and reconciliation for correctness through one mutation coordinator. |
-| Worker ownership | Executor | Use scoped workers with bounded buffers, explicit final flush/drain, and no detached daemon ownership. |
-| Keyed ordering | AnswerOverflow, improved | Keep per-entity serialization but add bounded capacity, atomic creation, idle eviction, completion receipts, and typed failure outcomes. |
-| Analytics privacy and delivery | Executor | Use a typed metadata-only catalog, opt-out, bounded buffering, best-effort delivery, and root-owned flush. |
+| Concern                           | Primary reference                       | Velumn decision                                                                                                                          |
+| --------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Current Effect APIs and semantics | `effect-smol` / installed Effect source | Verify every runtime, scope, queue, scheduling, and test primitive against the pinned version.                                           |
+| Promise/framework boundary        | Executor                                | Keep Effect as the canonical API and expose one narrow Promise facade at tRPC/Hono.                                                      |
+| Typed integration contracts       | Executor                                | Use operation-specific inputs, outputs, and error unions instead of generic SDK callback escape hatches.                                 |
+| Public error shaping and capture  | Executor                                | Capture once at the terminal boundary, return opaque errors with correlation IDs, and preserve typed failures internally.                |
+| Discord span and metric placement | AnswerOverflow                          | Follow its event, command, Discord REST, guild/channel/thread, and indexing hierarchy.                                                   |
+| Outcome truthfulness              | Executor                                | Annotate recovered and success-channel failures explicitly so traces and analytics do not report false success.                          |
+| Discord callback lifecycle        | Velumn current implementation           | Keep scoped listeners and `FiberSet`; do not replace them with AnswerOverflow's manual active-fiber map.                                 |
+| Gateway plus reconciliation       | AnswerOverflow                          | Use live events for freshness and reconciliation for correctness through one mutation coordinator.                                       |
+| Worker ownership                  | Executor                                | Use scoped workers with bounded buffers, explicit final flush/drain, and no detached daemon ownership.                                   |
+| Keyed ordering                    | AnswerOverflow, improved                | Keep per-entity serialization but add bounded capacity, atomic creation, idle eviction, completion receipts, and typed failure outcomes. |
+| Analytics privacy and delivery    | Executor                                | Use a typed metadata-only catalog, opt-out, bounded buffering, best-effort delivery, and root-owned flush.                               |
 
 Do not reproduce Executor's broad execution framework or AnswerOverflow's full layer graph. Velumn needs one process runtime, a small HTTP Promise facade, narrow capabilities, and feature-specific workflows.
 
@@ -641,10 +641,10 @@ Use Executor's error semantics rather than copying AnswerOverflow's Sentry-speci
 
 ```ts
 interface ErrorCapture {
-  readonly capture: (
-    cause: Cause.Cause<unknown>,
-    context: ErrorContext,
-  ) => Effect.Effect<string>
+	readonly capture: (
+		cause: Cause.Cause<unknown>,
+		context: ErrorContext,
+	) => Effect.Effect<string>;
 }
 ```
 

@@ -1,23 +1,20 @@
 import { randomUUID } from "node:crypto";
 import type { DBIndexingGatewayMutation } from "@repo/db/schema/index";
-import {
-	Cause,
-	Clock,
-	Context,
-	Effect,
-	Fiber,
-	Layer,
-	Option,
-	Ref,
-} from "effect";
+import { Cause, Clock, Context, Effect, Layer, Option, Ref } from "effect";
 import {
 	GatewayMutationLeaseLostError,
 	GatewayMutationRepository,
 } from "../adapters/gateway-mutation-repository";
+import {
+	ErrorCapture,
+	type ErrorCaptureService,
+} from "../observability/error-capture";
+import { normalizeError, safeBoundaryMetadata } from "../observability/policy";
 import { Readiness } from "../runtime/readiness";
 import {
 	IndexingCoordinator,
 	type IndexingCoordinatorService,
+	IndexingCoordinatorSupervisor,
 	submitIndexingAdmission,
 } from "./coordinator";
 import type {
@@ -70,14 +67,13 @@ export const gatewayMutationErrorCode = (
 	cause: Cause.Cause<IndexingOperationError>,
 ): string => {
 	const error = Option.getOrUndefined(Cause.findErrorOption(cause));
-	const errorCode =
-		error !== undefined
-			? `indexing:${error.operation}:${error.classification}`
-			: Cause.hasDies(cause)
-				? "indexing:defect"
-				: Cause.hasInterrupts(cause)
-					? "indexing:interrupted"
-					: "indexing:unknown";
+	const errorCode = Cause.hasDies(cause)
+		? "indexing:defect"
+		: Cause.hasInterrupts(cause)
+			? "indexing:interrupted"
+			: error !== undefined
+				? `indexing:${error.operation}:${error.classification}`
+				: "indexing:unknown";
 	return errorCode.slice(0, 128);
 };
 
@@ -85,6 +81,7 @@ const processClaimedMutation = (
 	options: GatewayMutationInboxOptions,
 	repository: GatewayMutationRepository["Service"],
 	coordinator: IndexingCoordinatorService<IndexingOperationError>,
+	errorCapture: ErrorCaptureService,
 	row: DBIndexingGatewayMutation,
 ) =>
 	Effect.scoped(
@@ -109,7 +106,9 @@ const processClaimedMutation = (
 										metric: "indexing_gateway_mutation_claim_release_failed",
 										mutationId: row.id,
 										generation,
-										error,
+										...safeBoundaryMetadata(Cause.fail(error), {
+											boundary: "gateway_claim_release",
+										}),
 									},
 								),
 					),
@@ -122,6 +121,40 @@ const processClaimedMutation = (
 				mutation: row.mutation as IndexMutation,
 				submittedAt: row.submittedAt.getTime(),
 			};
+			const mutationIds = (() => {
+				switch (submission.mutation._tag) {
+					case "UpsertMessage":
+					case "DeleteMessage":
+						return {
+							messageId: submission.mutation.messageId,
+							channelId: submission.mutation.channelId,
+							...(submission.mutation.threadId
+								? { threadId: submission.mutation.threadId }
+								: {}),
+						};
+					case "DeleteThread":
+					case "ReconcileThread":
+						return {
+							guildId: submission.mutation.guildId,
+							channelId: submission.mutation.parentChannelId,
+							threadId: submission.mutation.threadId,
+						};
+					case "UpsertChannel":
+					case "DeleteChannel":
+						return {
+							guildId: submission.mutation.guildId,
+							channelId: submission.mutation.channelId,
+						};
+					case "InstallGuild":
+					case "UpsertGuild":
+					case "DeleteGuild":
+					case "ReconcileBotMemberPermissions":
+					case "ReconcileRolePermissions":
+						return { guildId: submission.mutation.guildId };
+					case "UpsertUser":
+						return {};
+				}
+			})();
 			const renewInterval = Math.max(
 				1,
 				Math.floor(options.leaseDurationMs / 2),
@@ -168,7 +201,9 @@ const processClaimedMutation = (
 									mutationId: row.id,
 									generation,
 									retryDelayMs,
-									error,
+									...safeBoundaryMetadata(Cause.fail(error), {
+										boundary: "gateway_lease_renewal",
+									}),
 								},
 							).pipe(
 								Effect.andThen(
@@ -182,12 +217,11 @@ const processClaimedMutation = (
 						onSuccess: () => renewLease(renewInterval, initialRenewRetryDelay),
 					}),
 				);
-			const renewalFiber = yield* Effect.forkScoped(
+			yield* Effect.forkScoped(
 				renewLease(renewInterval, initialRenewRetryDelay),
 			);
 			const withCurrentClaim = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-				Fiber.interrupt(renewalFiber).pipe(
-					Effect.andThen(Ref.get(leaseLost)),
+				Ref.get(leaseLost).pipe(
 					Effect.flatMap((lost) =>
 						lost
 							? Effect.void
@@ -226,42 +260,65 @@ const processClaimedMutation = (
 									repository.complete(row.id, options.leaseOwner, generation),
 								);
 							}
-							const cause = Cause.pretty(outcome.cause);
 							const error = Option.getOrUndefined(
 								Cause.findErrorOption(outcome.cause),
 							);
-							return Effect.logWarning(
-								"Durable gateway mutation indexing failed",
-								{
-									metric: "indexing_gateway_mutation_indexing_failed",
-									mutationId: row.id,
-									generation,
-									cause,
-								},
-							).pipe(
-								Effect.andThen(
-									withCurrentClaim(
-										error !== undefined &&
-											retryDispositionFor(error.classification) === "terminal"
-											? repository.complete(
-													row.id,
-													options.leaseOwner,
-													generation,
-												)
-											: Clock.currentTimeMillis.pipe(
-													Effect.flatMap((now) =>
-														repository.defer(
-															row.id,
-															options.leaseOwner,
-															generation,
-															gatewayMutationErrorCode(outcome.cause),
-															new Date(now + retryDelay(options, generation)),
-														),
+							const terminal =
+								!Cause.hasDies(outcome.cause) &&
+								!Cause.hasInterrupts(outcome.cause) &&
+								error !== undefined &&
+								retryDispositionFor(error.classification) === "terminal";
+							return Effect.gen(function* () {
+								yield* Effect.annotateCurrentSpan({
+									"operation.outcome": terminal ? "failed" : "deferred",
+									"error.type": Cause.hasDies(outcome.cause)
+										? "Defect"
+										: (error?._tag ?? "UnknownError"),
+									"error.classification": Cause.hasDies(outcome.cause)
+										? "defect"
+										: (error?.classification ?? "unknown"),
+									"retry.attempt": generation,
+								});
+								if (Cause.hasDies(outcome.cause)) {
+									yield* errorCapture.captureCause(outcome.cause, {
+										boundary: "gateway_receipt_recovery",
+										operation: "IndexingCoordinator.settleItem",
+										mutationId: String(row.id),
+										submissionId: row.submissionId,
+										...mutationIds,
+									});
+								}
+								yield* Effect.logWarning(
+									"Durable gateway mutation indexing failed",
+									{
+										metric: "indexing_gateway_mutation_indexing_failed",
+										mutationId: row.id,
+										generation,
+										...safeBoundaryMetadata(outcome.cause, {
+											boundary: "gateway_mutation_indexing",
+										}),
+									},
+								);
+								yield* withCurrentClaim(
+									terminal
+										? repository.complete(
+												row.id,
+												options.leaseOwner,
+												generation,
+											)
+										: Clock.currentTimeMillis.pipe(
+												Effect.flatMap((now) =>
+													repository.defer(
+														row.id,
+														options.leaseOwner,
+														generation,
+														gatewayMutationErrorCode(outcome.cause),
+														new Date(now + retryDelay(options, generation)),
 													),
 												),
-									),
-								),
-							);
+											),
+								);
+							});
 						}),
 						// Once accepted, the coordinator owns the mutation. Keep the DB claim
 						// until its receipt and terminal row mutation have both settled.
@@ -282,6 +339,7 @@ export const drainGatewayMutationBatch = (
 	Effect.gen(function* () {
 		const repository = yield* GatewayMutationRepository;
 		const coordinator = yield* IndexingCoordinator;
+		const errorCapture = yield* ErrorCapture;
 		const now = yield* Clock.currentTimeMillis;
 		const rows = yield* repository.claim({
 			leaseOwner: options.leaseOwner,
@@ -289,28 +347,77 @@ export const drainGatewayMutationBatch = (
 			limit: options.batchSize,
 			now: new Date(now),
 		});
+		if (rows.length === 0) return 0;
 		yield* Effect.forEach(
 			rows,
 			(row) =>
-				processClaimedMutation(options, repository, coordinator, row).pipe(
+				processClaimedMutation(
+					options,
+					repository,
+					coordinator,
+					errorCapture,
+					row,
+				).pipe(
+					Effect.withSpan("gateway.claimed_process", {
+						attributes: {
+							"operation.name": "gateway.claimed_process",
+							mutationId: row.id,
+							submissionId: row.submissionId,
+							"retry.attempt": row.attemptCount,
+						},
+					}),
 					Effect.catch((error) =>
 						Effect.logError("Durable gateway mutation processing failed", {
 							metric: "indexing_gateway_mutation_processing_failed",
 							mutationId: row.id,
-							error,
+							...safeBoundaryMetadata(Cause.fail(error), {
+								boundary: "gateway_mutation_processing",
+							}),
 						}),
 					),
 				),
 			{ concurrency: options.concurrency, discard: true },
+		).pipe(
+			Effect.withSpan("gateway.poll", {
+				root: true,
+				attributes: {
+					"operation.name": "gateway.poll",
+					"batch.claimed_count": rows.length,
+				},
+			}),
 		);
 		return rows.length;
 	}).pipe(
-		Effect.catch((error) =>
-			Effect.logError("Durable gateway mutation poll failed", {
-				metric: "indexing_gateway_mutation_poll_failed",
-				error,
-			}).pipe(Effect.as(0)),
-		),
+		Effect.catch((error) => {
+			const normalized = normalizeError(error);
+			return Effect.gen(function* () {
+				const errorCapture = yield* ErrorCapture;
+				yield* errorCapture.captureCause(Cause.fail(error), {
+					boundary: "gateway_poll_attempt",
+					operation: "gateway.poll",
+				});
+				yield* Effect.logError("Durable gateway mutation poll failed", {
+					metric: "indexing_gateway_mutation_poll_failed",
+					...safeBoundaryMetadata(Cause.fail(error), {
+						boundary: "gateway_poll_attempt",
+					}),
+				});
+				return yield* Effect.fail(error);
+			}).pipe(
+				Effect.withSpan("gateway.poll", {
+					root: true,
+					attributes: {
+						"operation.name": "gateway.poll",
+						"operation.outcome": "failed",
+						"error.type": normalized.type,
+						...(normalized.typedOperation
+							? { "error.classification": normalized.typedOperation }
+							: {}),
+					},
+				}),
+				Effect.catch(() => Effect.succeed(0)),
+			);
+		}),
 	);
 
 export const layerGatewayMutationInbox = (
@@ -333,7 +440,9 @@ export const layerGatewayMutationInbox = (
 
 			const repository = yield* GatewayMutationRepository;
 			const coordinator = yield* IndexingCoordinator;
+			const supervisor = yield* IndexingCoordinatorSupervisor;
 			const readiness = yield* Readiness;
+			const errorCapture = yield* ErrorCapture;
 			const poll: Effect.Effect<
 				void,
 				never,
@@ -349,28 +458,28 @@ export const layerGatewayMutationInbox = (
 				),
 			);
 			yield* readiness.setGatewayMutationInboxReady(true);
-			yield* Effect.forkScoped(
+			yield* supervisor.fork(
 				poll.pipe(
 					Effect.onExit((exit) =>
 						readiness.setGatewayMutationInboxReady(false).pipe(
 							Effect.andThen(
 								exit._tag === "Success" || !Cause.hasInterruptsOnly(exit.cause)
-									? Effect.logError(
-											"Durable gateway mutation poll fiber stopped unexpectedly",
-											{
-												metric: "indexing_gateway_mutation_poll_fiber_stopped",
-												cause:
-													exit._tag === "Failure"
-														? Cause.pretty(exit.cause)
-														: "poll completed",
-											},
-										)
+									? errorCapture
+											.captureCause(
+												exit._tag === "Failure"
+													? exit.cause
+													: Cause.die(new Error("Gateway poll completed")),
+												{
+													boundary: "gateway_poll_fiber",
+													operation: "gateway.poll",
+												},
+											)
+											.pipe(Effect.asVoid)
 									: Effect.void,
 							),
 						),
 					),
 				),
-				{ startImmediately: true },
 			);
 			return GatewayMutationInbox.of({
 				enqueue: (submission) => {
@@ -392,9 +501,10 @@ export const layerGatewayMutationInbox = (
 														"Gateway mutation enqueue failed; retrying",
 														{
 															metric: "indexing_gateway_mutation_enqueue_retry",
-															submissionId: submission.id,
 															delayMs,
-															error,
+															...safeBoundaryMetadata(Cause.fail(error), {
+																boundary: "gateway_enqueue",
+															}),
 														},
 													).pipe(
 														Effect.andThen(Effect.sleep(delayMs)),
@@ -412,7 +522,7 @@ export const layerGatewayMutationInbox = (
 														{
 															metric:
 																"indexing_gateway_mutation_enqueue_closing",
-															submissionId: submission.id,
+															boundary: "gateway_enqueue_closing",
 														},
 													),
 										),

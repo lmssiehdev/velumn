@@ -1,4 +1,5 @@
 import { setServerChannelSelection } from "@repo/db/helpers/channels"
+import type { BotRouter } from "@repo/api/client"
 import { captureOnboardingEvent } from "@repo/utils/onboarding-analytics"
 import {
   checkIfServerExistsForUser,
@@ -11,10 +12,10 @@ import {
 import { updateServerOnboarding } from "@repo/db/helpers/user"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { createServerFn } from "@tanstack/react-start"
+import { Result, TaggedError } from "better-result"
 import { ChannelType, PermissionFlagsBits } from "discord-api-types/v10"
 import { z } from "zod"
 
-import type { BotRouter } from "../../../../bot/src/helpers/trpc"
 import { requireDiscordClientId, requireIndexingEnv } from "@/env.server"
 import type {
   EligibleDiscordServer,
@@ -44,6 +45,11 @@ const botPermissions = [
   PermissionFlagsBits.CreatePublicThreads,
   PermissionFlagsBits.SendMessagesInThreads,
 ].reduce((permissions, permission) => permissions | permission, 0n)
+
+class InitialIndexUnavailable extends TaggedError("InitialIndexUnavailable")<{
+  cause: unknown
+  message: string
+}> {}
 
 export type EligibleDiscordServersResult =
   | { status: "ok"; servers: Array<EligibleDiscordServer> }
@@ -86,7 +92,14 @@ async function requestInitialIndex(serverId: string) {
       }),
     ],
   })
-  await client.indexServer.mutate({ serverId })
+  return Result.tryPromise({
+    try: () => client.indexServer.mutate({ serverId }),
+    catch: (cause) =>
+      new InitialIndexUnavailable({
+        cause,
+        message: "Indexing could not start.",
+      }),
+  })
 }
 
 export const getEligibleDiscordServers = createServerFn({
@@ -328,24 +341,15 @@ export const finishServerSetup = createServerFn({ method: "POST" })
       userId: context.session.user.id,
     })
 
-    try {
-      await setServerChannelSelection({
-        serverId: data.serverId,
-        channels: channels.map((channel) => ({
-          channelId: channel.id,
-          status: selectedIds.has(channel.id),
-        })),
-      })
-      await requestInitialIndex(data.serverId)
-      void captureOnboardingEvent({
-        event: "indexing_successfully_started",
-        properties: { channel_count: data.selectedChannelIds.length },
-        serverId: data.serverId,
-        userId: context.session.user.id,
-      })
-      await updateServerOnboarding(context.session.user.id, data.serverId, true)
-      return { status: "ok" as const }
-    } catch {
+    await setServerChannelSelection({
+      serverId: data.serverId,
+      channels: channels.map((channel) => ({
+        channelId: channel.id,
+        status: selectedIds.has(channel.id),
+      })),
+    })
+    const initialIndex = await requestInitialIndex(data.serverId)
+    if (initialIndex.isErr()) {
       return {
         status: "error" as const,
         code: "indexing_unavailable" as const,
@@ -353,4 +357,12 @@ export const finishServerSetup = createServerFn({ method: "POST" })
           "Your selection was saved, but indexing could not start. Try again.",
       }
     }
+    void captureOnboardingEvent({
+      event: "indexing_successfully_started",
+      properties: { channel_count: data.selectedChannelIds.length },
+      serverId: data.serverId,
+      userId: context.session.user.id,
+    })
+    await updateServerOnboarding(context.session.user.id, data.serverId, true)
+    return { status: "ok" as const }
   })

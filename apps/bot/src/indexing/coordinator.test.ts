@@ -374,11 +374,59 @@ describe("indexing coordinator", () => {
 				(yield* coordinator.submit(submission("late")))._tag,
 				"Closing",
 			);
+			yield* TestClock.adjust("2 seconds");
+			assert.isUndefined(closeFiber.pollUnsafe());
 
 			yield* Deferred.succeed(release, undefined);
 			assert.equal((yield* acceptedReceipt(accepted))._tag, "Completed");
 			yield* Fiber.join(closeFiber);
 			assert.isTrue(yield* Deferred.isDone(completed));
+		}),
+	);
+
+	it.effect("scope shutdown interrupts workers after the drain deadline", () =>
+		Effect.gen(function* () {
+			const scope = yield* Scope.make();
+			const started = yield* Deferred.make<void>();
+			const interrupted = yield* Deferred.make<void>();
+			const coordinator = yield* makeIndexingCoordinator(options, () =>
+				Deferred.succeed(started, undefined).pipe(
+					Effect.andThen(Effect.never),
+					Effect.ensuring(Deferred.succeed(interrupted, undefined)),
+				),
+			).pipe(Scope.provide(scope));
+			const active = yield* coordinator.submit(submission("active"));
+			yield* Deferred.await(started);
+			const queued = yield* coordinator.submit(submission("queued"));
+
+			const closeFiber = yield* Effect.forkChild(Scope.close(scope, Exit.void));
+			const awaitClosing: Effect.Effect<void> = Effect.suspend(() =>
+				coordinator.state.pipe(
+					Effect.flatMap((state) =>
+						state.accepting
+							? Effect.yieldNow.pipe(Effect.andThen(awaitClosing))
+							: Effect.void,
+					),
+				),
+			);
+			yield* awaitClosing;
+			assert.isFalse(yield* Deferred.isDone(interrupted));
+
+			yield* TestClock.adjust("3 seconds");
+			yield* Fiber.join(closeFiber);
+			assert.isTrue(yield* Deferred.isDone(interrupted));
+
+			const activeOutcome = yield* acceptedReceipt(active);
+			const queuedOutcome = yield* acceptedReceipt(queued);
+			assert.equal(activeOutcome._tag, "Failed");
+			assert.equal(queuedOutcome._tag, "Failed");
+			if (activeOutcome._tag === "Failed") {
+				assert.isTrue(Cause.hasInterrupts(activeOutcome.cause));
+			}
+			if (queuedOutcome._tag === "Failed") {
+				assert.isTrue(Cause.hasInterrupts(queuedOutcome.cause));
+			}
+			assert.equal((yield* coordinator.state).outstanding, 0);
 		}),
 	);
 

@@ -9,7 +9,7 @@ describe("server environment", () => {
   it("normalizes trusted origins and validates complete OAuth groups", async () => {
     vi.stubEnv("VELUMN_DASHBOARD_NEW_URL", "https://dashboard.example.com/path")
     vi.stubEnv("BETTER_AUTH_SECRET", "test-secret")
-    vi.stubEnv("NEXT_PUBLIC_DISCORD_CLIENT_ID", "client-id")
+    vi.stubEnv("DISCORD_CLIENT_ID", "client-id")
     vi.stubEnv("DISCORD_CLIENT_SECRET", "client-secret")
 
     const { getAuthEnv } = await import("./env.server")
@@ -22,20 +22,19 @@ describe("server environment", () => {
   })
 
   it("rejects partial feature configuration", async () => {
-    vi.stubEnv("NEXT_PUBLIC_VELUMN_API_URL", "https://api.example.com")
-    vi.stubEnv("DISCORD_BOT_TOKEN", "")
+    vi.stubEnv("BOT_API_URL", "https://api.example.com")
+    vi.stubEnv("BOT_API_SECRET", "")
 
     const { requireIndexingEnv } = await import("./env.server")
 
     expect(() => requireIndexingEnv()).toThrow(
-      "Indexing service configuration is incomplete: DISCORD_BOT_TOKEN"
+      "Indexing service configuration is incomplete: BOT_API_SECRET"
     )
   })
 
-  it("prefers the dedicated bot API secret", async () => {
-    vi.stubEnv("NEXT_PUBLIC_VELUMN_API_URL", "https://api.example.com")
+  it("uses the dedicated bot API secret", async () => {
+    vi.stubEnv("BOT_API_URL", "https://api.example.com")
     vi.stubEnv("BOT_API_SECRET", "api-secret")
-    vi.stubEnv("DISCORD_BOT_TOKEN", "discord-token")
 
     const { requireIndexingEnv } = await import("./env.server")
 
@@ -49,7 +48,7 @@ describe("server environment", () => {
     vi.stubEnv("NODE_ENV", "production")
     vi.stubEnv("VELUMN_DASHBOARD_NEW_URL", "")
     vi.stubEnv("BETTER_AUTH_SECRET", "test-secret")
-    vi.stubEnv("NEXT_PUBLIC_DISCORD_CLIENT_ID", "")
+    vi.stubEnv("DISCORD_CLIENT_ID", "")
     vi.stubEnv("DISCORD_CLIENT_SECRET", "")
 
     const { getAuthEnv } = await import("./env.server")

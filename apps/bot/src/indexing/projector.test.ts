@@ -1,7 +1,8 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Tracer } from "effect";
 import {
 	IndexingRepository,
+	IndexingRepositoryError,
 	type MeiliProjection,
 	ProjectionLeaseLostError,
 } from "../adapters/indexing-repository";
@@ -272,6 +273,27 @@ describe("Meili projector", () => {
 		}),
 	);
 
+	it.effect("does not trace repeated empty polls", () =>
+		Effect.gen(function* () {
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+			const repository = makeRepository([]);
+
+			yield* run(repository.service, makeSearch([])).pipe(
+				Effect.andThen(run(repository.service, makeSearch([]))),
+				Effect.provideService(Tracer.Tracer, tracer),
+			);
+
+			assert.deepEqual(spans, []);
+		}),
+	);
+
 	it.effect(
 		"defers a typed SearchIndex failure with bounded retry timing",
 		() =>
@@ -283,14 +305,158 @@ describe("Meili projector", () => {
 					new Map([[1, [document("message-1")]]]),
 				);
 				const events: string[] = [];
+				const spans: Tracer.NativeSpan[] = [];
+				const tracer = Tracer.make({
+					span: (spanOptions) => {
+						const span = new Tracer.NativeSpan(spanOptions);
+						spans.push(span);
+						return span;
+					},
+				});
 
-				yield* run(repository.service, makeSearch(events, "updateDocuments"));
+				yield* run(
+					repository.service,
+					makeSearch(events, "updateDocuments"),
+				).pipe(
+					Effect.provideService(Tracer.Tracer, tracer),
+				);
 				assert.equal(row.status, "pending");
 				assert.equal(row.lastErrorCode, "SearchIndexError:updateDocuments");
 				assert.equal(row.nextAttemptAt.getTime(), 100);
 				assert.equal(laterRow.status, "pending");
 				assert.deepEqual(events, []);
+				const projectionSpan = spans.find(
+					(span) => span.name === "projector.projection",
+				);
+				assert.equal(
+					projectionSpan?.attributes.get("operation.outcome"),
+					"deferred",
+				);
+				assert.equal(
+					projectionSpan?.attributes.get("error.classification"),
+					"SearchIndexError:updateDocuments",
+				);
+				const batchSpan = spans.find((span) => span.name === "projector.poll");
+				assert.equal(batchSpan?.attributes.get("batch.claimed_count"), 2);
+				assert.equal(batchSpan?.attributes.get("batch.failed_count"), 0);
 			}),
+	);
+
+	it.effect("does not annotate completed when completing loses the lease", () =>
+		Effect.gen(function* () {
+			const row = projection(1, "message_delete");
+			const repository = makeRepository([row]);
+			const service = IndexingRepository.of({
+				...repository.service,
+				complete: (id) =>
+					Effect.fail(
+						new ProjectionLeaseLostError({
+							operation: "complete",
+							projectionId: id,
+						}),
+					),
+			});
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+
+			const error = yield* run(
+				service,
+				makeSearch([], "deleteMessages", true),
+			).pipe(Effect.provideService(Tracer.Tracer, tracer), Effect.flip);
+
+			assert.equal(error._tag, "ProjectionLeaseLostError");
+			const projectionSpan = spans.find(
+				(span) => span.name === "projector.projection",
+			);
+			assert.equal(projectionSpan?.attributes.has("operation.outcome"), false);
+			assert.equal(projectionSpan?.status._tag, "Ended");
+		}),
+	);
+
+	it.effect("does not annotate failed when persisting failure fails", () =>
+		Effect.gen(function* () {
+			const row = projection(1, "message_upsert");
+			const repository = makeRepository(
+				[row],
+				new Map([[1, [document("message-1")]]]),
+			);
+			const service = IndexingRepository.of({
+				...repository.service,
+				fail: () =>
+					Effect.fail(
+						new IndexingRepositoryError({
+							operation: "fail",
+							cause: "failed",
+						}),
+					),
+			});
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+
+			const error = yield* run(
+				service,
+				makeSearch([], "addDocuments", true),
+			).pipe(Effect.provideService(Tracer.Tracer, tracer), Effect.flip);
+
+			assert.equal(error._tag, "IndexingRepositoryError");
+			const projectionSpan = spans.find(
+				(span) => span.name === "projector.projection",
+			);
+			assert.equal(projectionSpan?.attributes.has("operation.outcome"), false);
+			assert.equal(projectionSpan?.status._tag, "Ended");
+		}),
+	);
+
+	it.effect("does not annotate deferred when deferring loses the lease", () =>
+		Effect.gen(function* () {
+			const row = projection(1, "container_refresh");
+			const repository = makeRepository(
+				[row],
+				new Map([[1, [document("message-1")]]]),
+			);
+			const service = IndexingRepository.of({
+				...repository.service,
+				defer: (id) =>
+					Effect.fail(
+						new ProjectionLeaseLostError({
+							operation: "defer",
+							projectionId: id,
+						}),
+					),
+			});
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+
+			const error = yield* run(service, makeSearch([], "updateDocuments")).pipe(
+				Effect.provideService(Tracer.Tracer, tracer),
+				Effect.flip,
+			);
+
+			assert.equal(error._tag, "ProjectionLeaseLostError");
+			const projectionSpan = spans.find(
+				(span) => span.name === "projector.projection",
+			);
+			assert.equal(projectionSpan?.attributes.has("operation.outcome"), false);
+			assert.equal(projectionSpan?.status._tag, "Ended");
+		}),
 	);
 
 	it.effect("marks a retryable failure failed after its final attempt", () =>

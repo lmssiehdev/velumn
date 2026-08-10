@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowRight, ArrowUpRight, Check, GitFork } from "lucide-react"
 import type { ReactNode } from "react"
 
-import questrialUrl from "../../../web/assets/Questrial-Regular.ttf?url"
+import questrialUrl from "../assets/Questrial-Regular.ttf?url"
 import marketingCss from "@/features/marketing/new-landing.css?url"
 import { cn } from "@/lib/utils"
 
@@ -306,16 +306,13 @@ function DashboardLink({
           ? "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5"
           : "h-10 rounded-md px-6 has-[>svg]:px-4",
         "rounded-full font-semibold shadow-none transition-[transform,background-color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none",
-        variant === "default" &&
-          "bg-[#20201e] text-white hover:bg-[#393936]",
+        variant === "default" && "bg-[#20201e] text-white hover:bg-[#393936]",
         variant === "outline" &&
           "border-[#aaa89e] bg-white text-[#20201e] hover:bg-[#f1efe8] hover:text-[#20201e]",
         size === "lg" && "h-12 px-6 text-base",
         size === "lg" && (fullWidth ? "w-full" : "w-full sm:w-auto")
       )}
-      href="https://dashboard.velumn.com"
-      rel="noopener"
-      target="_blank"
+      href="/dashboard"
     >
       {children}
     </a>

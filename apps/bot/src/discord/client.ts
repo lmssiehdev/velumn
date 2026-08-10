@@ -96,18 +96,18 @@ const loginClient = (
 					}),
 			});
 
-			return yield* Deferred.await(readyClient).pipe(
-				Effect.timeout(options.loginTimeout ?? "30 seconds"),
-				Effect.catchTag("TimeoutError", (cause) =>
-					Effect.fail(
-						new DiscordLoginError({
-							message: "Timed out waiting for Discord to become ready",
-							cause,
-						}),
-					),
-				),
-			);
+			return yield* Deferred.await(readyClient);
 		}),
+	).pipe(
+		Effect.timeout(options.loginTimeout ?? "30 seconds"),
+		Effect.catchTag("TimeoutError", (cause) =>
+			Effect.fail(
+				new DiscordLoginError({
+					message: "Timed out waiting for Discord to become ready",
+					cause,
+				}),
+			),
+		),
 	);
 
 export const makeDiscordClient = (

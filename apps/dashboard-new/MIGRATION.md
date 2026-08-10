@@ -91,12 +91,9 @@ Primary audit reference: `../../packages/db/src/helpers/user.ts`.
 
 ### Cache Correctness
 
-- Current `revalidateTag(tag, "max")` may serve stale content after invalidation. Separate hard purge from soft refresh.
-- Existing domain invalidation tags do not map consistently to real cache entries, and `dashboard-new` does not invoke the legacy domain invalidation flow.
-- Cache keys include representation, normalized host or tenant, entity ID, and content version.
-- Cross-request caching requires a durable shared store or verified platform cache, not process memory.
-- Cold-key regeneration uses single-flight request coalescing.
-- The bot uses a dedicated scoped invalidation credential, not `DISCORD_BOT_TOKEN`.
+- Publication-sensitive HTML, Markdown, OG, and sitemap responses use `no-store`.
+- The unused legacy Next.js tag/path invalidation client is removed from the bot.
+- Any future cross-request cache requires a durable shared store, explicit hard purge, versioned representation keys, and single-flight regeneration before these responses may become cacheable.
 
 ### Effect-Free React
 
@@ -488,10 +485,11 @@ Status: in progress
 - [x] Add request-scoped deduplication for tenant and public entity reads
 - [ ] Choose and implement the durable shared cache backend
 - [ ] Add hard-purge, soft-refresh, and single-flight behavior
-- [ ] Preserve bot invalidation endpoints with a dedicated scoped credential
+- [x] Remove the unused legacy invalidation client and keep publication-sensitive responses `no-store`
 - [ ] Add domain transition invalidation to the new publishing workflow
 - [ ] Implement a durable privacy purge and search deletion workflow
-- [ ] Replace offset pagination and sitemap traversal with validated cursors or stable ranges
+- [ ] Replace remaining offset pagination with validated cursors
+- [x] Replace sitemap offset traversal with stable snowflake ranges
 - [ ] Review production-shaped query plans and add measured indexes
 
 Acceptance gate: all public representations consume the publication-aware boundary; hard purge never returns acknowledged stale content; concurrent cold requests produce one regeneration per key.
@@ -529,22 +527,23 @@ Production-shaped `EXPLAIN (ANALYZE, BUFFERS)` for a seven-message thread used
 the existing channel, message, user, server, and attachment indexes: the page
 query executed in 0.65 ms with 55 shared-buffer hits and no reads, while the
 attachment query executed in 0.17 ms with eight hits and no reads. No speculative
-index was added. OG, search, sitemap, and tenant-host rendering projections
-remain open and must reuse the same publication boundary.
+index was added. OG, search, sitemap, and tenant-host rendering now reuse the
+publication boundary. Dynamic OG and sitemap responses remain `no-store` while
+the application has no durable purgeable cache.
 
 ## Checkpoint 9: Static Public Routes And Blog
 
 Status: in progress
 
-- [ ] Migrate `/`, `/pricing`, `/oss-program`, and `/discord`
+- [x] Migrate `/`, `/pricing`, `/oss-program`, and `/discord`
 - [ ] Resolve the duplicate `/` and `/new-landing` ownership intentionally
-- [ ] Replace `next/font` with intentional self-hosted route-scoped fonts
+- [x] Replace `next/font` with intentional self-hosted route-scoped fonts
 - [ ] Establish one shared reset and scoped marketing/forum/dashboard token roots
 - [x] Replace the Next MDX pipeline with a validated Vite content manifest
 - [x] Add build-time draft, placeholder, metadata, date, and empty-body checks
 - [ ] Migrate `/blog` and `/blog/$slug` with prerender and unknown-slug behavior
 - [ ] Migrate responsive images with explicit dimensions and loading policy
-- [ ] Update all dashboard links to `/dashboard`
+- [x] Update all dashboard links to `/dashboard`
 
 Acceptance gate: marketing and blog routes pass metadata and visual parity without downloading dashboard CSS, fonts, JS, or auth data.
 
@@ -582,8 +581,8 @@ Status: pending
 - [ ] Derive tenant metadata, icons, canonicals, social identity, and JSON-LD from the verified tenant context
 - [ ] Preserve main-host-to-verified-domain permanent redirects
 - [ ] Define and test pagination canonical/noindex behavior
-- [ ] Implement stable sitemap partitions and accurate update timestamps
-- [ ] Replace duplicate Next OG handlers with one validated tenant-aware route
+- [x] Implement stable sitemap partitions and omit unsupported update timestamps
+- [x] Replace duplicate Next OG handlers with one validated tenant-aware route
 - [ ] Migrate PostHog and Discord sticker proxies as explicit streaming server routes or verified deployment rewrites
 - [ ] Define analytics loading, consent, bot, and custom-domain policy
 - [ ] Validate all route parameters before storage access and return semantic status codes

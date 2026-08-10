@@ -206,6 +206,18 @@ const run = (
 	);
 
 describe("IndexMutationProcessor", () => {
+	it.effect("does not silently accept an unknown persisted mutation", () =>
+		Effect.gen(function* () {
+			const exit = yield* Effect.exit(
+				run(
+					{ _tag: "FutureMutation" } as unknown as IndexMutation,
+					makeRepository(),
+				),
+			);
+			assert.isTrue(Exit.isFailure(exit));
+		}),
+	);
+
 	it.effect("fetches, converts, and commits an upsert", () => {
 		const commits: unknown[] = [];
 		return run(

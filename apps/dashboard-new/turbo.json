@@ -12,10 +12,10 @@
         "VERCEL_URL",
         "VERCEL_BRANCH_URL",
         "BETTER_AUTH_SECRET",
-        "NEXT_PUBLIC_DISCORD_CLIENT_ID",
+        "DISCORD_CLIENT_ID",
         "DISCORD_CLIENT_SECRET",
-        "NEXT_PUBLIC_VELUMN_API_URL",
-        "DISCORD_BOT_TOKEN",
+        "BOT_API_URL",
+        "BOT_API_SECRET",
         "VERCEL_BEARER_TOKEN",
         "VERCEL_PROJECT_ID",
         "VERCEL_TEAM_ID"

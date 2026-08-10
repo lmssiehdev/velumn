@@ -9,7 +9,9 @@ import {
 } from "discord-api-types/v10"
 import { useId, useState, type ReactNode } from "react"
 
+import { formatUtcShortDateTime } from "@/lib/date"
 import type { PublicThreadMessage } from "./contracts"
+import { formatDiscordTimestamp } from "./discord-date"
 import {
   ChatIcon,
   ChevronRightIcon,
@@ -384,7 +386,7 @@ function renderToken(
         dateTime={new Date(Number(seconds) * 1000).toISOString()}
         key={key}
       >
-        {formatTimestamp(seconds, style)}
+        {formatDiscordTimestamp(seconds, style)}
       </time>
     )
   }
@@ -1327,74 +1329,14 @@ function safeMediaUrl(media?: { url?: string; proxy_url?: string }) {
   return safeHttpsUrl(media?.url) ?? safeHttpsUrl(media?.proxy_url)
 }
 
-function formatTimestamp(value: string, style: string) {
-  const date = new Date(Number(value) * 1000)
-  const options: Intl.DateTimeFormatOptions = { timeZone: "UTC" }
-  switch (style) {
-    case "t":
-      Object.assign(options, { hour: "numeric", minute: "2-digit" })
-      break
-    case "T":
-      Object.assign(options, {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-      break
-    case "d":
-      Object.assign(options, {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-      break
-    case "D":
-      Object.assign(options, { day: "numeric", month: "long", year: "numeric" })
-      break
-    case "F":
-      Object.assign(options, {
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        month: "long",
-        weekday: "long",
-        year: "numeric",
-      })
-      break
-    case "R":
-      return `Relative time: ${new Intl.DateTimeFormat("en-US", {
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        month: "long",
-        timeZone: "UTC",
-        timeZoneName: "short",
-        year: "numeric",
-      }).format(date)}`
-    default:
-      Object.assign(options, {
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
-  }
-  return new Intl.DateTimeFormat("en-US", options).format(date)
-}
-
 function timestampLabel(value: string, style: string) {
   return style === "R"
-    ? formatTimestamp(value, style)
-    : `Discord timestamp: ${formatTimestamp(value, style)} UTC`
+    ? formatDiscordTimestamp(value, style)
+    : `Discord timestamp: ${formatDiscordTimestamp(value, style)} UTC`
 }
 
 function formatEmbedDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(new Date(value))
+  return formatUtcShortDateTime(value)
 }
 
 function formatBytes(value: number) {

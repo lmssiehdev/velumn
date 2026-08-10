@@ -1,5 +1,7 @@
+import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake"
 import type { PublicThreadPage } from "@/features/public-thread/contracts"
 import { PublicThreadView } from "@/features/public-thread/thread"
+import { formatRelativeDate } from "@/lib/date"
 import { useRouter } from "@tanstack/react-router"
 import {
   ChevronRight,
@@ -104,8 +106,8 @@ function ThreadList({ data }: { data: TenantForumData }) {
                 <span aria-hidden="true"> • </span>
                 in <a href={thread.channelHref}>#{thread.channel.name}</a>
                 <span aria-hidden="true"> • </span>
-                <time dateTime={snowflakeDate(thread.id).toISOString()}>
-                  {formatRelativeDate(thread.id)}
+                <time dateTime={getDateFromSnowflake(thread.id).toISOString()}>
+                  {formatRelativeDate(getDateFromSnowflake(thread.id))}
                 </time>
               </p>
             </div>
@@ -227,28 +229,8 @@ type TenantForumData = {
 
 type TenantThreadData = PublicThreadPage
 
-function snowflakeDate(id: string) {
-  return new Date(Number((BigInt(id) >> 22n) + 1_420_070_400_000n))
-}
-
-function formatRelativeDate(id: string) {
-  const date = snowflakeDate(id)
-  const elapsedDays = Math.floor((Date.now() - date.getTime()) / 86_400_000)
-  if (elapsedDays <= 0) return "today"
-  if (elapsedDays === 1) return "yesterday"
-  if (elapsedDays < 30) return `${elapsedDays} days ago`
-  return formatDate(date.toISOString())
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(new Date(value))
-}
-
 function formatCount(value: number) {
-  return new Intl.NumberFormat("en-US").format(value)
+  return tenantCountFormatter.format(value)
 }
+
+const tenantCountFormatter = new Intl.NumberFormat("en-US")

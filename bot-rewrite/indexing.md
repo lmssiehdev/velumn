@@ -20,22 +20,22 @@ The rewritten bot now runs live gateway parity and scheduled/manual reconciliati
 
 ### Module map
 
-| Responsibility | Implementation |
-| --- | --- |
-| Root ownership/readiness | `apps/bot/src/runtime/app-layer.ts`, `apps/bot/src/runtime/readiness.ts`, `apps/bot/src/main.ts` |
-| Discord lifecycle and event bridge | `apps/bot/src/discord/client.ts`, `apps/bot/src/discord/events.ts` |
-| Gateway parity | `apps/bot/src/indexing/events.ts` |
-| Bounded keyed ordering and receipts | `apps/bot/src/indexing/coordinator.ts`, `apps/bot/src/indexing/model.ts` |
-| Discord reads and error classification | `apps/bot/src/indexing/discord-history.ts`, `apps/bot/src/indexing/policy.ts` |
-| Conversion and authoritative mutation | `apps/bot/src/indexing/conversion.ts`, `apps/bot/src/indexing/mutation.ts` |
-| Planning, jobs, and schedule | `apps/bot/src/indexing/reconciliation.ts`, `apps/bot/src/indexing/jobs.ts`, `apps/bot/src/indexing/scheduler.ts` |
-| Durable Meili projection | `apps/bot/src/indexing/projector.ts`, `apps/bot/src/adapters/search.ts` |
-| Database boundary | `apps/bot/src/adapters/indexing-repository.ts`, `packages/db/src/helpers/indexing.ts`, `packages/db/src/schema/indexing.ts` |
-| HTTP job facade | `apps/bot/src/http/operations.ts`, `apps/bot/src/helpers/trpc.ts` |
+| Responsibility                         | Implementation                                                                                                              |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Root ownership/readiness               | `apps/bot/src/runtime/app-layer.ts`, `apps/bot/src/runtime/readiness.ts`, `apps/bot/src/main.ts`                            |
+| Discord lifecycle and event bridge     | `apps/bot/src/discord/client.ts`, `apps/bot/src/discord/events.ts`                                                          |
+| Gateway parity                         | `apps/bot/src/indexing/events.ts`                                                                                           |
+| Bounded keyed ordering and receipts    | `apps/bot/src/indexing/coordinator.ts`, `apps/bot/src/indexing/model.ts`                                                    |
+| Discord reads and error classification | `apps/bot/src/indexing/discord-history.ts`, `apps/bot/src/indexing/policy.ts`                                               |
+| Conversion and authoritative mutation  | `apps/bot/src/indexing/conversion.ts`, `apps/bot/src/indexing/mutation.ts`                                                  |
+| Planning, jobs, and schedule           | `apps/bot/src/indexing/reconciliation.ts`, `apps/bot/src/indexing/jobs.ts`, `apps/bot/src/indexing/scheduler.ts`            |
+| Durable Meili projection               | `apps/bot/src/indexing/projector.ts`, `apps/bot/src/adapters/search.ts`                                                     |
+| Database boundary                      | `apps/bot/src/adapters/indexing-repository.ts`, `packages/db/src/helpers/indexing.ts`, `packages/db/src/schema/indexing.ts` |
+| HTTP job facade                        | `apps/bot/src/http/operations.ts`, `apps/bot/src/helpers/trpc.ts`                                                           |
 
 ### Migration and cutover
 
-1. Apply `packages/db/src/drizzle/20260809030731_nervous_landau/migration.sql`, then the additive `20260809143437_fair_reconciliation` and `20260809144204_dizzy_shadow_king` migrations. They add the indexing model, persisted reconciliation-selection cursor, and permanent container tombstones without rewriting an already-applied migration.
+1. Apply the migrations in journal order through `20260809163522_deep_big_bertha`: `20260809030731_nervous_landau`, `20260809143437_fair_reconciliation`, `20260809144204_dizzy_shadow_king`, `20260809160803_pale_puck`, and `20260809163522_deep_big_bertha`. They add the indexing model, persisted reconciliation-selection cursor, permanent container tombstones, durable gateway mutation inbox, and unique submission identity required by the current runtime. The dashboard publishing flow additionally requires the earlier `20260809015405_lively_wendigo` domain-lifecycle migration.
 2. Deploy the single `apps/bot/src/main.ts` Effect runtime with the existing bot configuration and optional complete Meili/R2 configuration groups.
 3. Verify structured readiness, then start a scoped guild/thread reconciliation through `indexServer`, `reindexServer`, or `reindexThread`; poll `getIndexingJob` and inspect projection drain before broad reconciliation.
 4. The Sapphire entrypoint/config, listeners, conversion helper, `/print-embed`, and legacy indexing implementation were deleted. There is no dual-runtime or fallback cutover path. `getRawMessageData` alone remains intentionally unavailable as an unported legacy diagnostic.
@@ -576,30 +576,30 @@ Target consequence: adopting AO's parity metadata does not require adopting AO's
 
 ### Entity and channel matrix
 
-| Capability | Velumn legacy | AnswerOverflow | Classification for Velumn |
-| --- | --- | --- | --- |
-| Guild metadata | Stored and event-updated | Stored, event-updated, and reconciled | Keep; add missed-leave reconciliation |
-| Guild categories | Not stored | Stored with hierarchy | Adopt for channel selection and inherited permissions |
-| Root text channels | Stored as parents; messages excluded | Stored; messages included when enabled | Keep metadata; root-message publication stays excluded until explicitly accepted |
-| Announcement channels | Stored as parents; root messages excluded | Stored; root messages included | Adopt metadata and opted-in root announcement messages |
-| Forum channels | Stored as parents | Stored with tags | Keep and expand tag fidelity |
-| Media channels | Unsupported | Unsupported | Explicitly exclude until product requirements change |
-| Public threads | Core indexed entity | Indexed | Keep |
-| Announcement threads | Excluded by `PublicThread` gates | Indexed | Adopt under the same parent opt-in policy as public threads |
-| Private threads | Excluded | Excluded from bot ingestion | Exclude without an access-control design |
-| DMs | No intent or indexing | Operational forwarding only; no indexing | Exclude from indexing |
-| Channel category and position | Missing | Stored | Adopt |
-| Forum available tags | Missing | Stored | Adopt |
-| Applied thread tags | Missing | Stored and updated | Adopt with replacement and deletion cleanup |
-| Thread owner | Stored | Not stored as channel metadata | Preserve Velumn behavior |
-| Archived, locked, pinned thread state | Stored | Archived timestamp only | Preserve Velumn behavior |
-| Bot effective permissions | Checked but not stored | Stored and resynchronized | Adopt for diagnostics and drift detection |
-| User identity | Stored from indexed messages | Also updated on `UserUpdate` | Update only users already present in Velumn's database |
-| Guild member roster | Not stored | Selected access/settings only | Do not add solely for indexing |
-| Roles | Not first-class | Role IDs used for access | Persist only what permission/dashboard policy needs |
-| Solutions | Missing | First-class question/solution relation | Product feature decision, not automatic indexing scope |
-| Reverse backlinks | Stored but incompletely maintained | No equivalent model | Preserve and repair Velumn's differentiator |
-| Reactions | Aggregate JSON counts | Per-user custom-emoji rows | Choose display aggregate versus attribution explicitly |
+| Capability                            | Velumn legacy                             | AnswerOverflow                           | Classification for Velumn                                                        |
+| ------------------------------------- | ----------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| Guild metadata                        | Stored and event-updated                  | Stored, event-updated, and reconciled    | Keep; add missed-leave reconciliation                                            |
+| Guild categories                      | Not stored                                | Stored with hierarchy                    | Adopt for channel selection and inherited permissions                            |
+| Root text channels                    | Stored as parents; messages excluded      | Stored; messages included when enabled   | Keep metadata; root-message publication stays excluded until explicitly accepted |
+| Announcement channels                 | Stored as parents; root messages excluded | Stored; root messages included           | Adopt metadata and opted-in root announcement messages                           |
+| Forum channels                        | Stored as parents                         | Stored with tags                         | Keep and expand tag fidelity                                                     |
+| Media channels                        | Unsupported                               | Unsupported                              | Explicitly exclude until product requirements change                             |
+| Public threads                        | Core indexed entity                       | Indexed                                  | Keep                                                                             |
+| Announcement threads                  | Excluded by `PublicThread` gates          | Indexed                                  | Adopt under the same parent opt-in policy as public threads                      |
+| Private threads                       | Excluded                                  | Excluded from bot ingestion              | Exclude without an access-control design                                         |
+| DMs                                   | No intent or indexing                     | Operational forwarding only; no indexing | Exclude from indexing                                                            |
+| Channel category and position         | Missing                                   | Stored                                   | Adopt                                                                            |
+| Forum available tags                  | Missing                                   | Stored                                   | Adopt                                                                            |
+| Applied thread tags                   | Missing                                   | Stored and updated                       | Adopt with replacement and deletion cleanup                                      |
+| Thread owner                          | Stored                                    | Not stored as channel metadata           | Preserve Velumn behavior                                                         |
+| Archived, locked, pinned thread state | Stored                                    | Archived timestamp only                  | Preserve Velumn behavior                                                         |
+| Bot effective permissions             | Checked but not stored                    | Stored and resynchronized                | Adopt for diagnostics and drift detection                                        |
+| User identity                         | Stored from indexed messages              | Also updated on `UserUpdate`             | Update only users already present in Velumn's database                           |
+| Guild member roster                   | Not stored                                | Selected access/settings only            | Do not add solely for indexing                                                   |
+| Roles                                 | Not first-class                           | Role IDs used for access                 | Persist only what permission/dashboard policy needs                              |
+| Solutions                             | Missing                                   | First-class question/solution relation   | Product feature decision, not automatic indexing scope                           |
+| Reverse backlinks                     | Stored but incompletely maintained        | No equivalent model                      | Preserve and repair Velumn's differentiator                                      |
+| Reactions                             | Aggregate JSON counts                     | Per-user custom-emoji rows               | Choose display aggregate versus attribution explicitly                           |
 
 Key source areas:
 
@@ -612,33 +612,33 @@ Key source areas:
 
 ### Message and rich-content matrix
 
-| Discord feature | Velumn legacy | AnswerOverflow | Required conclusion before implementation |
-| --- | --- | --- | --- |
-| Default messages | Stored in public threads | Stored in enabled roots and eligible threads | Preserve thread-only publication unless product scope changes |
-| Replies/references | Stores `referenceId` | Stores and enriches `referenceId` | Keep; define deleted-reference rendering |
-| System messages | Historical path filters; live path can store | Same inconsistency | Define one shared message-type policy |
-| Crossposts | Loses flags/source semantics | Stores flags, not full provenance | Adopt message flags and preserve available crosspost reference data |
-| Forwarded snapshots | Stores first snapshot with metadata | Stores first snapshot with broader components | Keep; fixture origin and nested content |
-| Thread starter messages | Fetch-reference plus `primaryChannelId` | `childThreadId` inference and query fallback | Redesign canonical identity; test search and deletion |
-| Raw content | Stored | Stored | Keep |
-| Search content | Discord.js `cleanContent` | Raw content through Convex | Define stable normalization independent of cache state |
-| Embeds | Broad schema; retains type | Broad conversion; drops type | Preserve Velumn fidelity; decide media mirroring |
-| Attachments | Relational; selective mirroring | Relational; broad mirroring | Define replacement, empty removal, failure, and object deletion |
-| Stickers | Stored and rendered | Stored and rendered | Keep with fixtures |
-| Polls | Stored and rendered | Not durably stored | Preserve Velumn support and test updates |
-| Components v1 | Buttons only; rendered | More controls stored; pure-v1 not rendered | Add supported select menus and render every stored component |
-| Components v2 | Missing | Broad but incomplete | Adopt with explicit conversion/rendering parity and unknown fallback |
-| Reactions | Cached aggregate including Unicode | Up to 100 users for custom emoji only | Neither is complete; decide counts versus users |
-| Reaction events | Missing | Missing | Add only if live accuracy is required |
-| User mentions | Eager metadata | Lazy DB enrichment | Pick ownership and stale-name behavior |
-| Channel mentions | Eager metadata | Lazy access-aware enrichment | Preserve IDs; define navigation/access fallback |
-| Role mentions | Captures name/color | No durable enrichment | Preserve Velumn behavior |
-| Internal Discord links | Broad parser and eager fetch | Narrow parser and lazy enrichment | Combine broad parsing with database-first lazy enrichment and bounded Discord fallback |
-| Reverse backlinks | Historical-only, append-only | Missing | Recompute transactionally on create/update/delete and enforce referential cleanup |
-| Webhooks | Webhook ID only | Display identity too | Store display name/avatar in message metadata |
-| Applications/interactions | Application ID only | Both IDs | Store interaction ID in message metadata |
-| Message flags, TTS, nonce | Missing | Stored | Store message flags in metadata; TTS/nonce remain unnecessary |
-| Pinned message state | Stored | Stored | Keep |
+| Discord feature           | Velumn legacy                                | AnswerOverflow                                | Required conclusion before implementation                                              |
+| ------------------------- | -------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Default messages          | Stored in public threads                     | Stored in enabled roots and eligible threads  | Preserve thread-only publication unless product scope changes                          |
+| Replies/references        | Stores `referenceId`                         | Stores and enriches `referenceId`             | Keep; define deleted-reference rendering                                               |
+| System messages           | Historical path filters; live path can store | Same inconsistency                            | Define one shared message-type policy                                                  |
+| Crossposts                | Loses flags/source semantics                 | Stores flags, not full provenance             | Adopt message flags and preserve available crosspost reference data                    |
+| Forwarded snapshots       | Stores first snapshot with metadata          | Stores first snapshot with broader components | Keep; fixture origin and nested content                                                |
+| Thread starter messages   | Fetch-reference plus `primaryChannelId`      | `childThreadId` inference and query fallback  | Redesign canonical identity; test search and deletion                                  |
+| Raw content               | Stored                                       | Stored                                        | Keep                                                                                   |
+| Search content            | Discord.js `cleanContent`                    | Raw content through Convex                    | Define stable normalization independent of cache state                                 |
+| Embeds                    | Broad schema; retains type                   | Broad conversion; drops type                  | Preserve Velumn fidelity; decide media mirroring                                       |
+| Attachments               | Relational; selective mirroring              | Relational; broad mirroring                   | Define replacement, empty removal, failure, and object deletion                        |
+| Stickers                  | Stored and rendered                          | Stored and rendered                           | Keep with fixtures                                                                     |
+| Polls                     | Stored and rendered                          | Not durably stored                            | Preserve Velumn support and test updates                                               |
+| Components v1             | Buttons only; rendered                       | More controls stored; pure-v1 not rendered    | Add supported select menus and render every stored component                           |
+| Components v2             | Missing                                      | Broad but incomplete                          | Adopt with explicit conversion/rendering parity and unknown fallback                   |
+| Reactions                 | Cached aggregate including Unicode           | Up to 100 users for custom emoji only         | Neither is complete; decide counts versus users                                        |
+| Reaction events           | Missing                                      | Missing                                       | Add only if live accuracy is required                                                  |
+| User mentions             | Eager metadata                               | Lazy DB enrichment                            | Pick ownership and stale-name behavior                                                 |
+| Channel mentions          | Eager metadata                               | Lazy access-aware enrichment                  | Preserve IDs; define navigation/access fallback                                        |
+| Role mentions             | Captures name/color                          | No durable enrichment                         | Preserve Velumn behavior                                                               |
+| Internal Discord links    | Broad parser and eager fetch                 | Narrow parser and lazy enrichment             | Combine broad parsing with database-first lazy enrichment and bounded Discord fallback |
+| Reverse backlinks         | Historical-only, append-only                 | Missing                                       | Recompute transactionally on create/update/delete and enforce referential cleanup      |
+| Webhooks                  | Webhook ID only                              | Display identity too                          | Store display name/avatar in message metadata                                          |
+| Applications/interactions | Application ID only                          | Both IDs                                      | Store interaction ID in message metadata                                               |
+| Message flags, TTS, nonce | Missing                                      | Stored                                        | Store message flags in metadata; TTS/nonce remain unnecessary                          |
+| Pinned message state      | Stored                                       | Stored                                        | Keep                                                                                   |
 
 Conversion sources:
 
@@ -680,21 +680,21 @@ Superseded implementation status: the rewritten runtime now loads `apps/bot/src/
 - Active command events: `apps/bot/src/commands/registry.ts:39-83`
 - Quarantined API: `apps/bot/src/helpers/trpc.ts:26-31`, `apps/bot/src/helpers/trpc.ts:61-75`
 
-| Lifecycle | Velumn legacy | AnswerOverflow | Target implication |
-| --- | --- | --- | --- |
-| Guild create/update/delete | Present | Present | Restore through one Effect-owned parity layer |
-| Missed guild leave at startup | Missing | Reconciled | Adopt |
-| Root channel create | Missing | Present | Adopt |
-| Root channel update/delete | Partial | Present, with dependent-cleanup gaps | Define recursive cleanup |
-| Thread create/update/delete | Public-thread-focused; inconsistent gates | Public and announcement parity | Share one eligibility policy |
-| Message create/update/delete/bulk | Present | Present | Route all mutations through one ordering domain |
-| User profile update | Missing | Present | Adopt if identity should stay current |
-| Bot permission member/role updates | Missing | Present | Adopt with category/coalescing improvements |
-| Reaction add/remove | Missing | Missing | Product decision |
-| Periodic create repair | Hourly forward scan | Six-hour forward scan | Required; cadence undecided |
-| Missed edits/deletes repair | Missing | Missing | Design bounded repair or state limitation |
-| Gateway health/event silence | Basic logging | Active checks and restart | Adopt conceptually |
-| Manual run/status | API quarantined | Super-user commands with local lock | Return durable job identity/status |
+| Lifecycle                          | Velumn legacy                             | AnswerOverflow                       | Target implication                              |
+| ---------------------------------- | ----------------------------------------- | ------------------------------------ | ----------------------------------------------- |
+| Guild create/update/delete         | Present                                   | Present                              | Restore through one Effect-owned parity layer   |
+| Missed guild leave at startup      | Missing                                   | Reconciled                           | Adopt                                           |
+| Root channel create                | Missing                                   | Present                              | Adopt                                           |
+| Root channel update/delete         | Partial                                   | Present, with dependent-cleanup gaps | Define recursive cleanup                        |
+| Thread create/update/delete        | Public-thread-focused; inconsistent gates | Public and announcement parity       | Share one eligibility policy                    |
+| Message create/update/delete/bulk  | Present                                   | Present                              | Route all mutations through one ordering domain |
+| User profile update                | Missing                                   | Present                              | Adopt if identity should stay current           |
+| Bot permission member/role updates | Missing                                   | Present                              | Adopt with category/coalescing improvements     |
+| Reaction add/remove                | Missing                                   | Missing                              | Product decision                                |
+| Periodic create repair             | Hourly forward scan                       | Six-hour forward scan                | Required; cadence undecided                     |
+| Missed edits/deletes repair        | Missing                                   | Missing                              | Design bounded repair or state limitation       |
+| Gateway health/event silence       | Basic logging                             | Active checks and restart            | Adopt conceptually                              |
+| Manual run/status                  | API quarantined                           | Super-user commands with local lock  | Return durable job identity/status              |
 
 ### Privacy and publication behavior
 
@@ -803,35 +803,35 @@ Superseded gate: implementation proceeded with the accepted adaptations below an
 
 The following product directions were accepted on 2026-08-09. “Adopt” means reproduce the useful behavior through Velumn's PostgreSQL, MeiliSearch, R2, web, and Effect boundaries rather than copying AO's implementation literally.
 
-| Capability | Velumn target decision |
-| --- | --- |
-| Channel position | Persist Discord position and use it for stable dashboard/public ordering |
-| Categories | Persist category entities/relationships and account for inherited permission changes |
-| Missed guild-leave repair | Reconcile Discord guild membership against stored active servers at startup and periodically |
-| Announcement metadata | Maintain announcement-channel metadata through create/update/delete parity |
-| Root announcement messages | Index messages from explicitly opted-in announcement channels; root text messages stay excluded |
-| Forum available tags | Persist the parent forum's current tag definitions, including identity, name, moderation, and emoji |
-| Applied thread tags | Replace the thread's current applied-tag set on parity updates and clean it on deletion |
-| Announcement threads | Index under the same parent opt-in, permission, NSFW, privacy, and ordering policy as public threads |
-| Thread archive state | Keep `archived`, `archivedTimestamp`, and `locked`; timestamp alone cannot represent current archived state |
-| Effective bot permissions | Persist effective permissions and last-checked state for diagnostics while checking current permissions before reads |
-| User profiles | Handle `UserUpdate` only for Discord users already represented in Velumn's database; do not import unrelated users |
-| Reverse backlinks | Replace backlinks transactionally with message updates, remove stale edges, add referential cleanup, and reconcile drift |
-| Deleted references | Render an explicit deleted/unavailable reference fallback instead of dropping the reply context |
-| Crossposts | Store Discord message flags and available crosspost/reference identity; render provenance only where data is reliable |
-| Attachment edits | Treat fetched attachments as a full replacement set, including an explicit empty set |
-| Components v1 | Add supported select menus and maintain storage/rendering parity |
-| Components v2 | Support a documented subset end to end, retain an unknown fallback, and never silently claim full fidelity |
-| User/channel mentions | Store stable IDs, enrich from PostgreSQL at read time, and use bounded Discord fetch fallback when necessary |
-| Internal Discord links | Keep Velumn's broad parser, resolve indexed entities database-first, route to Velumn when public, and retain Discord fallback |
-| Webhook identity | Store webhook display name/avatar in message metadata alongside the existing `webhookId` column |
-| Interaction ID | Store in message metadata; no dedicated SQL column is required |
-| Root channel lifecycle | Add create, full update, and recursive delete/disable behavior for supported parents |
-| Thread lifecycle | Add create, update, move/privacy transition, and recursive delete behavior through one eligibility policy |
-| Bot permission lifecycle | React to bot-member roles, relevant role changes, channel overwrites, category inheritance, and reconciliation |
-| Scheduled reconciliation | Run scoped periodic repair through the same coordinator and mutation ordering as gateway work |
-| Search | Keep PostgreSQL authoritative and MeiliSearch rebuildable; search documents must derive from committed PostgreSQL state |
-| Durable search recovery | Record pending Meili projection work durably so restart or temporary Meili failure cannot permanently lose an update/delete |
+| Capability                 | Velumn target decision                                                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Channel position           | Persist Discord position and use it for stable dashboard/public ordering                                                      |
+| Categories                 | Persist category entities/relationships and account for inherited permission changes                                          |
+| Missed guild-leave repair  | Reconcile Discord guild membership against stored active servers at startup and periodically                                  |
+| Announcement metadata      | Maintain announcement-channel metadata through create/update/delete parity                                                    |
+| Root announcement messages | Index messages from explicitly opted-in announcement channels; root text messages stay excluded                               |
+| Forum available tags       | Persist the parent forum's current tag definitions, including identity, name, moderation, and emoji                           |
+| Applied thread tags        | Replace the thread's current applied-tag set on parity updates and clean it on deletion                                       |
+| Announcement threads       | Index under the same parent opt-in, permission, NSFW, privacy, and ordering policy as public threads                          |
+| Thread archive state       | Keep `archived`, `archivedTimestamp`, and `locked`; timestamp alone cannot represent current archived state                   |
+| Effective bot permissions  | Persist effective permissions and last-checked state for diagnostics while checking current permissions before reads          |
+| User profiles              | Handle `UserUpdate` only for Discord users already represented in Velumn's database; do not import unrelated users            |
+| Reverse backlinks          | Replace backlinks transactionally with message updates, remove stale edges, add referential cleanup, and reconcile drift      |
+| Deleted references         | Render an explicit deleted/unavailable reference fallback instead of dropping the reply context                               |
+| Crossposts                 | Store Discord message flags and available crosspost/reference identity; render provenance only where data is reliable         |
+| Attachment edits           | Treat fetched attachments as a full replacement set, including an explicit empty set                                          |
+| Components v1              | Add supported select menus and maintain storage/rendering parity                                                              |
+| Components v2              | Support a documented subset end to end, retain an unknown fallback, and never silently claim full fidelity                    |
+| User/channel mentions      | Store stable IDs, enrich from PostgreSQL at read time, and use bounded Discord fetch fallback when necessary                  |
+| Internal Discord links     | Keep Velumn's broad parser, resolve indexed entities database-first, route to Velumn when public, and retain Discord fallback |
+| Webhook identity           | Store webhook display name/avatar in message metadata alongside the existing `webhookId` column                               |
+| Interaction ID             | Store in message metadata; no dedicated SQL column is required                                                                |
+| Root channel lifecycle     | Add create, full update, and recursive delete/disable behavior for supported parents                                          |
+| Thread lifecycle           | Add create, update, move/privacy transition, and recursive delete behavior through one eligibility policy                     |
+| Bot permission lifecycle   | React to bot-member roles, relevant role changes, channel overwrites, category inheritance, and reconciliation                |
+| Scheduled reconciliation   | Run scoped periodic repair through the same coordinator and mutation ordering as gateway work                                 |
+| Search                     | Keep PostgreSQL authoritative and MeiliSearch rebuildable; search documents must derive from committed PostgreSQL state       |
+| Durable search recovery    | Record pending Meili projection work durably so restart or temporary Meili failure cannot permanently lose an update/delete   |
 
 Some accepted capabilities require PostgreSQL migrations, especially category/position fields, tags, permission diagnostics, backlink constraints, and durable search projection state. Components, webhook identity, interaction ID, and message flags can extend existing JSON representations without dedicated SQL columns.
 

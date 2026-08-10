@@ -1,5 +1,14 @@
 import { BunRuntime } from "@effect/platform-bun";
-import { Layer } from "effect";
+import { Effect, Layer } from "effect";
+import { ObservabilityLayer } from "./observability";
+import { launchObserved } from "./observability/runtime";
 import { AppLayer } from "./runtime/app-layer";
 
-BunRuntime.runMain(Layer.launch(AppLayer));
+const main = Effect.scoped(
+	Effect.gen(function* () {
+		const observability = yield* Layer.build(ObservabilityLayer);
+		yield* launchObserved(AppLayer).pipe(Effect.provide(observability));
+	}),
+);
+
+BunRuntime.runMain(main);

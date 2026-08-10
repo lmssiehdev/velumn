@@ -6,6 +6,7 @@ import {
 	Effect,
 	Exit,
 	Fiber,
+	FiberSet,
 	Layer,
 	Pull,
 	RcMap,
@@ -25,6 +26,7 @@ import type {
 } from "./model";
 
 const admissionRetryDelay = "10 millis";
+const gracefulShutdownTimeout = "3 seconds";
 
 export interface IndexingCoordinatorOptions {
 	readonly queueCapacity: number;
@@ -169,7 +171,13 @@ export const makeIndexingCoordinator = <E, R>(
 				(worker) =>
 					Effect.gen(function* () {
 						yield* TxQueue.end(worker.queue);
-						yield* Fiber.join(worker.fiber);
+						const queued = yield* TxQueue.clear(worker.queue);
+						yield* Fiber.interrupt(worker.fiber);
+						yield* Effect.forEach(
+							queued,
+							(item) => settleItem(item, Exit.interrupt()),
+							{ discard: true },
+						);
 					}),
 			);
 		});
@@ -190,7 +198,21 @@ export const makeIndexingCoordinator = <E, R>(
 				yield* restore(Deferred.await(drained));
 			}),
 		);
-		yield* Effect.addFinalizer(() => close);
+		yield* Effect.addFinalizer(() =>
+			close.pipe(
+				Effect.timeout(gracefulShutdownTimeout),
+				Effect.catchTag("TimeoutError", () =>
+					TxRef.get(coordinatorState).pipe(
+						Effect.flatMap((state) =>
+							Effect.logWarning(
+								"Timed out waiting for indexing coordinator to drain",
+								{ outstanding: state.outstanding },
+							),
+						),
+					),
+				),
+			),
+		);
 
 		const submit = Effect.fn("IndexingCoordinator.submit")(function* (
 			submission: IndexSubmission,
@@ -261,9 +283,30 @@ export class IndexingCoordinator extends Context.Service<
 	IndexingCoordinatorService<IndexingOperationError>
 >()("bot/indexing/IndexingCoordinator") {}
 
+export class IndexingCoordinatorSupervisor extends Context.Service<
+	IndexingCoordinatorSupervisor,
+	{
+		readonly fork: <A, R>(
+			effect: Effect.Effect<A, never, R>,
+		) => Effect.Effect<Fiber.Fiber<A>, never, R>;
+	}
+>()("bot/indexing/IndexingCoordinatorSupervisor") {}
+
 export const layerIndexMutationProcessor = (
 	process: ProcessIndexMutation<IndexingOperationError>,
 ) => Layer.succeed(IndexMutationProcessor, { process });
+
+// Building this dependency first makes LIFO shutdown settle coordinator receipts
+// before interrupting dependent fibers that may be waiting for those receipts.
+export const layerIndexingCoordinatorSupervisor = Layer.effect(
+	IndexingCoordinatorSupervisor,
+	Effect.gen(function* () {
+		const fibers = yield* FiberSet.make<unknown, never>();
+		return IndexingCoordinatorSupervisor.of({
+			fork: (effect) => FiberSet.run(fibers, effect),
+		});
+	}),
+);
 
 export const layerIndexingCoordinator = (options: IndexingCoordinatorOptions) =>
 	Layer.effect(
@@ -272,4 +315,4 @@ export const layerIndexingCoordinator = (options: IndexingCoordinatorOptions) =>
 			const processor = yield* IndexMutationProcessor;
 			return yield* makeIndexingCoordinator(options, processor.process);
 		}),
-	);
+	).pipe(Layer.provideMerge(layerIndexingCoordinatorSupervisor));

@@ -5,7 +5,6 @@ import {
   redirect,
   useRouter,
 } from "@tanstack/react-router"
-import { formatDistanceToNow } from "date-fns"
 import {
   ArrowUpRight,
   Check,
@@ -47,6 +46,7 @@ import {
   type PublishingPageData,
   type PublishingVerification,
 } from "@/features/publishing/queries"
+import { formatLocalDateTime, formatRelativeDate } from "@/lib/date"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute(
@@ -379,8 +379,6 @@ function DomainConfiguration({
   verification: PublishingVerification
 }) {
   const checkedAt = verification.checkedAt
-    ? new Date(verification.checkedAt)
-    : null
   const failed = Boolean(queryError) || verification.status === "failed"
 
   return (
@@ -418,9 +416,9 @@ function DomainConfiguration({
       {checkedAt && (
         <p
           className="mt-2 text-xs text-muted-foreground tabular-nums"
-          title={checkedAt.toLocaleString()}
+          title={formatLocalDateTime(checkedAt)}
         >
-          Checked {formatDistanceToNow(checkedAt, { addSuffix: true })}
+          Checked {formatRelativeDate(checkedAt)}
         </p>
       )}
 

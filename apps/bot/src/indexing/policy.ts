@@ -183,7 +183,6 @@ const retryableClassifications = new Set<IndexErrorClassification>([
 	"database",
 	"projection-submission",
 	"projection-completion",
-	"cache-invalidation",
 ]);
 
 export const retryDispositionFor = (

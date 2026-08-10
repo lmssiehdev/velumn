@@ -1,23 +1,19 @@
-import { TRPCError } from "@trpc/server";
-import { Client } from "discord.js";
-import { describe, expect, it, vi } from "vitest";
-import { IndexingRepositoryError } from "../adapters/indexing-repository";
-import type { BotApiOperations } from "../http/operations";
 import {
-	ReconciliationJobConflictError,
-	ReconciliationJobNotFoundError,
-} from "../http/operations";
-import { consumePublicSearchQuota } from "./rate-limit";
-import { createBotRouter, toSearchExcerpt } from "./trpc";
+	apiFailure,
+	apiSuccess,
+	type BotApiOperations,
+} from "@repo/api/contracts";
+import { createBotRouter, toSearchExcerpt } from "@repo/api/router";
+import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@repo/db/helpers/channels", () => ({ updateVote: vi.fn() }));
-vi.mock("./rate-limit", () => ({
-	consumePublicSearchQuota: vi.fn(),
-	isRateLimited: vi.fn(),
-	isSearchRateLimited: vi.fn(),
-	trackSearch: vi.fn(),
-	trackVote: vi.fn(),
-}));
+const consumePublicSearchQuota = vi.fn();
+const rateLimit = {
+	consumePublicSearchQuota,
+	isRateLimited: vi.fn(async () => false),
+	isSearchRateLimited: vi.fn(async () => false),
+	trackSearch: vi.fn(async () => undefined),
+	trackVote: vi.fn(async () => undefined),
+};
 
 const serverId = "123456789012345678";
 const threadId = "223456789012345678";
@@ -35,10 +31,16 @@ const makeOperations = (
 	getSearchHealth: async () => {
 		throw new Error("not used");
 	},
-	startGuildReconciliation: async () => ({ id: jobId, status: "queued" }),
-	startThreadReconciliation: async () => ({ id: jobId, status: "queued" }),
-	getReconciliationJob: async () => ({ id: jobId, status: "running" }),
-	cancelReconciliationJob: async () => ({ id: jobId, status: "cancelled" }),
+	isBotInServer: async () => false,
+	updateVote: async () => apiSuccess(undefined),
+	startGuildReconciliation: async () =>
+		apiSuccess({ id: jobId, status: "queued" }),
+	startThreadReconciliation: async () =>
+		apiSuccess({ id: jobId, status: "queued" }),
+	getReconciliationJob: async () =>
+		apiSuccess({ id: jobId, status: "running" }),
+	cancelReconciliationJob: async () =>
+		apiSuccess({ id: jobId, status: "cancelled" }),
 	...overrides,
 });
 
@@ -50,12 +52,14 @@ const makeCaller = (
 ) =>
 	createBotRouter({
 		apiSecret: "secret",
-		discordClient: new Client({ intents: [] }) as Client<true>,
+		rateLimit,
 	}).createCaller({ ...context, operations });
 
 describe("indexing tRPC procedures", () => {
 	it("returns the accepted job from both server procedure names", async () => {
-		const start = vi.fn(async () => ({ id: jobId, status: "queued" as const }));
+		const start = vi.fn(async () =>
+			apiSuccess({ id: jobId, status: "queued" as const }),
+		);
 		const caller = makeCaller(
 			makeOperations({ startGuildReconciliation: start }),
 		);
@@ -83,7 +87,9 @@ describe("indexing tRPC procedures", () => {
 	});
 
 	it("preserves the reindexThread input and returns its accepted job", async () => {
-		const start = vi.fn(async () => ({ id: jobId, status: "queued" as const }));
+		const start = vi.fn(async () =>
+			apiSuccess({ id: jobId, status: "queued" as const }),
+		);
 		const caller = makeCaller(
 			makeOperations({ startThreadReconciliation: start }),
 		);
@@ -95,7 +101,9 @@ describe("indexing tRPC procedures", () => {
 	});
 
 	it("rejects malformed snowflakes before calling the operations boundary", async () => {
-		const start = vi.fn(async () => ({ id: jobId, status: "queued" as const }));
+		const start = vi.fn(async () =>
+			apiSuccess({ id: jobId, status: "queued" as const }),
+		);
 		const caller = makeCaller(
 			makeOperations({ startGuildReconciliation: start }),
 		);
@@ -109,28 +117,25 @@ describe("indexing tRPC procedures", () => {
 	it("maps typed job failures without exposing repository causes", async () => {
 		const notFound = makeCaller(
 			makeOperations({
-				getReconciliationJob: async () => {
-					throw new ReconciliationJobNotFoundError({ resource: "job" });
-				},
+				getReconciliationJob: async () => apiFailure({ code: "job_not_found" }),
 			}),
 		);
 		const conflict = makeCaller(
 			makeOperations({
-				cancelReconciliationJob: async () => {
-					throw new ReconciliationJobConflictError({
-						reason: "job-finished",
-					});
-				},
+				cancelReconciliationJob: async () =>
+					apiFailure({ code: "job_finished" }),
 			}),
 		);
 		const repository = makeCaller(
 			makeOperations({
-				startGuildReconciliation: async () => {
-					throw new IndexingRepositoryError({
-						operation: "create-job",
-						cause: new Error("raw database diagnostics"),
-					});
-				},
+				startGuildReconciliation: async () =>
+					apiFailure({ code: "repository_unavailable" }),
+			}),
+		);
+		const discord = makeCaller(
+			makeOperations({
+				startThreadReconciliation: async () =>
+					apiFailure({ code: "discord_unavailable" }),
 			}),
 		);
 
@@ -142,16 +147,21 @@ describe("indexing tRPC procedures", () => {
 			code: "CONFLICT",
 			message: "Indexing job has already finished",
 		});
+		await expect(
+			discord.reindexThread({ serverId, channelId: threadId }),
+		).rejects.toMatchObject({
+			code: "BAD_GATEWAY",
+			message: "Failed to fetch Discord channel",
+		});
 		try {
 			await repository.indexServer({ serverId });
 			expect.unreachable("expected repository failure");
 		} catch (error) {
-			expect(error).toBeInstanceOf(TRPCError);
 			expect(error).toMatchObject({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Indexing job storage is unavailable",
 			});
-			expect((error as TRPCError).cause).toBeUndefined();
+			expect((error as { cause?: unknown }).cause).toBeUndefined();
 		}
 	});
 });
@@ -225,6 +235,37 @@ describe("public search gateway tRPC procedure", () => {
 		expect(search).not.toHaveBeenCalled();
 	});
 
+	it("maps typed search failures to stable tRPC errors", async () => {
+		vi.mocked(consumePublicSearchQuota)
+			.mockResolvedValueOnce({ allowed: true, retryAfterSeconds: 0 })
+			.mockResolvedValueOnce({ allowed: true, retryAfterSeconds: 0 });
+		const notConfigured = makeCaller(
+			makeOperations({
+				search: async () => apiFailure({ code: "search_not_configured" }),
+			}),
+			{ secret: "secret", trustedClientIp: "203.0.113.4" },
+		);
+		const unavailable = makeCaller(
+			makeOperations({
+				search: async () => apiFailure({ code: "search_unavailable" }),
+			}),
+			{ secret: "secret", trustedClientIp: "203.0.113.4" },
+		);
+
+		await expect(
+			notConfigured.searchPublic({ serverId, query: "effect" }),
+		).rejects.toMatchObject({
+			code: "SERVICE_UNAVAILABLE",
+			message: "Search is not configured",
+		});
+		await expect(
+			unavailable.searchPublic({ serverId, query: "effect" }),
+		).rejects.toMatchObject({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Failed to search messages",
+		});
+	});
+
 	it("returns only the safe DTO and plain highlight segments", async () => {
 		vi.mocked(consumePublicSearchQuota).mockResolvedValueOnce({
 			allowed: true,
@@ -250,18 +291,19 @@ describe("public search gateway tRPC procedure", () => {
 		};
 		const caller = makeCaller(
 			makeOperations({
-				search: async () => ({
-					hits: [
-						hit,
-						{ ...hit, id: "423456789012345678" },
-						{ ...hit, id: "523456789012345678" },
-					],
-					offset: 0,
-					limit: 15,
-					estimatedTotalHits: 3,
-					processingTimeMs: 2,
-					query: "effect",
-				}),
+				search: async () =>
+					apiSuccess({
+						hits: [
+							hit,
+							{ ...hit, id: "423456789012345678" },
+							{ ...hit, id: "523456789012345678" },
+						],
+						offset: 0,
+						limit: 15,
+						estimatedTotalHits: 3,
+						processingTimeMs: 2,
+						query: "effect",
+					}),
 			}),
 			{ secret: "secret", trustedClientIp: "203.0.113.4" },
 		);

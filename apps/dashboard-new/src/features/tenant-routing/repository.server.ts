@@ -9,6 +9,7 @@ import {
 } from "@repo/db/helpers/public-content"
 import { getSlugFromTitle } from "@repo/utils/helpers/slugify"
 
+import { getHostRoutingEnv } from "@/env.server"
 import {
   threadInputSchema,
   type TenantChannelInput,
@@ -83,6 +84,7 @@ export async function loadTenantThread(hostname: string, threadId: string) {
   if (!thread) return null
 
   const origin = `https://${capability.hostname}`
+  const velumnOrigin = new URL(getHostRoutingEnv().canonicalOrigin).origin
   const path = `/thread/${thread.id}/${thread.slug}`
   return {
     ...thread,
@@ -91,6 +93,7 @@ export async function loadTenantThread(hostname: string, threadId: string) {
       origin,
       url: `${origin}${path}`,
       markdownUrl: `${origin}${path}.md`,
+      imageUrl: `${velumnOrigin}/og?id=${encodeURIComponent(thread.id)}`,
     },
   }
 }

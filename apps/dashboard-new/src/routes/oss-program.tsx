@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowRight, ArrowUpRight, Check, GitFork } from "lucide-react"
 import type { ReactNode } from "react"
 
-import questrialUrl from "../../../web/assets/Questrial-Regular.ttf?url"
+import questrialUrl from "../assets/Questrial-Regular.ttf?url"
 import marketingCss from "@/features/marketing/new-landing.css?url"
 
 const title = "Velumn for Open-Source Communities"
@@ -314,7 +314,7 @@ function DiscordLink({
   return (
     <a
       className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium whitespace-nowrap text-primary-foreground shadow-xs transition-all outline-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 ${sizeClasses} rounded-full bg-[#20201e] font-semibold text-white shadow-none transition-[transform,background-color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#393936] active:translate-y-0 active:scale-[0.96]`}
-      href="https://discord.gg/B23gNekHPy"
+      href="/discord"
       rel="noopener"
       target="_blank"
     >
@@ -340,7 +340,7 @@ function Footer() {
           </Link>
           <a
             className="rounded-sm transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#20201e] focus-visible:outline-none"
-            href="https://discord.gg/B23gNekHPy"
+            href="/discord"
             rel="noopener noreferrer"
             target="_blank"
           >

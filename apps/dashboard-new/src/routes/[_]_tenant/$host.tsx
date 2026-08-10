@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router"
 
-import questrialUrl from "../../../../web/assets/Questrial-Regular.ttf?url"
+import questrialUrl from "../../assets/Questrial-Regular.ttf?url"
 import { CommunitySearch } from "@/features/public-search/community-search"
 import searchCss from "@/features/public-search/public-search.css?url"
 import threadCss from "@/features/public-thread/public-thread.css?url"

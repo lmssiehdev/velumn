@@ -1,4 +1,5 @@
 import { loadPublicThread } from "./server"
+import { formatUtcDate } from "@/lib/date"
 
 export async function getPublicThreadMarkdown(threadId: string) {
   const thread = await loadPublicThread(threadId)
@@ -83,12 +84,7 @@ function escapeMarkdown(value: string) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(new Date(value))
+  return formatUtcDate(value, "long")
 }
 
 function yamlString(value: string) {

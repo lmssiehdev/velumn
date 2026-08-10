@@ -258,6 +258,7 @@ describe("DiscordMarkdown", () => {
               url: "https://example.com/thread/10/a_production_thread",
               markdownUrl:
                 "https://example.com/thread/10/a_production_thread.md",
+              imageUrl: "https://example.com/og?id=10",
               usesCustomDomain: false,
             },
           } as Parameters<typeof PublicThreadView>[0]["thread"]

@@ -1083,7 +1083,7 @@ From `apps/dashboard-new`:
 ```bash
 bun run check
 bun run lint
-bun run typecheck
+bun run type-check
 bun run test
 bun run build
 bun run test:production-isolation

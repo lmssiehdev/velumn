@@ -1,4 +1,5 @@
 import {
+  getPublicThreadOgSummary,
   getPublicThreadPage,
   resolveVerifiedPublicTenant,
 } from "@repo/db/helpers/public-content"
@@ -32,6 +33,7 @@ export async function loadPublicThread(
   const canonicalOrigin = thread.server.canonicalDomain
     ? `https://${thread.server.canonicalDomain}`
     : new URL(getHostRoutingEnv().canonicalOrigin).origin
+  const velumnOrigin = new URL(getHostRoutingEnv().canonicalOrigin).origin
   const path = `/thread/${thread.id}/${thread.slug}`
 
   return {
@@ -41,9 +43,14 @@ export async function loadPublicThread(
       origin: canonicalOrigin,
       url: `${canonicalOrigin}${path}`,
       markdownUrl: `${canonicalOrigin}${path}.md`,
+      imageUrl: `${velumnOrigin}/og?id=${encodeURIComponent(thread.id)}`,
       usesCustomDomain: thread.server.canonicalDomain !== null,
     },
   }
+}
+
+export function loadPublicThreadOgSummary(threadId: string) {
+  return getPublicThreadOgSummary(null, threadId)
 }
 
 function toDescription(content: string, title: string) {

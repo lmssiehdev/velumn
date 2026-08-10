@@ -1,4 +1,5 @@
 import { ChannelType } from "discord-api-types/v10"
+import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake"
 import {
   ChevronLeft,
   ChevronRight,
@@ -7,11 +8,13 @@ import {
   MessageSquareText,
   Pin,
 } from "lucide-react"
-import { Outlet, useRouter, useRouterState } from "@tanstack/react-router"
+import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router"
+import type { ReactNode } from "react"
 
-import questrialUrl from "../../../../web/assets/Questrial-Regular.ttf?url"
+import questrialUrl from "../../assets/Questrial-Regular.ttf?url"
 import { CommunitySearch } from "@/features/public-search/community-search"
 import { getPublicSearchScope } from "@/features/public-search/contracts"
+import { formatUtcDate } from "@/lib/date"
 import type { PublicForumPage } from "./contracts"
 
 export function PublicForumRouteLayout() {
@@ -28,9 +31,9 @@ export function PublicForumRouteLayout() {
       </a>
       <header className="public-forum__topbar">
         <div className="public-forum__topbar-inner">
-          <a className="public-forum__brand" href="/">
+          <Link className="public-forum__brand" to="/">
             Velumn
-          </a>
+          </Link>
           {searchScope && <CommunitySearch scope={searchScope} />}
         </div>
       </header>
@@ -45,18 +48,11 @@ export function PublicForumRouteLayout() {
 }
 
 export function PublicForumView({ forum }: { forum: PublicForumPage }) {
-  const activeChannel = forum.channels.find(
-    (channel) => channel.id === forum.activeChannelId
-  )
-  const basePath = activeChannel
-    ? `/channel/${activeChannel.id}`
-    : `/server/${forum.server.id}`
-
   return (
     <main className="public-forum__main" id="public-forum-content">
       <h1>Join a Discussion</h1>
       <div className="public-forum__body">
-        <ThreadList forum={forum} basePath={basePath} />
+        <ThreadList forum={forum} />
         <ForumSidebar forum={forum} />
       </div>
     </main>
@@ -64,15 +60,18 @@ export function PublicForumView({ forum }: { forum: PublicForumPage }) {
 }
 
 function ForumSidebar({ forum }: { forum: PublicForumPage }) {
-  const serverPath = `/server/${forum.server.id}`
-
   return (
     <aside className="public-forum__sidebar" aria-label="Forum information">
       <section className="public-forum__server-info">
         <div>
-          <a className="public-forum__server-name" href={serverPath}>
+          <Link
+            className="public-forum__server-name"
+            params={{ serverId: forum.server.id }}
+            preload={false}
+            to="/server/$serverId"
+          >
             {forum.server.name}
-          </a>
+          </Link>
           <div className="public-forum__member-count">
             <span aria-hidden="true" />
             {forum.server.memberCount} members
@@ -94,7 +93,15 @@ function ForumSidebar({ forum }: { forum: PublicForumPage }) {
       <nav className="public-forum__boards" aria-label="Boards">
         <div className="public-forum__boards-header">
           <span>Boards</span>
-          {forum.activeChannelId && <a href={serverPath}>show all</a>}
+          {forum.activeChannelId && (
+            <Link
+              params={{ serverId: forum.server.id }}
+              preload={false}
+              to="/server/$serverId"
+            >
+              show all
+            </Link>
+          )}
         </div>
         {forum.channels.map((channel) => {
           const isActive = channel.id === forum.activeChannelId
@@ -102,15 +109,17 @@ function ForumSidebar({ forum }: { forum: PublicForumPage }) {
             channel.type === ChannelType.GuildForum ? MessageSquareText : Hash
 
           return (
-            <a
+            <Link
               aria-current={isActive ? "page" : undefined}
               className="public-forum__board"
-              href={`/channel/${channel.id}`}
               key={channel.id}
+              params={{ channelId: channel.id }}
+              preload={false}
+              to="/channel/$channelId"
             >
               <Icon aria-hidden="true" />
               <span>{channel.name}</span>
-            </a>
+            </Link>
           )
         })}
       </nav>
@@ -118,23 +127,20 @@ function ForumSidebar({ forum }: { forum: PublicForumPage }) {
   )
 }
 
-function ThreadList({
-  forum,
-  basePath,
-}: {
-  forum: PublicForumPage
-  basePath: string
-}) {
+function ThreadList({ forum }: { forum: PublicForumPage }) {
   if (forum.threads.length === 0) {
     return (
       <div className="public-forum__empty">
         <div>
           No threads found
           {forum.cursor && (
-            <a className="public-forum__secondary-button" href={basePath}>
+            <ForumPageLink
+              className="public-forum__secondary-button"
+              forum={forum}
+            >
               <ChevronLeft aria-hidden="true" />
               Clear Filters
-            </a>
+            </ForumPageLink>
           )}
         </div>
       </div>
@@ -154,19 +160,30 @@ function ThreadList({
           return (
             <li className="public-forum__thread" key={thread.id}>
               <div className="public-forum__thread-copy">
-                <a
+                <Link
                   className="public-forum__thread-title"
-                  href={`/thread/${thread.id}/${slugify(thread.title)}`}
+                  params={{
+                    threadId: thread.id,
+                    slug: slugify(thread.title),
+                  }}
+                  preload={false}
+                  to="/thread/$threadId/$slug"
                 >
                   {thread.title}
-                </a>
+                </Link>
                 <div className="public-forum__thread-meta">
                   by {thread.author} <span aria-hidden="true">•</span> in{" "}
-                  <a href={`/channel/${thread.channel.id}`}>
+                  <Link
+                    params={{ channelId: thread.channel.id }}
+                    preload={false}
+                    to="/channel/$channelId"
+                  >
                     #{thread.channel.name}
-                  </a>{" "}
+                  </Link>{" "}
                   <span aria-hidden="true">•</span>{" "}
-                  <time dateTime={snowflakeDate(thread.id).toISOString()}>
+                  <time
+                    dateTime={getDateFromSnowflake(thread.id).toISOString()}
+                  >
                     {formatDate(thread.id)}
                   </time>
                 </div>
@@ -192,16 +209,16 @@ function ThreadList({
       </ol>
       <nav className="public-forum__pagination" aria-label="Discussion pages">
         {forum.cursor && (
-          <a href={basePath}>
+          <ForumPageLink forum={forum}>
             <ChevronLeft aria-hidden="true" />
             Clear Filters
-          </a>
+          </ForumPageLink>
         )}
         {forum.nextCursor && (
-          <a href={`${basePath}?cursor=${forum.nextCursor}`} rel="next">
+          <ForumPageLink cursor={forum.nextCursor} forum={forum} rel="next">
             Next
             <ChevronRight aria-hidden="true" />
-          </a>
+          </ForumPageLink>
         )}
       </nav>
     </section>
@@ -262,15 +279,48 @@ function slugify(value: string) {
   return slug || "thread"
 }
 
-function snowflakeDate(id: string) {
-  return new Date(Number((BigInt(id) >> 22n) + 1_420_070_400_000n))
+function ForumPageLink({
+  children,
+  className,
+  cursor,
+  forum,
+  rel,
+}: {
+  children: ReactNode
+  className?: string
+  cursor?: string | null
+  forum: PublicForumPage
+  rel?: string
+}) {
+  const search = cursor ? { cursor } : {}
+  if (forum.activeChannelId) {
+    return (
+      <Link
+        className={className}
+        params={{ channelId: forum.activeChannelId }}
+        preload={false}
+        rel={rel}
+        search={search}
+        to="/channel/$channelId"
+      >
+        {children}
+      </Link>
+    )
+  }
+  return (
+    <Link
+      className={className}
+      params={{ serverId: forum.server.id }}
+      preload={false}
+      rel={rel}
+      search={search}
+      to="/server/$serverId"
+    >
+      {children}
+    </Link>
+  )
 }
 
 function formatDate(id: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(snowflakeDate(id))
+  return formatUtcDate(getDateFromSnowflake(id))
 }

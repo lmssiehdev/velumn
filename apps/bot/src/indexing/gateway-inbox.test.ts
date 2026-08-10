@@ -1,17 +1,22 @@
 import { assert, describe, it } from "@effect/vitest";
 import { decodeClaimedIndexingGatewayMutation } from "@repo/db/helpers/indexing-gateway-mutation";
 import type { DBIndexingGatewayMutation } from "@repo/db/schema/index";
-import { Cause, Deferred, Effect, Fiber, Layer } from "effect";
+import { Cause, Deferred, Effect, Fiber, Layer, Option, Tracer } from "effect";
 import { TestClock } from "effect/testing";
 import {
 	GatewayMutationLeaseLostError,
 	GatewayMutationRepository,
 	GatewayMutationRepositoryError,
 } from "../adapters/gateway-mutation-repository";
+import {
+	ErrorCapture,
+	type ErrorCaptureContext,
+} from "../observability/error-capture";
 import { Readiness } from "../runtime/readiness";
 import {
 	IndexingCoordinator,
 	type IndexingCoordinatorService,
+	layerIndexingCoordinatorSupervisor,
 } from "./coordinator";
 import {
 	drainGatewayMutationBatch,
@@ -152,6 +157,68 @@ const calls = () => ({
 });
 
 describe("durable gateway mutation inbox", () => {
+	it.effect("suppresses empty polls and roots claimed batches", () =>
+		Effect.gen(function* () {
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+			const service = coordinator((submission) =>
+				Effect.succeed({
+					_tag: "Accepted",
+					receipt: {
+						await: Effect.succeed({
+							_tag: "Completed",
+							submissionId: submission.id,
+							completedAt: 2_000,
+						}),
+					},
+				}),
+			);
+
+			yield* run([], calls(), service).pipe(
+				Effect.andThen(run([], calls(), service)),
+				Effect.provideService(Tracer.Tracer, tracer),
+			);
+			assert.deepEqual(spans, []);
+
+			yield* run(
+				[
+					row(1, "content:thread-1", {
+						_tag: "DeleteMessage",
+						messageId: "message-1",
+						channelId: "thread-1",
+						threadId: "thread-1",
+						observedAt: 1_000,
+					}),
+				],
+				calls(),
+				service,
+			).pipe(Effect.provideService(Tracer.Tracer, tracer));
+
+			const root = spans.find((span) => span.name === "gateway.poll");
+			const claimed = spans.find(
+				(span) => span.name === "gateway.claimed_process",
+			);
+			assert.isDefined(root);
+			assert.isDefined(claimed);
+			assert.isTrue(Option.isNone(root?.parent ?? Option.none()));
+			assert.equal(Option.getOrUndefined(claimed?.parent)?.spanId, root?.spanId);
+			assert.equal(claimed?.traceId, root?.traceId);
+			const exportedIds = new Set(spans.map((span) => span.spanId));
+			assert.isTrue(
+				spans.every((span) => {
+					const parent = Option.getOrUndefined(span.parent);
+					return !parent || exportedIds.has(parent.spanId);
+				}),
+			);
+		}),
+	);
+
 	it.effect("retains a message delete through coordinator overload", () =>
 		Effect.gen(function* () {
 			let attempts = 0;
@@ -291,8 +358,147 @@ describe("durable gateway mutation inbox", () => {
 			gatewayMutationErrorCode(Cause.interrupt(1)),
 			"indexing:interrupted",
 		);
+		assert.equal(
+			gatewayMutationErrorCode(
+				Cause.combine(failed("missing-entity"), Cause.die("unexpected")),
+			),
+			"indexing:defect",
+		);
 		assert.equal(gatewayMutationErrorCode(Cause.empty), "indexing:unknown");
 	});
+
+	it.effect(
+		"defers a terminal error when its cause also contains a defect",
+		() =>
+			Effect.gen(function* () {
+				const observed = calls();
+				const cause = Cause.combine(
+					failed("missing-entity"),
+					Cause.die("unexpected"),
+				);
+				yield* run(
+					[
+						row(25, "content:thread-1", {
+							_tag: "DeleteMessage",
+							messageId: "message-1",
+							channelId: "thread-1",
+							threadId: "thread-1",
+							observedAt: 1_000,
+						}),
+					],
+					observed,
+					coordinator((submission) =>
+						Effect.succeed({
+							_tag: "Accepted",
+							receipt: {
+								await: Effect.succeed({
+									_tag: "Failed",
+									submissionId: submission.id,
+									failedAt: 2_000,
+									cause,
+								}),
+							},
+						}),
+					),
+				);
+
+				assert.deepEqual(observed.completed, []);
+				assert.deepEqual(observed.deferred, [25]);
+				assert.deepEqual(observed.deferredCodes, ["indexing:defect"]);
+			}),
+	);
+
+	it.effect(
+		"captures a recovered receipt defect once but not a typed failure",
+		() =>
+			Effect.gen(function* () {
+				const observed = calls();
+				const contexts: ErrorCaptureContext[] = [];
+				const spans: Tracer.NativeSpan[] = [];
+				const tracer = Tracer.make({
+					span: (spanOptions) => {
+						const span = new Tracer.NativeSpan(spanOptions);
+						spans.push(span);
+						return span;
+					},
+				});
+				const defect = Cause.combine(
+					failed("missing-entity"),
+					Cause.die(new Error("coordinator defect")),
+				);
+				yield* run(
+					[
+						row(25, "content:thread-1", {
+							_tag: "DeleteMessage",
+							messageId: "message-25",
+							channelId: "thread-1",
+							threadId: "thread-1",
+							observedAt: 1_000,
+						}),
+						row(26, "content:thread-2", {
+							_tag: "DeleteMessage",
+							messageId: "message-26",
+							channelId: "thread-2",
+							threadId: "thread-2",
+							observedAt: 1_000,
+						}),
+					],
+					observed,
+					coordinator((submission) =>
+						Effect.succeed({
+							_tag: "Accepted",
+							receipt: {
+								await: Effect.succeed({
+									_tag: "Failed",
+									submissionId: submission.id,
+									failedAt: 2_000,
+									cause: submission.id.endsWith(":25") ? defect : failed(),
+								}),
+							},
+						}),
+					),
+				).pipe(
+					Effect.provideService(ErrorCapture, {
+						captureCause: (_cause, context) =>
+							Effect.sync(() => {
+								contexts.push(context);
+								return undefined;
+							}),
+					}),
+					Effect.provideService(Tracer.Tracer, tracer),
+				);
+
+				assert.equal(contexts.length, 1);
+				assert.deepInclude(contexts[0], {
+					boundary: "gateway_receipt_recovery",
+					operation: "IndexingCoordinator.settleItem",
+					mutationId: "25",
+					submissionId: "gateway:test:25",
+					messageId: "message-25",
+					channelId: "thread-1",
+					threadId: "thread-1",
+				});
+				const defectSpan = spans.find(
+					(span) => span.attributes.get("mutationId") === 25,
+				);
+				const typedSpan = spans.find(
+					(span) => span.attributes.get("mutationId") === 26,
+				);
+				assert.equal(
+					defectSpan?.attributes.get("operation.outcome"),
+					"deferred",
+				);
+				assert.equal(
+					defectSpan?.attributes.get("error.classification"),
+					"defect",
+				);
+				assert.equal(
+					typedSpan?.attributes.get("error.type"),
+					"IndexingOperationError",
+				);
+				assert.deepEqual(observed.deferred.sort(), [25, 26]);
+			}),
+	);
 
 	it.effect("completes deferred permission revocation after restart", () =>
 		Effect.gen(function* () {
@@ -382,7 +588,7 @@ describe("durable gateway mutation inbox", () => {
 			Layer.provide(
 				Layer.merge(
 					Layer.succeed(GatewayMutationRepository, pollingRepository),
-					Layer.merge(
+					Layer.mergeAll(
 						Layer.succeed(
 							IndexingCoordinator,
 							coordinator((submission) =>
@@ -398,6 +604,7 @@ describe("durable gateway mutation inbox", () => {
 								}),
 							),
 						),
+						layerIndexingCoordinatorSupervisor,
 						Readiness.layer,
 					),
 				),
@@ -601,11 +808,12 @@ describe("durable gateway mutation inbox", () => {
 				Layer.provide(
 					Layer.merge(
 						Layer.succeed(GatewayMutationRepository, retryingRepository),
-						Layer.merge(
+						Layer.mergeAll(
 							Layer.succeed(
 								IndexingCoordinator,
 								coordinator(() => Effect.die("unused")),
 							),
+							layerIndexingCoordinatorSupervisor,
 							Readiness.layer,
 						),
 					),

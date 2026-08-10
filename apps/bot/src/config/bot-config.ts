@@ -57,40 +57,52 @@ export class BotConfig extends Context.Service<
 			const apiPort = yield* Config.number("BOT_API_PORT").pipe(
 				Config.withDefault(8001),
 			);
-			const configuredApiSecret = yield* Config.option(
-				Config.redacted("BOT_API_SECRET"),
-			);
-			const apiSecret = Option.getOrElse(
-				configuredApiSecret,
-				() => discordToken,
-			);
+			const apiSecret = yield* Config.redacted("BOT_API_SECRET");
 			const webOrigin = yield* Config.string("NEXT_PUBLIC_VELUMN_URL").pipe(
 				Config.withDefault("http://localhost:3000"),
 			);
 			const dashboardOrigin = yield* Config.string(
 				"NEXT_PUBLIC_VELUMN_DASHBOARD_URL",
 			).pipe(Config.withDefault("http://localhost:3001"));
-			const meilisearch = yield* Config.option(
-				Config.all({
-					host: nonEmptyConfig("MEILISEARCH_HOST"),
-					apiKey: Config.option(Config.redacted("MEILISEARCH_API_KEY")),
-				}),
+			const meilisearchHost = yield* Config.option(
+				nonEmptyConfig("MEILISEARCH_HOST"),
 			);
-			const r2 = yield* Config.option(
-				Config.all({
-					endpoint: nonEmptyConfig("R2_ENDPOINT"),
-					bucketName: nonEmptyConfig("R2_BUCKET_NAME"),
-					accessKeyId: nonEmptyConfig("R2_ACCESS_KEY").pipe(
-						Config.map(Redacted.make),
-					),
-					secretAccessKey: nonEmptyConfig("R2_SECRET_ACCESS_KEY").pipe(
-						Config.map(Redacted.make),
-					),
-					publicBaseUrl: nonEmptyConfig("R2_PUBLIC_BASE_URL").pipe(
-						Config.withDefault("https://cdn.velumn.com"),
-					),
-				}),
+			const meilisearchApiKey = yield* Config.option(
+				Config.redacted("MEILISEARCH_API_KEY"),
 			);
+			const meilisearch = Option.map(meilisearchHost, (host) => ({
+				host,
+				apiKey: meilisearchApiKey,
+			}));
+			const r2Required = {
+				endpoint: nonEmptyConfig("R2_ENDPOINT"),
+				bucketName: nonEmptyConfig("R2_BUCKET_NAME"),
+				accessKeyId: nonEmptyConfig("R2_ACCESS_KEY").pipe(
+					Config.map(Redacted.make),
+				),
+				secretAccessKey: nonEmptyConfig("R2_SECRET_ACCESS_KEY").pipe(
+					Config.map(Redacted.make),
+				),
+			};
+			const r2Presence = yield* Config.all({
+				endpoint: Config.option(r2Required.endpoint),
+				bucketName: Config.option(r2Required.bucketName),
+				accessKeyId: Config.option(r2Required.accessKeyId),
+				secretAccessKey: Config.option(r2Required.secretAccessKey),
+			});
+			let r2: Option.Option<R2Config> = Option.none();
+			if (
+				Option.isSome(r2Presence.endpoint) ||
+				Option.isSome(r2Presence.bucketName) ||
+				Option.isSome(r2Presence.accessKeyId) ||
+				Option.isSome(r2Presence.secretAccessKey)
+			) {
+				const required = yield* Config.all(r2Required);
+				const publicBaseUrl = yield* nonEmptyConfig("R2_PUBLIC_BASE_URL").pipe(
+					Config.withDefault("https://cdn.velumn.com"),
+				);
+				r2 = Option.some({ ...required, publicBaseUrl });
+			}
 			return BotConfig.of({
 				discordToken,
 				environment,

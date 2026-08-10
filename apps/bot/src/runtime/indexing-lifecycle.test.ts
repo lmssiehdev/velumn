@@ -6,7 +6,16 @@ import {
 	type Message,
 	type Client as ReadyClient,
 } from "discord.js";
-import { Deferred, Effect, Exit, Layer, Option, Redacted, Scope } from "effect";
+import {
+	Deferred,
+	Effect,
+	Exit,
+	Fiber,
+	Layer,
+	Option,
+	Redacted,
+	Scope,
+} from "effect";
 import { TestClock } from "effect/testing";
 import { GatewayMutationRepository } from "../adapters/gateway-mutation-repository";
 import { IndexingRepository } from "../adapters/indexing-repository";
@@ -18,7 +27,12 @@ import {
 	makeDiscordConnection,
 } from "../discord/client";
 import { makeDiscordEvents } from "../discord/events";
-import { IndexingCoordinator } from "../indexing/coordinator";
+import {
+	IndexingCoordinator,
+	layerIndexingCoordinator,
+	layerIndexingCoordinatorSupervisor,
+	layerIndexMutationProcessor,
+} from "../indexing/coordinator";
 import { layerIndexingEvents } from "../indexing/events";
 import {
 	GatewayMutationInbox,
@@ -41,6 +55,101 @@ const config = BotConfig.of({
 
 describe("indexing layer lifecycle", () => {
 	it.effect(
+		"closes after the coordinator deadline with an admitted stuck inbox item",
+		() =>
+			Effect.gen(function* () {
+				const scope = yield* Scope.make();
+				const started = yield* Deferred.make<void>();
+				let claimed = false;
+				let deferred = 0;
+				let released = 0;
+				const mutation: DBIndexingGatewayMutation = {
+					id: 1,
+					submissionId: "gateway:stuck",
+					orderingKey: "content:thread-1",
+					mutation: {
+						_tag: "DeleteMessage",
+						messageId: "message-1",
+						channelId: "thread-1",
+						threadId: "thread-1",
+						observedAt: 0,
+					},
+					submittedAt: new Date(0),
+					status: "processing",
+					attemptCount: 1,
+					nextAttemptAt: new Date(0),
+					leaseOwner: "shutdown-inbox",
+					leaseExpiresAt: new Date(100_000),
+					lastErrorCode: null,
+					createdAt: new Date(0),
+					updatedAt: new Date(0),
+				};
+				const repository = GatewayMutationRepository.of({
+					enqueue: () => Effect.die("unused"),
+					claim: () =>
+						Effect.sync(() => {
+							if (claimed) return [];
+							claimed = true;
+							return [mutation];
+						}),
+					complete: () => Effect.die("stuck work must not complete"),
+					defer: () =>
+						Effect.sync(() => {
+							deferred += 1;
+						}),
+					renew: () => Effect.void,
+					release: () =>
+						Effect.sync(() => {
+							released += 1;
+						}),
+				});
+				const coordinator = layerIndexingCoordinator({
+					queueCapacity: 4,
+					maxActivePartitions: 4,
+					idleTimeToLive: "1 minute",
+				}).pipe(
+					Layer.provide(
+						layerIndexMutationProcessor(() =>
+							Deferred.succeed(started, undefined).pipe(
+								Effect.andThen(Effect.never),
+							),
+						),
+					),
+				);
+				const root = layerGatewayMutationInbox({
+					leaseOwner: "shutdown-inbox",
+					batchSize: 1,
+					concurrency: 1,
+					leaseDurationMs: 100_000,
+					initialRetryDelayMs: 10,
+					maximumRetryDelayMs: 100,
+					pollingIntervalMs: 10,
+				}).pipe(
+					Layer.provideMerge(
+						Layer.mergeAll(
+							Layer.succeed(GatewayMutationRepository, repository),
+							coordinator,
+							Readiness.layer,
+						),
+					),
+				);
+
+				yield* Layer.build(root).pipe(Scope.provide(scope));
+				yield* Deferred.await(started);
+				const closeFiber = yield* Effect.forkChild(
+					Scope.close(scope, Exit.void),
+				);
+				yield* Effect.yieldNow;
+				assert.isUndefined(closeFiber.pollUnsafe());
+				yield* TestClock.adjust("3 seconds");
+				yield* Fiber.join(closeFiber);
+
+				assert.equal(deferred, 1);
+				assert.equal(released, 1);
+			}),
+	);
+
+	it.effect(
 		"keeps the root inbox polling after acquisition and listener enqueue",
 		() =>
 			Effect.gen(function* () {
@@ -53,7 +162,6 @@ describe("indexing layer lifecycle", () => {
 				let claimCount = 0;
 				let completedCount = 0;
 				let coordinatorFinalized = false;
-				let inboxStoppedBeforeCoordinator = false;
 				const repository = GatewayMutationRepository.of({
 					enqueue: (input) =>
 						Effect.gen(function* () {
@@ -114,10 +222,9 @@ describe("indexing layer lifecycle", () => {
 					IndexingCoordinator,
 					Effect.acquireRelease(Effect.succeed(coordinator), () =>
 						readiness.get.pipe(
-							Effect.tap((state) =>
+							Effect.tap(() =>
 								Effect.sync(() => {
 									coordinatorFinalized = true;
-									inboxStoppedBeforeCoordinator = !state.gatewayMutationInbox;
 								}),
 							),
 							Effect.asVoid,
@@ -143,6 +250,7 @@ describe("indexing layer lifecycle", () => {
 						Layer.mergeAll(
 							Layer.succeed(GatewayMutationRepository, repository),
 							coordinatorLayer,
+							layerIndexingCoordinatorSupervisor,
 							Layer.succeed(Readiness, readiness),
 						),
 					),
@@ -176,7 +284,6 @@ describe("indexing layer lifecycle", () => {
 				assert.equal(client.listenerCount(Events.MessageCreate), 0);
 				assert.isFalse((yield* readiness.get).gatewayMutationInbox);
 				assert.isTrue(coordinatorFinalized);
-				assert.isTrue(inboxStoppedBeforeCoordinator);
 				const claimsAfterClose = claimCount;
 				yield* TestClock.adjust("30 millis");
 				assert.equal(claimCount, claimsAfterClose);
@@ -213,6 +320,7 @@ describe("indexing layer lifecycle", () => {
 					Layer.mergeAll(
 						Layer.succeed(GatewayMutationRepository, repository),
 						Layer.succeed(IndexingCoordinator, coordinator),
+						layerIndexingCoordinatorSupervisor,
 						Layer.succeed(Readiness, readiness),
 					),
 				),

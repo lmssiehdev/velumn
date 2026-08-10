@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 
 import { parsePublicThreadParams } from "@/features/public-thread/contracts"
 import { getPublicThread } from "@/features/public-thread/functions"
+import { buildDiscussionForumPostingScripts } from "@/features/public-thread/structured-data"
 import { PublicThreadView } from "@/features/public-thread/thread"
 
 export const Route = createFileRoute("/thread/$threadId/$slug")({
@@ -37,6 +38,12 @@ export const Route = createFileRoute("/thread/$threadId/$slug")({
               content: loaderData.description,
             },
             { property: "og:url", content: loaderData.canonical.url },
+            { property: "og:image", content: loaderData.canonical.imageUrl },
+            { property: "og:image:width", content: "1200" },
+            { property: "og:image:height", content: "630" },
+            { property: "og:image:alt", content: loaderData.title },
+            { name: "twitter:card", content: "summary_large_image" },
+            { name: "twitter:image", content: loaderData.canonical.imageUrl },
             {
               property: "article:published_time",
               content: loaderData.createdAt,
@@ -55,6 +62,7 @@ export const Route = createFileRoute("/thread/$threadId/$slug")({
               title: `${loaderData.title} as Markdown`,
             },
           ],
+          scripts: buildDiscussionForumPostingScripts(loaderData),
         }
       : {
           meta: [

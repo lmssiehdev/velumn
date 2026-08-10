@@ -27,6 +27,7 @@ import {
 	type IndexingRepositoryError,
 } from "../adapters/indexing-repository";
 import { DiscordClient } from "../discord/client";
+import { ErrorCapture } from "../observability/error-capture";
 import { IndexingCoordinator } from "./coordinator";
 import { DiscordHistory, type ThreadParentChannel } from "./discord-history";
 import {
@@ -433,6 +434,7 @@ export const makeReconciliationJobs = (
 		const history = yield* DiscordHistory;
 		const coordinator = yield* IndexingCoordinator;
 		const repository = yield* IndexingRepository;
+		const errorCapture = yield* ErrorCapture;
 		const planner = yield* makeThreadPlanner(options);
 		const semaphore = yield* Semaphore.make(1);
 		const fibers = yield* FiberMap.make<string, void>();
@@ -526,6 +528,22 @@ export const makeReconciliationJobs = (
 					}),
 				)
 				.pipe(
+					Effect.tapCause((cause) =>
+						!Cause.hasInterruptsOnly(cause)
+							? errorCapture.captureCause(cause, {
+									boundary: "reconciliation_job",
+									operation: "reconciliation.job",
+									jobId: job.id,
+								})
+							: Effect.void,
+					),
+					Effect.withSpan("reconciliation.job", {
+						root: true,
+						attributes: {
+							"operation.name": "reconciliation.job",
+							jobId: job.id,
+						},
+					}),
 					Effect.onInterrupt(() =>
 						repository
 							.completeJob(job.id, { status: "cancelled" })

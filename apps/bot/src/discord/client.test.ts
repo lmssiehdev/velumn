@@ -1,12 +1,76 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Client, Events, type Client as ReadyClient } from "discord.js";
-import { Deferred, Effect, Exit, Fiber, Redacted, Ref, Scope } from "effect";
+import {
+	Deferred,
+	Effect,
+	Exit,
+	Fiber,
+	Option,
+	Redacted,
+	Ref,
+	Scope,
+	Tracer,
+} from "effect";
+import { TestClock } from "effect/testing";
+import {
+	ErrorCapture,
+	type ErrorCaptureContext,
+} from "../observability/error-capture";
 import { makeDiscordClient } from "./client";
 import { makeDiscordEvents } from "./events";
 
 const makeTestClient = () => new Client({ intents: [] });
 
 describe("Discord lifecycle", () => {
+	it.effect("starts a distinct root trace for each Discord event", () =>
+		Effect.gen(function* () {
+			const client = makeTestClient();
+			const scope = yield* Scope.make();
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+			const completed = yield* Deferred.make<void>();
+			const events = yield* makeDiscordEvents(client).pipe(
+				Effect.provideService(Tracer.Tracer, tracer),
+				Scope.provide(scope),
+			);
+			let calls = 0;
+			yield* events
+				.forkOn(Events.Debug, () =>
+					Effect.sync(() => {
+						calls += 1;
+						return calls;
+					}).pipe(
+						Effect.flatMap((count) =>
+							count === 2
+								? Deferred.succeed(completed, undefined)
+								: Effect.void,
+						),
+					),
+				)
+				.pipe(
+					Effect.provideService(Tracer.Tracer, tracer),
+					Scope.provide(scope),
+				);
+
+			client.emit(Events.Debug, "first");
+			client.emit(Events.Debug, "second");
+			yield* Deferred.await(completed);
+			const roots = spans.filter((span) => span.name === "discord.debug");
+			assert.equal(roots.length, 2);
+			assert.notEqual(roots[0]?.traceId, roots[1]?.traceId);
+			assert.isTrue(roots.every((span) => Option.isNone(span.parent)));
+
+			yield* Scope.close(scope, Exit.void);
+			yield* Effect.promise(() => client.destroy());
+		}),
+	);
+
 	it.effect("removes plain listeners when their scope closes", () =>
 		Effect.gen(function* () {
 			const client = makeTestClient();
@@ -65,6 +129,50 @@ describe("Discord lifecycle", () => {
 		}),
 	);
 
+	it.effect(
+		"reports escaped handler causes and keeps the listener active",
+		() =>
+			Effect.gen(function* () {
+				const client = makeTestClient();
+				const scope = yield* Scope.make();
+				const reported = yield* Deferred.make<ErrorCaptureContext>();
+				const events = yield* makeDiscordEvents(client).pipe(
+					Effect.provideService(ErrorCapture, {
+						captureCause: (_cause, context) =>
+							Deferred.succeed(reported, context).pipe(Effect.as(undefined)),
+					}),
+					Scope.provide(scope),
+				);
+				let calls = 0;
+				yield* events
+					.forkOn(Events.MessageCreate, () => {
+						calls += 1;
+						return calls === 1 ? Effect.die("escaped") : Effect.void;
+					})
+					.pipe(Scope.provide(scope));
+
+				const message = {
+					id: "message-1",
+					channelId: "channel-1",
+					guildId: "guild-1",
+				};
+				client.emit(Events.MessageCreate, message as never);
+				assert.deepInclude(yield* Deferred.await(reported), {
+					boundary: "discord_event_handler",
+					operation: "messageCreate",
+					messageId: "message-1",
+					channelId: "channel-1",
+					guildId: "guild-1",
+				});
+				client.emit(Events.MessageCreate, message as never);
+				yield* Effect.yieldNow;
+				assert.equal(calls, 2);
+
+				yield* Scope.close(scope, Exit.void);
+				yield* Effect.promise(() => client.destroy());
+			}),
+	);
+
 	it.effect("destroys the Discord client when its scope closes", () =>
 		Effect.gen(function* () {
 			const client = makeTestClient();
@@ -89,6 +197,42 @@ describe("Discord lifecycle", () => {
 
 			assert.strictEqual(service.client, client);
 			assert.isFalse(destroyed);
+
+			yield* Scope.close(scope, Exit.void);
+			assert.isTrue(destroyed);
+		}),
+	);
+
+	it.effect("times out a login promise that never settles", () =>
+		Effect.gen(function* () {
+			const client = makeTestClient();
+			const scope = yield* Scope.make();
+			let markLoginStarted: () => void = () => {};
+			const loginStarted = new Promise<void>((resolve) => {
+				markLoginStarted = resolve;
+			});
+			let destroyed = false;
+			client.destroy = async () => {
+				destroyed = true;
+			};
+
+			const fiber = yield* Effect.forkChild(
+				makeDiscordClient(Redacted.make("test-token"), {
+					makeClient: () => client,
+					login: () => {
+						markLoginStarted();
+						return new Promise<string>(() => {});
+					},
+					loginTimeout: "1 second",
+				}).pipe(Scope.provide(scope), Effect.exit),
+			);
+
+			yield* Effect.promise(() => loginStarted);
+			yield* TestClock.adjust("1 second");
+			const exit = yield* Fiber.join(fiber);
+			assert.isTrue(Exit.isFailure(exit));
+			assert.equal(client.listenerCount(Events.ClientReady), 0);
+			assert.equal(client.listenerCount(Events.Error), 1);
 
 			yield* Scope.close(scope, Exit.void);
 			assert.isTrue(destroyed);

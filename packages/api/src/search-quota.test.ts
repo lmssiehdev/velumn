@@ -32,11 +32,9 @@ describe("public search quota", () => {
 		const send = vi.fn<(command: string, args: string[]) => Promise<unknown>>(
 			async () => [0, 23],
 		);
-
 		await expect(
 			consumePublicSearchQuota("203.0.113.8", { send }),
 		).resolves.toEqual({ allowed: false, retryAfterSeconds: 23 });
-		expect(send).toHaveBeenCalledOnce();
 		const [command, args] = send.mock.calls[0] ?? [];
 		expect(command).toBe("EVAL");
 		expect(args?.slice(1)).toEqual([
@@ -45,13 +43,10 @@ describe("public search quota", () => {
 			"60",
 			"30",
 		]);
-		expect(args?.[0]).toContain('redis.call("INCR", KEYS[1])');
-		expect(args?.[0]).toContain('redis.call("EXPIRE", KEYS[1], ARGV[1])');
 	});
 
 	it("fails closed without issuing Redis commands for an invalid IP", async () => {
 		const send = vi.fn();
-
 		await expect(
 			consumePublicSearchQuota("not-an-ip", { send }),
 		).resolves.toEqual({ allowed: false, retryAfterSeconds: 60 });

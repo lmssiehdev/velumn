@@ -1,12 +1,26 @@
+import {
+	apiFailure,
+	apiSuccess,
+	type ApiResult,
+	type AcceptedReconciliationJob,
+	type BotApiOperations,
+	type IndexingFailure,
+	type SearchFailure,
+} from "@repo/api/contracts";
 import type { DBIndexingJob } from "@repo/db/schema/index";
-import { ChannelType, type Snowflake } from "discord.js";
+import { apiLogger } from "@repo/logger";
+import { ChannelType } from "discord.js";
+import { RESTJSONErrorCodes } from "discord-api-types/v10";
 import { Effect, FiberSet, Schema, type Scope } from "effect";
-import { SearchIndex, type SearchQuery } from "../adapters/search";
+import { IndexingRepositoryError } from "../adapters/indexing-repository";
+import {
+	SearchIndex,
+	SearchIndexError,
+	SearchNotConfiguredError,
+} from "../adapters/search";
 import { DiscordClient } from "../discord/client";
 import { ReconciliationJobs } from "../indexing/jobs";
-import { Readiness, type ReadinessState } from "../runtime/readiness";
-
-export type AcceptedReconciliationJob = Pick<DBIndexingJob, "id" | "status">;
+import { Readiness } from "../runtime/readiness";
 
 export class ReconciliationJobNotFoundError extends Schema.TaggedError<ReconciliationJobNotFoundError>()(
 	"ReconciliationJobNotFoundError",
@@ -18,37 +32,74 @@ export class ReconciliationJobConflictError extends Schema.TaggedError<Reconcili
 	{ reason: Schema.Literals(["unsupported-thread", "job-finished"]) },
 ) {}
 
-export interface BotApiOperations {
-	readonly getReadiness: (signal?: AbortSignal) => Promise<ReadinessState>;
-	readonly search: (
-		input: SearchQuery,
-		signal?: AbortSignal,
-	) => Promise<Effect.Success<ReturnType<SearchIndex["Service"]["search"]>>>;
-	readonly getSearchHealth: (
-		signal?: AbortSignal,
-	) => Promise<Effect.Success<SearchIndex["Service"]["health"]>>;
-	readonly startGuildReconciliation: (
-		guildId: Snowflake,
-		request: {
-			readonly trigger: "index-server" | "reindex-server";
-			readonly maxThreads?: number;
-		},
-		signal?: AbortSignal,
-	) => Promise<AcceptedReconciliationJob>;
-	readonly startThreadReconciliation: (
-		guildId: Snowflake,
-		threadId: Snowflake,
-		signal?: AbortSignal,
-	) => Promise<AcceptedReconciliationJob>;
-	readonly getReconciliationJob: (
-		jobId: string,
-		signal?: AbortSignal,
-	) => Promise<AcceptedReconciliationJob>;
-	readonly cancelReconciliationJob: (
-		jobId: string,
-		signal?: AbortSignal,
-	) => Promise<AcceptedReconciliationJob>;
-}
+export class DiscordChannelFetchError extends Schema.TaggedError<DiscordChannelFetchError>()(
+	"DiscordChannelFetchError",
+	{ cause: Schema.Defect() },
+) {}
+
+const isUnknownDiscordChannel = (cause: unknown) =>
+	typeof cause === "object" &&
+	cause !== null &&
+	("code" in cause || "status" in cause) &&
+	(("code" in cause && cause.code === RESTJSONErrorCodes.UnknownChannel) ||
+		("status" in cause && cause.status === 404));
+
+const toIndexingFailure = (error: unknown): IndexingFailure | undefined => {
+	if (error instanceof ReconciliationJobNotFoundError) {
+		return {
+			code:
+				error.resource === "guild"
+					? "guild_not_found"
+					: error.resource === "thread"
+						? "thread_not_found"
+						: "job_not_found",
+		};
+	}
+	if (error instanceof ReconciliationJobConflictError) {
+		return {
+			code:
+				error.reason === "unsupported-thread"
+					? "unsupported_thread"
+					: "job_finished",
+		};
+	}
+	if (error instanceof DiscordChannelFetchError) {
+		apiLogger.error("discord_channel_fetch_failed", { error: error.cause });
+		return { code: "discord_unavailable" };
+	}
+	if (error instanceof IndexingRepositoryError) {
+		apiLogger.error("indexing_repository_failed", {
+			operation: error.operation,
+		});
+		return { code: "repository_unavailable" };
+	}
+};
+
+const toSearchFailure = (error: unknown): SearchFailure | undefined => {
+	if (error instanceof SearchNotConfiguredError) {
+		return { code: "search_not_configured" };
+	}
+	if (error instanceof SearchIndexError) {
+		apiLogger.error("search_operation_failed", {
+			operation: error.operation,
+			error: error.cause,
+		});
+		return { code: "search_unavailable" };
+	}
+};
+
+const toApiResult = async <Value, Failure>(
+	promise: Promise<Value>,
+	mapFailure: (error: unknown) => Failure | undefined,
+): Promise<ApiResult<Value, Failure>> => {
+	try {
+		return apiSuccess(await promise);
+	} catch (error) {
+		const failure = mapFailure(error);
+		if (failure) return apiFailure(failure);
+		throw error;
+	}
+};
 
 export const makeBotApiOperations = (): Effect.Effect<
 	BotApiOperations,
@@ -65,7 +116,10 @@ export const makeBotApiOperations = (): Effect.Effect<
 			name: string,
 			effect: Effect.Effect<A, E>,
 			signal?: AbortSignal,
-		) => runPromise(effect.pipe(Effect.withSpan(name)), { signal });
+		) =>
+			runPromise(effect.pipe(Effect.withSpan(name, { root: true })), {
+				signal,
+			});
 
 		const toDto = (job: DBIndexingJob): AcceptedReconciliationJob => ({
 			id: job.id,
@@ -79,7 +133,12 @@ export const makeBotApiOperations = (): Effect.Effect<
 			// Starting a durable job is not request-owned work. Honor cancellation only
 			// before submission, then always report the persisted acceptance result.
 			signal?.throwIfAborted();
-			return runPromise(effect.pipe(Effect.map(toDto), Effect.withSpan(name)));
+			return toApiResult(
+				runPromise(
+					effect.pipe(Effect.map(toDto), Effect.withSpan(name, { root: true })),
+				),
+				toIndexingFailure,
+			);
 		};
 
 		const requireJob = (jobId: string) =>
@@ -97,18 +156,37 @@ export const makeBotApiOperations = (): Effect.Effect<
 
 		return {
 			getReadiness: (signal) => run("bot.api.readiness", readiness.get, signal),
+			isBotInServer: async (serverId) =>
+				!!(await discord.client.guilds.fetch(serverId).catch(() => null)),
+			updateVote: async (threadId, type) => {
+				try {
+					const { updateVote } = await import("@repo/db/helpers/channels");
+					return ((await updateVote(threadId, type)).rowCount ?? 0) > 0
+						? apiSuccess(undefined)
+						: apiFailure({ code: "thread_not_found" as const });
+				} catch (error) {
+					apiLogger.error("vote_repository_failed", { error, threadId });
+					return apiFailure({ code: "repository_unavailable" as const });
+				}
+			},
 			search: (input, signal) =>
-				run(
-					"bot.api.search",
-					searchIndex
-						.search(input)
-						.pipe(
-							Effect.annotateSpans({ "discord.server_id": input.serverId }),
-						),
-					signal,
+				toApiResult(
+					run(
+						"bot.api.search",
+						searchIndex
+							.search(input)
+							.pipe(
+								Effect.annotateSpans({ "discord.server_id": input.serverId }),
+							),
+						signal,
+					),
+					toSearchFailure,
 				),
 			getSearchHealth: (signal) =>
-				run("bot.api.search_health", searchIndex.health, signal),
+				toApiResult(
+					run("bot.api.search_health", searchIndex.health, signal),
+					toSearchFailure,
+				),
 			startGuildReconciliation: (guildId, request, signal) =>
 				runAccepted(
 					"bot.api.indexing.start_guild",
@@ -127,9 +205,13 @@ export const makeBotApiOperations = (): Effect.Effect<
 								resource: "guild",
 							});
 						}
-						const channel = yield* Effect.promise(() =>
-							guild.channels.fetch(threadId),
-						);
+						const channel = yield* Effect.tryPromise({
+							try: () => guild.channels.fetch(threadId),
+							catch: (cause) =>
+								isUnknownDiscordChannel(cause)
+									? new ReconciliationJobNotFoundError({ resource: "thread" })
+									: new DiscordChannelFetchError({ cause }),
+						});
 						if (!channel) {
 							return yield* new ReconciliationJobNotFoundError({
 								resource: "thread",
@@ -159,10 +241,13 @@ export const makeBotApiOperations = (): Effect.Effect<
 					signal,
 				),
 			getReconciliationJob: (jobId, signal) =>
-				run(
-					"bot.api.indexing.get_job",
-					requireJob(jobId).pipe(Effect.map(toDto)),
-					signal,
+				toApiResult(
+					run(
+						"bot.api.indexing.get_job",
+						requireJob(jobId).pipe(Effect.map(toDto)),
+						signal,
+					),
+					toIndexingFailure,
 				),
 			cancelReconciliationJob: (jobId, signal) =>
 				runAccepted(

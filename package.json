@@ -1,7 +1,8 @@
 {
 	"name": "discord-indexer-monorepo",
 	"devDependencies": {
-		"@biomejs/biome": "2.3.10",
+		"oxfmt": "0.63.0",
+		"oxlint": "1.78.0",
 		"turbo": "^2.10.9",
 		"typescript": "5.9.2"
 	},
@@ -14,14 +15,22 @@
 		"build": "turbo run build --filter=dashboard-new...",
 		"dev": "turbo run dev --filter=dashboard-new --filter=bot",
 		"type-check": "turbo run type-check --filter=dashboard-new... --filter=bot...",
-		"lint": "turbo run lint --filter=dashboard-new",
+		"lint": "turbo run lint:eslint lint:oxlint",
+		"lint:fix": "turbo run lint:eslint:fix lint:oxlint:fix",
+		"lint:oxlint": "oxlint --deny-warnings .",
+		"lint:oxlint:fix": "oxlint --fix .",
+		"format": "oxfmt --check .",
+		"format:fix": "oxfmt .",
 		"test": "turbo run test --filter=dashboard-new... --filter=bot...",
 		"dev:bot": "turbo run dev --filter=bot",
 		"dev:dashboard-new": "turbo run dev --filter=dashboard-new",
 		"nuke": "bunx npkill -D -y && rm bun.lock"
 	},
 	"workspaces": {
-		"packages": ["apps/*", "packages/*"],
+		"packages": [
+			"apps/*",
+			"packages/*"
+		],
 		"catalog": {
 			"react": "19.2.3",
 			"react-dom": "19.2.3"

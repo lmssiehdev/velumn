@@ -1,5 +1,7 @@
 import type { ComponentType } from "react"
 
+import { formatUtcDate } from "@/lib/date"
+
 export interface PostMetadata {
   title: string
   description: string
@@ -70,12 +72,7 @@ export function getPostComponent(slug: string) {
 }
 
 export function formatPublishedAt(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(new Date(`${value}T00:00:00Z`))
+  return formatUtcDate(`${value}T00:00:00Z`, "long")
 }
 
 function shouldExcludePost(slug: string, value: unknown) {

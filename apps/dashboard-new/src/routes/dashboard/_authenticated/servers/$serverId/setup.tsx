@@ -41,6 +41,7 @@ import {
   serverSetupStatusQueryOptions,
   useServerSetupMutations,
 } from "@/features/onboarding/queries"
+import { formatLocalTime } from "@/lib/date"
 import { cn } from "@/lib/utils"
 
 function parseSetupSearch(search: Record<string, unknown>) {
@@ -304,8 +305,8 @@ function WaitingState({
           <div>
             <CardTitle className="text-sm">Listening for Discord</CardTitle>
             <CardDescription className="mt-0.5 text-xs">
-              Last checked {new Date(lastCheckedAt).toLocaleTimeString()}. You
-              can safely leave and continue setup later.
+              Last checked {formatLocalTime(lastCheckedAt)}. You can safely
+              leave and continue setup later.
             </CardDescription>
           </div>
         </CardContent>
