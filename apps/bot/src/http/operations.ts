@@ -156,19 +156,30 @@ export const makeBotApiOperations = (): Effect.Effect<
 
 		return {
 			getReadiness: (signal) => run("bot.api.readiness", readiness.get, signal),
-			isBotInServer: async (serverId) =>
-				!!(await discord.client.guilds.fetch(serverId).catch(() => null)),
-			updateVote: async (threadId, type) => {
-				try {
-					const { updateVote } = await import("@repo/db/helpers/channels");
-					return ((await updateVote(threadId, type)).rowCount ?? 0) > 0
-						? apiSuccess(undefined)
-						: apiFailure({ code: "thread_not_found" as const });
-				} catch (error) {
-					apiLogger.error("vote_repository_failed", { error, threadId });
-					return apiFailure({ code: "repository_unavailable" as const });
-				}
-			},
+			isBotInServer: (serverId) =>
+				run(
+					"bot.api.is_bot_in_server",
+					Effect.promise(async () =>
+						Boolean(
+							await discord.client.guilds.fetch(serverId).catch(() => null),
+						),
+					),
+				),
+			updateVote: (threadId, type) =>
+				run(
+					"bot.api.update_vote",
+					Effect.promise(async () => {
+						try {
+							const { updateVote } = await import("@repo/db/helpers/channels");
+							return ((await updateVote(threadId, type)).rowCount ?? 0) > 0
+								? apiSuccess(undefined)
+								: apiFailure({ code: "thread_not_found" as const });
+						} catch (error) {
+							apiLogger.error("vote_repository_failed", { error, threadId });
+							return apiFailure({ code: "repository_unavailable" as const });
+						}
+					}),
+				),
 			search: (input, signal) =>
 				toApiResult(
 					run(

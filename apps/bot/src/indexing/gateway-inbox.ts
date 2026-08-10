@@ -348,36 +348,44 @@ export const drainGatewayMutationBatch = (
 			now: new Date(now),
 		});
 		if (rows.length === 0) return 0;
-		yield* Effect.forEach(
-			rows,
-			(row) =>
-				processClaimedMutation(
-					options,
-					repository,
-					coordinator,
-					errorCapture,
-					row,
-				).pipe(
-					Effect.withSpan("gateway.claimed_process", {
-						attributes: {
-							"operation.name": "gateway.claimed_process",
-							mutationId: row.id,
-							submissionId: row.submissionId,
-							"retry.attempt": row.attemptCount,
-						},
-					}),
-					Effect.catch((error) =>
-						Effect.logError("Durable gateway mutation processing failed", {
-							metric: "indexing_gateway_mutation_processing_failed",
-							mutationId: row.id,
-							...safeBoundaryMetadata(Cause.fail(error), {
-								boundary: "gateway_mutation_processing",
-							}),
+		yield* Effect.gen(function* () {
+			const succeeded = yield* Effect.forEach(
+				rows,
+				(row) =>
+					processClaimedMutation(
+						options,
+						repository,
+						coordinator,
+						errorCapture,
+						row,
+					).pipe(
+						Effect.withSpan("gateway.claimed_process", {
+							attributes: {
+								"operation.name": "gateway.claimed_process",
+								mutationId: row.id,
+								submissionId: row.submissionId,
+								"retry.attempt": row.attemptCount,
+							},
 						}),
+						Effect.as(true),
+						Effect.catch((error) =>
+							Effect.logError("Durable gateway mutation processing failed", {
+								metric: "indexing_gateway_mutation_processing_failed",
+								mutationId: row.id,
+								...safeBoundaryMetadata(Cause.fail(error), {
+									boundary: "gateway_mutation_processing",
+								}),
+							}).pipe(Effect.as(false)),
+						),
 					),
-				),
-			{ concurrency: options.concurrency, discard: true },
-		).pipe(
+				{ concurrency: options.concurrency },
+			);
+			const failedCount = succeeded.filter((value) => !value).length;
+			yield* Effect.annotateCurrentSpan({
+				"batch.failed_count": failedCount,
+				"operation.outcome": failedCount > 0 ? "failed" : "completed",
+			});
+		}).pipe(
 			Effect.withSpan("gateway.poll", {
 				root: true,
 				attributes: {

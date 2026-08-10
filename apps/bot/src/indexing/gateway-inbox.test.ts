@@ -1,7 +1,16 @@
 import { assert, describe, it } from "@effect/vitest";
 import { decodeClaimedIndexingGatewayMutation } from "@repo/db/helpers/indexing-gateway-mutation";
 import type { DBIndexingGatewayMutation } from "@repo/db/schema/index";
-import { Cause, Deferred, Effect, Fiber, Layer, Option, Tracer } from "effect";
+import {
+	Cause,
+	Deferred,
+	Effect,
+	Exit,
+	Fiber,
+	Layer,
+	Option,
+	Tracer,
+} from "effect";
 import { TestClock } from "effect/testing";
 import {
 	GatewayMutationLeaseLostError,
@@ -218,6 +227,58 @@ describe("durable gateway mutation inbox", () => {
 					const parent = Option.getOrUndefined(span.parent);
 					return !parent || exportedIds.has(parent.spanId);
 				}),
+			);
+		}),
+	);
+
+	it.effect("exports and captures a failed claim before recovering", () =>
+		Effect.gen(function* () {
+			const spans: Tracer.NativeSpan[] = [];
+			const contexts: ErrorCaptureContext[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+			const failingRepository = GatewayMutationRepository.of({
+				...repository([], calls()),
+				claim: () =>
+					Effect.fail(
+						new GatewayMutationRepositoryError({
+							operation: "claim",
+							cause: new Error("private database failure"),
+						}),
+					),
+			});
+			const result = yield* drainGatewayMutationBatch(options).pipe(
+				Effect.provideService(GatewayMutationRepository, failingRepository),
+				Effect.provideService(
+					IndexingCoordinator,
+					coordinator(() => Effect.die("unused")),
+				),
+				Effect.provideService(ErrorCapture, {
+					captureCause: (_cause, context) =>
+						Effect.sync(() => {
+							contexts.push(context);
+							return undefined;
+						}),
+				}),
+				Effect.provideService(Tracer.Tracer, tracer),
+			);
+
+			assert.equal(result, 0);
+			assert.deepEqual(contexts, [
+				{ boundary: "gateway_poll_attempt", operation: "gateway.poll" },
+			]);
+			assert.equal(spans.length, 1);
+			assert.equal(spans[0]?.name, "gateway.poll");
+			assert.isTrue(Option.isNone(spans[0]?.parent ?? Option.none()));
+			assert.equal(spans[0]?.attributes.get("error.classification"), "claim");
+			assert.isTrue(
+				spans[0]?.status._tag === "Ended" &&
+					Exit.isFailure(spans[0].status.exit),
 			);
 		}),
 	);

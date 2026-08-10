@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Tracer } from "effect";
+import { Effect, Exit, Option, Tracer } from "effect";
 import {
 	IndexingRepository,
 	IndexingRepositoryError,
@@ -12,6 +12,7 @@ import {
 	SearchIndexError,
 	SearchNotConfiguredError,
 } from "../adapters/search";
+import { ErrorCapture } from "../observability/error-capture";
 import { type MeiliProjectorOptions, projectMeiliBatch } from "./projector";
 
 const now = new Date("2026-08-09T00:00:00.000Z");
@@ -291,6 +292,54 @@ describe("Meili projector", () => {
 			);
 
 			assert.deepEqual(spans, []);
+		}),
+	);
+
+	it.effect("exports and captures a failed claim before recovery", () =>
+		Effect.gen(function* () {
+			const spans: Tracer.NativeSpan[] = [];
+			const boundaries: string[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+			const base = makeRepository([]).service;
+			const failingRepository = IndexingRepository.of({
+				...base,
+				claim: () =>
+					Effect.fail(
+						new IndexingRepositoryError({
+							operation: "claim",
+							cause: new Error("private database failure"),
+						}),
+					),
+			});
+
+			const exit = yield* run(failingRepository, makeSearch([])).pipe(
+				Effect.provideService(ErrorCapture, {
+					captureCause: (_cause, context) =>
+						Effect.sync(() => {
+							boundaries.push(context.boundary);
+							return undefined;
+						}),
+				}),
+				Effect.provideService(Tracer.Tracer, tracer),
+				Effect.exit,
+			);
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepEqual(boundaries, ["projector_poll_attempt"]);
+			assert.equal(spans.length, 1);
+			assert.equal(spans[0]?.name, "projector.poll");
+			assert.isTrue(Option.isNone(spans[0]?.parent ?? Option.none()));
+			assert.equal(spans[0]?.attributes.get("error.classification"), "claim");
+			assert.isTrue(
+				spans[0]?.status._tag === "Ended" &&
+					Exit.isFailure(spans[0].status.exit),
+			);
 		}),
 	);
 
