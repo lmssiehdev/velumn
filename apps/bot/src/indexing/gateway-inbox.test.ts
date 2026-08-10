@@ -207,7 +207,10 @@ describe("durable gateway mutation inbox", () => {
 			assert.isDefined(root);
 			assert.isDefined(claimed);
 			assert.isTrue(Option.isNone(root?.parent ?? Option.none()));
-			assert.equal(Option.getOrUndefined(claimed?.parent)?.spanId, root?.spanId);
+			assert.equal(
+				Option.getOrUndefined(claimed?.parent)?.spanId,
+				root?.spanId,
+			);
 			assert.equal(claimed?.traceId, root?.traceId);
 			const exportedIds = new Set(spans.map((span) => span.spanId));
 			assert.isTrue(

@@ -317,9 +317,7 @@ describe("Meili projector", () => {
 				yield* run(
 					repository.service,
 					makeSearch(events, "updateDocuments"),
-				).pipe(
-					Effect.provideService(Tracer.Tracer, tracer),
-				);
+				).pipe(Effect.provideService(Tracer.Tracer, tracer));
 				assert.equal(row.status, "pending");
 				assert.equal(row.lastErrorCode, "SearchIndexError:updateDocuments");
 				assert.equal(row.nextAttemptAt.getTime(), 100);
