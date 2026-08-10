@@ -89,6 +89,12 @@ export function buildStaticSitemapEntries(
 			priority: "0.8",
 		},
 		{
+			loc: absoluteUrl("/oss-program"),
+			lastmod: now,
+			changefreq: "monthly",
+			priority: "0.8",
+		},
+		{
 			loc: absoluteUrl("/blog"),
 			changefreq: "weekly",
 			priority: "0.7",
