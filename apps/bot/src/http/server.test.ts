@@ -1,9 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Client } from "discord.js";
 import { Effect, Exit, Option, Redacted, Scope } from "effect";
 import { SearchIndex } from "../adapters/search";
 import { BotConfig } from "../config/bot-config";
-import { DiscordClient } from "../discord/client";
 import { ReconciliationJobs } from "../indexing/jobs";
 import { Readiness } from "../runtime/readiness";
 import { makeBotHttpServer } from "./server";
@@ -53,13 +51,6 @@ describe("Bot HTTP server", () => {
 					},
 				}).pipe(
 					Effect.provideService(BotConfig, config),
-					Effect.provideService(
-						DiscordClient,
-						DiscordClient.of({
-							client: new Client({ intents: [] }) as Client<true>,
-							events: {} as DiscordClient["Service"]["events"],
-						}),
-					),
 					Effect.provideService(
 						SearchIndex,
 						SearchIndex.of({

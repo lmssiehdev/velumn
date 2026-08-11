@@ -1,15 +1,13 @@
-import { isIP } from "node:net"
-
 import {
   resolvePublicChannel,
   resolvePublicServer,
   resolvePublicThreadServer,
   resolveVerifiedPublicTenant,
 } from "@repo/db/helpers/public-content"
-import type { BotRouter } from "@repo/api/client"
-import { createTRPCClient, httpLink, TRPCClientError } from "@trpc/client"
+import { TRPCClientError } from "@trpc/client"
 
-import { requireIndexingEnv } from "@/env.server"
+import { createBotApiClient } from "@/lib/bot-api.server"
+import { getTrustedClientIp } from "@/lib/client-ip.server"
 import {
   canonicalPublicSearchRequestSchema,
   publicSearchResponseSchema,
@@ -158,18 +156,7 @@ async function requestBotSearch(
   clientIp: string,
   signal: AbortSignal
 ) {
-  const { apiOrigin, secret } = requireIndexingEnv()
-  const client = createTRPCClient<BotRouter>({
-    links: [
-      httpLink({
-        url: `${apiOrigin}/trpc`,
-        headers: {
-          "x-velumn-client-ip": clientIp,
-          "x-velumn-secret": secret,
-        },
-      }),
-    ],
-  })
+  const client = createBotApiClient(clientIp)
   const result = await client.searchPublic.query(
     { serverId, query },
     { signal }
@@ -178,22 +165,7 @@ async function requestBotSearch(
 }
 
 export function getTrustedRequestIp(request: Request) {
-  const rawIp =
-    request.headers.get("x-vercel-forwarded-for") ??
-    request.headers.get("x-forwarded-for") ??
-    request.headers.get("x-real-ip")
-  const firstIp = rawIp?.split(",", 1)[0]?.trim()
-  if (firstIp && isIP(firstIp) !== 0) return normalizeIp(firstIp)
-
-  const hostname = new URL(request.url).hostname
-  return ["localhost", "127.0.0.1", "::1"].includes(hostname)
-    ? "127.0.0.1"
-    : null
-}
-
-function normalizeIp(ip: string) {
-  if (ip === "::1") return "127.0.0.1"
-  return ip.startsWith("::ffff:") ? ip.slice("::ffff:".length) : ip
+  return getTrustedClientIp(request.headers, new URL(request.url).hostname)
 }
 
 function errorResponse(status: number, error: string) {

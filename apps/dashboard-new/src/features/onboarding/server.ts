@@ -1,5 +1,4 @@
 import { setServerChannelSelection } from "@repo/db/helpers/channels"
-import type { BotRouter } from "@repo/api/client"
 import { captureOnboardingEvent } from "@repo/utils/onboarding-analytics"
 import {
   checkIfServerExistsForUser,
@@ -10,19 +9,19 @@ import {
   getOnboardingLifecyclesForUser,
 } from "@repo/db/helpers/servers"
 import { updateServerOnboarding } from "@repo/db/helpers/user"
-import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { createServerFn } from "@tanstack/react-start"
 import { Result, TaggedError } from "better-result"
 import { ChannelType, PermissionFlagsBits } from "discord-api-types/v10"
 import { z } from "zod"
 
-import { requireDiscordClientId, requireIndexingEnv } from "@/env.server"
+import { requireDiscordClientId } from "@/env.server"
 import type {
   EligibleDiscordServer,
   ServerIdentity,
   ServerSetup,
 } from "@/features/dashboard/contracts"
 import { requireServerAuth } from "@/lib/server-auth"
+import { createBotApiClient } from "@/lib/bot-api.server"
 
 import { getDiscordGuildIcon, toInstallationState } from "./discord"
 import { fetchDiscordGuilds, type DiscordGuildsResult } from "./discord-server"
@@ -82,16 +81,7 @@ function createDiscordInviteUrl(serverId: string) {
 }
 
 async function requestInitialIndex(serverId: string) {
-  const { apiOrigin, secret } = requireIndexingEnv()
-
-  const client = createTRPCClient<BotRouter>({
-    links: [
-      httpBatchLink({
-        url: `${apiOrigin}/trpc`,
-        headers: { "x-velumn-secret": secret },
-      }),
-    ],
-  })
+  const client = createBotApiClient()
   return Result.tryPromise({
     try: () => client.indexServer.mutate({ serverId }),
     catch: (cause) =>

@@ -1,10 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import type { DBIndexingJob } from "@repo/db/schema/index";
-import { Client } from "discord.js";
-import { RESTJSONErrorCodes } from "discord-api-types/v10";
 import { Effect } from "effect";
 import { SearchIndex } from "../adapters/search";
-import { DiscordClient } from "../discord/client";
 import { ReconciliationJobs } from "../indexing/jobs";
 import { Readiness } from "../runtime/readiness";
 import { makeBotApiOperations } from "./operations";
@@ -26,7 +23,6 @@ const acceptedJob: DBIndexingJob = {
 	completedAt: null,
 	updatedAt: new Date(0),
 };
-const guildId = "123456789012345678";
 
 describe("BotApiOperations", () => {
 	it.effect("does not let HTTP cancellation outlive durable acceptance", () => {
@@ -82,95 +78,6 @@ describe("BotApiOperations", () => {
 			});
 		}).pipe(
 			Effect.provideService(ReconciliationJobs, jobs),
-			Effect.provideService(
-				DiscordClient,
-				DiscordClient.of({
-					client: new Client({ intents: [] }) as Client<true>,
-					events: {} as DiscordClient["Service"]["events"],
-				}),
-			),
-			Effect.provideService(
-				SearchIndex,
-				SearchIndex.of({
-					addDocuments: () => Effect.void,
-					updateDocuments: () => Effect.void,
-					deleteMessages: () => Effect.void,
-					deleteThread: () => Effect.void,
-					updateThreadTitle: () => Effect.void,
-					search: () => Effect.die("not used"),
-					health: Effect.die("not used"),
-				}),
-			),
-			Effect.provide(Readiness.layer),
-			Effect.scoped,
-		);
-	});
-
-	it.effect("types Discord channel lookup failures", () => {
-		let fetchFailure: unknown;
-		let threadStarts = 0;
-		const guild = {
-			channels: {
-				fetch: async () => {
-					throw fetchFailure;
-				},
-			},
-		};
-		const client = {
-			guilds: { cache: new Map([[guildId, guild]]) },
-		} as unknown as Client<true>;
-		const jobs = ReconciliationJobs.of({
-			repairStartup: Effect.die("not used"),
-			startGuild: () => Effect.die("not used"),
-			startThread: () => {
-				threadStarts++;
-				return Effect.succeed(acceptedJob);
-			},
-			startScheduled: () => Effect.die("not used"),
-			get: () => Effect.die("not used"),
-			cancel: () => Effect.die("not used"),
-		});
-
-		return Effect.gen(function* () {
-			const operations = yield* makeBotApiOperations();
-			yield* Effect.promise(async () => {
-				for (const missingFailure of [
-					Object.assign(new Error("unknown channel"), {
-						code: RESTJSONErrorCodes.UnknownChannel,
-					}),
-					Object.assign(new Error("not found"), { status: 404 }),
-				]) {
-					fetchFailure = missingFailure;
-					const result = await operations.startThreadReconciliation(
-						guildId,
-						"223456789012345678",
-					);
-					assert.deepStrictEqual(result, {
-						ok: false,
-						failure: { code: "thread_not_found" },
-					});
-				}
-
-				fetchFailure = new Error("Discord unavailable");
-				const result = await operations.startThreadReconciliation(
-					guildId,
-					"223456789012345678",
-				);
-				assert.deepStrictEqual(result, {
-					ok: false,
-					failure: { code: "discord_unavailable" },
-				});
-				assert.strictEqual(threadStarts, 0);
-			});
-		}).pipe(
-			Effect.provideService(ReconciliationJobs, jobs),
-			Effect.provideService(
-				DiscordClient,
-				DiscordClient.of({
-					client,
-					events: {} as DiscordClient["Service"]["events"],
-				}),
-			),
 			Effect.provideService(
 				SearchIndex,
 				SearchIndex.of({

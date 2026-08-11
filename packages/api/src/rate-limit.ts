@@ -1,58 +1,60 @@
-import { redis } from "bun";
-import type { Context } from "hono";
-import { getConnInfo } from "hono/bun";
-import {
-	consumePublicSearchQuota as consumeQuota,
-	normalizeIp,
-} from "./search-quota";
+import { isIP } from "node:net";
 
-export { getTrustedClientIp } from "./search-quota";
-
-const HOUR_IN_SECONDS = 3600;
-const MINUTE_IN_SECONDS = 60;
-const MAX_SEARCH_REQUESTS_PER_MINUTE = 30;
-
-export function getHonoIp(context: Context): string | undefined {
-	const forwardedFor = context.req.header("x-forwarded-for");
-	const forwardedIp = forwardedFor?.split(",")[0];
-	if (forwardedIp) {
-		const normalized = normalizeIp(forwardedIp);
-		if (normalized) return normalized;
-	}
-	try {
-		const ip = getConnInfo(context)?.remote?.address;
-		return ip ? normalizeIp(ip) : undefined;
-	} catch {
-		return;
-	}
+export interface RateLimitResult {
+	readonly allowed: boolean;
+	readonly retryAfterSeconds: number;
 }
 
-export async function isRateLimited(threadId: string, ip?: string) {
-	if (!ip) return true;
-	if (await redis.get(`vote:thread:${threadId}:ip:${ip}`)) return true;
-	const voteCount = await redis.get(`vote:hourly:${ip}`);
-	return Number(voteCount ?? "0") >= 5;
+export interface RateLimiter {
+	readonly consume: (input: {
+		readonly key: string;
+		readonly limit: number;
+		readonly windowMs: number;
+	}) => Promise<RateLimitResult>;
 }
 
-export async function trackVote(threadId: string, ip?: string): Promise<void> {
+interface RedisRateLimitClient {
+	readonly incr: (key: string) => Promise<number>;
+	readonly expire: (key: string, seconds: number) => Promise<number>;
+	readonly send: (command: string, args: string[]) => Promise<unknown>;
+}
+
+export const makeRateLimiter = (
+	client?: RedisRateLimitClient,
+): RateLimiter => ({
+	consume: async ({ key, limit, windowMs }) => {
+		const redisClient = client ?? (await import("bun")).redis;
+		const windowSeconds = Math.ceil(windowMs / 1000);
+		const count = await redisClient.incr(key);
+		if (count === 1) await redisClient.expire(key, windowSeconds);
+		if (count <= limit) return { allowed: true, retryAfterSeconds: 0 };
+
+		const ttl = Number(await redisClient.send("TTL", [key]));
+		if (ttl > 0) return { allowed: false, retryAfterSeconds: ttl };
+
+		// Repair a counter if its expiry was lost between INCR and EXPIRE.
+		await redisClient.expire(key, windowSeconds);
+		return { allowed: false, retryAfterSeconds: windowSeconds };
+	},
+});
+
+export function normalizeIp(rawIp: string): string | undefined {
+	let ip = rawIp.trim();
 	if (!ip) return;
-	await redis.set(`vote:thread:${threadId}:ip:${ip}`, "1");
-	const hourlyKey = `vote:hourly:${ip}`;
-	const current = await redis.incr(hourlyKey);
-	if (current === 1) await redis.expire(hourlyKey, HOUR_IN_SECONDS);
+	if (ip === "::1") ip = "127.0.0.1";
+	if (ip.startsWith("::ffff:")) ip = ip.slice("::ffff:".length);
+	return isIP(ip) === 0 ? undefined : ip;
 }
 
-export async function isSearchRateLimited(ip?: string) {
-	const count = await redis.get(`search:minute:ip:${ip ?? "unknown"}`);
-	return !!count && Number(count) >= MAX_SEARCH_REQUESTS_PER_MINUTE;
-}
-
-export async function trackSearch(ip?: string): Promise<void> {
-	const key = `search:minute:ip:${ip ?? "unknown"}`;
-	const current = await redis.incr(key);
-	if (current === 1) await redis.expire(key, MINUTE_IN_SECONDS);
-}
-
-export async function consumePublicSearchQuota(ip: string) {
-	return consumeQuota(ip, redis);
+export function getTrustedClientIp({
+	providedSecret,
+	expectedSecret,
+	propagatedIp,
+}: {
+	readonly providedSecret?: string;
+	readonly expectedSecret: string;
+	readonly propagatedIp?: string;
+}): string | undefined {
+	if (providedSecret !== expectedSecret || !propagatedIp) return;
+	return normalizeIp(propagatedIp);
 }

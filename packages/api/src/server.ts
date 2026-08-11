@@ -4,8 +4,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { BotApiOperations } from "./contracts";
-import * as rateLimit from "./rate-limit";
-import { createBotRouter } from "./router";
+import { getTrustedClientIp, makeRateLimiter } from "./rate-limit";
+import { botRouter } from "./router";
 
 export interface BotApiOptions {
 	readonly allowedOrigins: readonly string[];
@@ -22,7 +22,7 @@ export const makeBotApi = ({
 	apiSecret,
 	operations,
 }: BotApiOptions) => {
-	const router = createBotRouter({ apiSecret, rateLimit });
+	const rateLimiter = makeRateLimiter();
 	return new Hono()
 		.use(logger(customLogger))
 		.use(
@@ -38,18 +38,19 @@ export const makeBotApi = ({
 		.use(
 			"/trpc/*",
 			trpcServer({
-				router,
+				router: botRouter,
 				createContext: (_opts, context) => {
 					const secret = context.req.header("x-velumn-secret");
 					return {
+						apiSecret,
 						secret,
-						ip: rateLimit.getHonoIp(context),
-						trustedClientIp: rateLimit.getTrustedClientIp({
+						trustedClientIp: getTrustedClientIp({
 							providedSecret: secret,
 							expectedSecret: apiSecret,
 							propagatedIp: context.req.header("x-velumn-client-ip"),
 						}),
 						operations,
+						rateLimiter,
 					};
 				},
 			}),
@@ -69,4 +70,3 @@ export const makeBotApi = ({
 
 export type { BotApiOperations } from "./contracts";
 export type { BotRouter } from "./router";
-export { createBotRouter, toSearchExcerpt } from "./router";

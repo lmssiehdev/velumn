@@ -3,16 +3,20 @@ import {
   getPublicThreadPage,
   resolveVerifiedPublicTenant,
 } from "@repo/db/helpers/public-content"
-import { updateVote } from "@repo/db/helpers/channels"
+import { getRequestHeaders } from "@tanstack/react-start/server"
 
 import { getHostRoutingEnv } from "@/env.server"
+import { createBotApiClient } from "@/lib/bot-api.server"
+import { getTrustedClientIp } from "@/lib/client-ip.server"
 import type { PublicThreadPage, ThreadVote } from "./contracts"
 
 export async function recordPublicThreadVote(
   threadId: string,
   type: ThreadVote
 ) {
-  await updateVote(threadId, type)
+  const clientIp = getTrustedClientIp(getRequestHeaders())
+  if (!clientIp) throw new Error("A trusted client IP is required")
+  await createBotApiClient(clientIp).updateVote.mutate({ threadId, type })
 }
 
 export async function loadPublicThread(

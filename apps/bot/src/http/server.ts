@@ -3,7 +3,6 @@ import type { Server } from "bun";
 import { Effect, Layer, Redacted, Schema, type Scope } from "effect";
 import type { SearchIndex } from "../adapters/search";
 import { BotConfig } from "../config/bot-config";
-import { DiscordClient } from "../discord/client";
 import type { ReconciliationJobs } from "../indexing/jobs";
 import { Readiness } from "../runtime/readiness";
 import { makeBotApiOperations } from "./operations";
@@ -45,16 +44,10 @@ export const makeBotHttpServer = (
 ): Effect.Effect<
 	ServerHandle,
 	BotHttpServerError,
-	| Scope.Scope
-	| BotConfig
-	| DiscordClient
-	| Readiness
-	| ReconciliationJobs
-	| SearchIndex
+	Scope.Scope | BotConfig | Readiness | ReconciliationJobs | SearchIndex
 > =>
 	Effect.gen(function* () {
 		const config = yield* BotConfig;
-		yield* DiscordClient;
 		const readiness = yield* Readiness;
 		const operations = yield* makeBotApiOperations();
 		const apiOptions: BotApiOptions = {

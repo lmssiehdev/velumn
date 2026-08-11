@@ -25,7 +25,6 @@ export interface MatchPosition {
 }
 
 export type SearchHit = SearchDocument & {
-	readonly _formatted?: Partial<SearchDocument>;
 	readonly _matchesPosition?: Partial<
 		Record<"title" | "content", readonly MatchPosition[]>
 	>;
@@ -39,13 +38,6 @@ export interface SearchResult {
 	readonly [key: string]: unknown;
 }
 
-export interface SearchHealth {
-	readonly status: string;
-	readonly version: string;
-	readonly numberOfDocuments: number;
-	readonly isIndexing: boolean;
-}
-
 export interface SearchRequest {
 	readonly serverId: string;
 	readonly query: string;
@@ -53,7 +45,7 @@ export interface SearchRequest {
 }
 
 export interface GuildReconciliationRequest {
-	readonly trigger: "index-server" | "reindex-server";
+	readonly trigger: "index-server";
 	readonly maxThreads?: number;
 }
 
@@ -83,14 +75,7 @@ export const apiFailure = <Failure>(
 	failure: Failure,
 ): ApiResult<never, Failure> => ({ ok: false, failure });
 
-export type IndexingFailure =
-	| { readonly code: "guild_not_found" }
-	| { readonly code: "thread_not_found" }
-	| { readonly code: "job_not_found" }
-	| { readonly code: "unsupported_thread" }
-	| { readonly code: "job_finished" }
-	| { readonly code: "discord_unavailable" }
-	| { readonly code: "repository_unavailable" };
+export type IndexingFailure = { readonly code: "repository_unavailable" };
 
 export type SearchFailure =
 	| { readonly code: "search_not_configured" }
@@ -106,28 +91,11 @@ export interface BotApiOperations {
 		input: SearchRequest,
 		signal?: AbortSignal,
 	) => Promise<ApiResult<SearchResult, SearchFailure>>;
-	readonly getSearchHealth: (
-		signal?: AbortSignal,
-	) => Promise<ApiResult<SearchHealth, SearchFailure>>;
 	readonly startGuildReconciliation: (
 		guildId: string,
 		request: GuildReconciliationRequest,
 		signal?: AbortSignal,
 	) => Promise<ApiResult<AcceptedReconciliationJob, IndexingFailure>>;
-	readonly startThreadReconciliation: (
-		guildId: string,
-		threadId: string,
-		signal?: AbortSignal,
-	) => Promise<ApiResult<AcceptedReconciliationJob, IndexingFailure>>;
-	readonly getReconciliationJob: (
-		jobId: string,
-		signal?: AbortSignal,
-	) => Promise<ApiResult<AcceptedReconciliationJob, IndexingFailure>>;
-	readonly cancelReconciliationJob: (
-		jobId: string,
-		signal?: AbortSignal,
-	) => Promise<ApiResult<AcceptedReconciliationJob, IndexingFailure>>;
-	readonly isBotInServer: (serverId: string) => Promise<boolean>;
 	readonly updateVote: (
 		threadId: string,
 		type: "upvote" | "downvote",
