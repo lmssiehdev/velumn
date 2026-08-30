@@ -1,4 +1,4 @@
-import { ChannelType } from "discord-api-types/v10";
+import { ChannelType, MessageType } from "discord-api-types/v10";
 
 export const PUBLIC_PARENT_CHANNEL_TYPES = [
 	ChannelType.GuildText,
@@ -10,6 +10,26 @@ export const PUBLIC_THREAD_CHANNEL_TYPES = [
 	ChannelType.PublicThread,
 	ChannelType.AnnouncementThread,
 ] as const;
+
+export type ThreadStarterMessageFacts = {
+	messageId: string;
+	messageType: MessageType;
+	sourceChannelId: string;
+	publicationChannelId: string;
+};
+
+export function isThreadStarterMessage({
+	messageId,
+	messageType,
+	sourceChannelId,
+	publicationChannelId,
+}: ThreadStarterMessageFacts): boolean {
+	return (
+		messageType === MessageType.ThreadStarterMessage ||
+		sourceChannelId !== publicationChannelId ||
+		messageId === publicationChannelId
+	);
+}
 
 export type PublicThreadVisibilityFacts = {
 	serverActive: boolean;

@@ -1,15 +1,28 @@
 import {
-	internalLinksSchema,
+	type EmbedSchema,
 	type MessageComponentsSchema,
 	type MessageMetadataSchema,
-	messageComponentsSchema,
-	messageMetadataSchema,
+	type RowsSchema,
 } from "@repo/db/helpers/validation";
 import {
+	type APIAutoPopulatedSelectMenuComponent,
+	type APIButtonComponent,
+	type APIComponentInContainer,
+	type APIComponentInMessageActionRow,
+	type APIContainerComponent,
+	type APIEmbed,
+	type APIMessageComponentEmoji,
+	type APIMessageTopLevelComponent,
+	type APISectionAccessoryComponent,
+	type APIStringSelectComponent,
+	type APIThumbnailComponent,
 	ChannelType,
 	ComponentType,
+	EmbedType,
 	MessageFlags,
+	type MessageType,
 } from "discord-api-types/v10";
+import { Option, Schema } from "effect";
 import type {
 	AttachmentReplacement,
 	AttachmentState,
@@ -17,14 +30,6 @@ import type {
 	ReactionState,
 	ReplacementState,
 } from "./model";
-
-export type JsonValue =
-	| string
-	| number
-	| boolean
-	| null
-	| readonly JsonValue[]
-	| { readonly [key: string]: JsonValue };
 
 export interface ResolvedAttachmentInput {
 	readonly id: string;
@@ -46,11 +51,11 @@ export interface ResolvedInternalLinkTarget {
 	readonly guildName: string;
 	readonly channelId: string;
 	readonly channelName: string;
-	readonly channelType: number;
+	readonly channelType: ChannelType;
 	readonly parent?: {
 		readonly id: string;
 		readonly name: string;
-		readonly type: number;
+		readonly type: ChannelType;
 	} | null;
 	readonly messageId?: string | null;
 	/** Canonical published thread/root reached by this link, if any. */
@@ -67,7 +72,7 @@ export interface ResolvedMessageInput {
 	readonly authorId: string;
 	readonly content: string;
 	readonly cleanContent: string | null;
-	readonly type: number;
+	readonly type: MessageType;
 	readonly createdTimestamp: number;
 	readonly editedTimestamp: number | null;
 	readonly flags: number;
@@ -99,7 +104,7 @@ export interface ResolvedMessageInput {
 			>
 		>;
 		readonly channels?: Readonly<
-			Record<string, { readonly name: string; readonly type: number }>
+			Record<string, { readonly name: string; readonly type: ChannelType }>
 		>;
 		readonly roles?: Readonly<
 			Record<string, { readonly name: string; readonly color: number }>
@@ -108,14 +113,14 @@ export interface ResolvedMessageInput {
 	/** `null` means the relation was not fetched; an empty array removes all rows. */
 	readonly attachments: readonly ResolvedAttachmentInput[] | null;
 	readonly reactions: readonly ResolvedReactionInput[] | null;
-	readonly components: readonly ResolvedComponentInput[] | null;
+	readonly components: readonly APIMessageTopLevelComponent[] | null;
+	readonly embeds: readonly ResolvedEmbedInput[] | null;
 	readonly linkTargets?: readonly ResolvedInternalLinkTarget[];
 }
 
-export type ResolvedComponentInput = Readonly<{
-	type: number;
-	[key: string]: JsonValue;
-}>;
+export interface ResolvedEmbedInput extends APIEmbed {
+	readonly components?: APIContainerComponent[];
+}
 
 export interface ParsedDiscordLink {
 	readonly original: string;
@@ -143,16 +148,17 @@ export interface ConvertedMessage {
 	readonly authorId: string;
 	readonly content: string;
 	readonly cleanContent: string | null;
-	readonly type: number;
+	readonly type: MessageType;
 	readonly sourceVersion: number;
 	readonly pinned: boolean;
 	readonly applicationId: string | null;
 	readonly childThreadId: string | null;
 	readonly referenceId: string | null;
-	readonly metadata: MessageMetadataSchema;
+	readonly metadata: NonNullable<MessageMetadataSchema>;
 	readonly attachments: AttachmentReplacement;
 	readonly reactions: ReactionReplacement;
 	readonly components: ReplacementState<MessageComponentsSchema[number]>;
+	readonly embeds: ReplacementState<EmbedSchema>;
 	readonly internalLinks: readonly ConvertedInternalLink[];
 	readonly backlinks: ReplacementState<BacklinkTarget>;
 }
@@ -180,27 +186,30 @@ export function convertResolvedMessage(
 	input: ResolvedMessageInput,
 ): ConvertedMessage {
 	const internalLinks = resolveInternalLinks(input);
-	const metadata = messageMetadataSchema.parse({
+	const legacyInternalLinks = internalLinks.flatMap((link) =>
+		link.target ? [toLegacyInternalLink(link, link.target)] : [],
+	);
+	const metadata: NonNullable<MessageMetadataSchema> = {
 		flags: input.flags,
-		reference: input.reference ?? undefined,
-		webhook: input.webhook
-			? {
-					id: input.webhook.id,
-					type: input.webhook.type,
-					displayName: input.webhook.displayName,
-					avatarUrl: input.webhook.avatarUrl,
-					name: input.webhook.displayName ?? "Webhook",
-					avatar: input.webhook.avatarUrl,
-				}
-			: undefined,
-		interaction: input.interaction ?? undefined,
-		users: input.mentions?.users,
-		channels: input.mentions?.channels,
-		roles: input.mentions?.roles,
-		internalLinks: internalLinks.flatMap((link) =>
-			link.target ? [toLegacyInternalLink(link, link.target)] : [],
-		),
-	});
+	};
+	if (input.reference) metadata.reference = input.reference;
+	if (input.webhook) {
+		metadata.webhook = {
+			id: input.webhook.id,
+			type: input.webhook.type,
+			displayName: input.webhook.displayName,
+			avatarUrl: input.webhook.avatarUrl,
+			name: input.webhook.displayName ?? "Webhook",
+			avatar: input.webhook.avatarUrl,
+		};
+	}
+	if (input.interaction) metadata.interaction = input.interaction;
+	if (input.mentions?.users) metadata.users = input.mentions.users;
+	if (input.mentions?.channels) metadata.channels = input.mentions.channels;
+	if (input.mentions?.roles) metadata.roles = input.mentions.roles;
+	if (legacyInternalLinks.length > 0) {
+		metadata.internalLinks = legacyInternalLinks;
+	}
 
 	return {
 		id: input.id,
@@ -224,12 +233,30 @@ export function convertResolvedMessage(
 		),
 		reactions: convertReactions(input.reactions),
 		components: replace(input.components, convertComponent),
+		embeds: replace(input.embeds, convertEmbed),
 		internalLinks,
 		backlinks: {
 			_tag: "Replace",
 			items: uniqueBacklinks(input, internalLinks),
 		},
 	};
+}
+
+function convertEmbed(value: ResolvedEmbedInput): EmbedSchema {
+	const { components, fields, provider, ...embed } = value;
+	const converted: EmbedSchema = {
+		...embed,
+		type: embed.type ?? EmbedType.Rich,
+	};
+	if (fields) {
+		converted.fields = fields.map((field) => ({
+			...field,
+			inline: field.inline ?? false,
+		}));
+	}
+	if (provider) converted.provider = { ...provider, name: provider.name ?? "" };
+	if (components) converted.components = components.map(convertComponent);
+	return converted;
 }
 
 function replace<Input, Output>(
@@ -281,24 +308,30 @@ function resolveInternalLinks(
 function toLegacyInternalLink(
 	link: ParsedDiscordLink,
 	target: ResolvedInternalLinkTarget,
-) {
-	return internalLinksSchema.parse({
+): NonNullable<NonNullable<MessageMetadataSchema>["internalLinks"]>[number] {
+	const channel: NonNullable<
+		NonNullable<MessageMetadataSchema>["internalLinks"]
+	>[number]["channel"] = {
+		id: target.channelId,
+		name: target.channelName,
+		type: target.channelType,
+	};
+	if (target.parent) {
+		channel.parent = {
+			parentId: target.parent.id,
+			name: target.parent.name,
+			type: target.parent.type,
+		};
+	}
+	const converted: NonNullable<
+		NonNullable<MessageMetadataSchema>["internalLinks"]
+	>[number] = {
 		original: link.original,
 		guild: { id: target.guildId, name: target.guildName },
-		channel: {
-			id: target.channelId,
-			name: target.channelName,
-			type: target.channelType,
-			parent: target.parent
-				? {
-						parentId: target.parent.id,
-						name: target.parent.name,
-						type: target.parent.type,
-					}
-				: undefined,
-		},
-		message: link.messageId ?? undefined,
-	});
+		channel,
+	};
+	if (link.messageId) converted.message = link.messageId;
+	return converted;
 }
 
 function uniqueBacklinks(
@@ -321,232 +354,211 @@ function uniqueBacklinks(
 }
 
 export function knownMessageFlags(bitfield: number): MessageFlags[] {
-	return Object.values(MessageFlags).filter(
-		(flag): flag is MessageFlags =>
-			typeof flag === "number" && (bitfield & flag) === flag,
-	);
+	const decodeFlag = Schema.decodeUnknownOption(Schema.Number);
+	return Object.values(MessageFlags).flatMap((flag) => {
+		const parsed = Option.getOrUndefined(decodeFlag(flag));
+		return parsed !== undefined && (bitfield & parsed) === parsed
+			? [parsed as MessageFlags]
+			: [];
+	});
 }
+
+type ComponentOutput = MessageComponentsSchema[number];
+type ActionRowItemOutput = RowsSchema["components"][number];
+type ButtonOutput = Extract<
+	Exclude<ActionRowItemOutput, { unsupported: true }>,
+	{ type: ComponentType.Button }
+>;
+type StringSelectOutput = Extract<
+	Exclude<ActionRowItemOutput, { unsupported: true }>,
+	{ type: ComponentType.StringSelect }
+>;
+type AutoSelectOutput = Extract<
+	Exclude<ActionRowItemOutput, { unsupported: true }>,
+	{
+		type:
+			| ComponentType.UserSelect
+			| ComponentType.RoleSelect
+			| ComponentType.MentionableSelect
+			| ComponentType.ChannelSelect;
+	}
+>;
+type AccessoryOutput = NonNullable<
+	Extract<
+		Exclude<ComponentOutput, { unsupported: true }>,
+		{ type: ComponentType.Section }
+	>["accessory"]
+>;
+type EmojiOutput = Exclude<ButtonOutput["emoji"], null | undefined>;
 
 function convertComponent(
-	component: ResolvedComponentInput,
-): MessageComponentsSchema[number] {
-	let converted: unknown;
+	component: APIMessageTopLevelComponent | APIComponentInContainer,
+): ComponentOutput {
+	const type: number = component.type;
 	switch (component.type) {
 		case ComponentType.ActionRow:
-			converted = {
+			return {
 				type: ComponentType.ActionRow,
-				components: array(component.components).map(convertActionRowItem),
+				components: component.components.map(convertActionRowItem),
 			};
-			break;
 		case ComponentType.TextDisplay:
-			converted = {
+			return {
 				type: ComponentType.TextDisplay,
-				content: string(component.content),
-				...(number(component.id) == null ? {} : { id: number(component.id) }),
+				content: component.content,
+				id: component.id,
 			};
-			break;
-		case ComponentType.Section:
-			converted = {
+		case ComponentType.Section: {
+			const accessory = convertAccessory(component.accessory);
+			const section: Extract<
+				Exclude<ComponentOutput, { unsupported: true }>,
+				{ type: ComponentType.Section }
+			> = {
 				type: ComponentType.Section,
-				components: array(component.components).map((child) => ({
+				components: component.components.map((child) => ({
 					type: ComponentType.TextDisplay,
-					content: string(object(child).content),
+					content: child.content,
+					id: child.id,
 				})),
-				...(component.accessory
-					? { accessory: convertAccessory(object(component.accessory)) }
-					: {}),
 			};
-			break;
+			if (accessory) section.accessory = accessory;
+			return section;
+		}
 		case ComponentType.Separator:
-			converted = {
+			return {
 				type: ComponentType.Separator,
-				...(boolean(component.divider) == null
-					? {}
-					: { divider: boolean(component.divider) }),
-				...(number(component.spacing) == null
-					? {}
-					: { spacing: number(component.spacing) }),
+				divider: component.divider,
+				spacing: component.spacing,
 			};
-			break;
 		case ComponentType.MediaGallery:
-			converted = {
+			return {
 				type: ComponentType.MediaGallery,
-				items: array(component.items).map((item) => {
-					const value = object(item);
-					return {
-						media: { url: string(object(value.media).url) },
-						...(typeof value.description === "string"
-							? { description: value.description }
-							: {}),
-						...(typeof value.spoiler === "boolean"
-							? { spoiler: value.spoiler }
-							: {}),
-					};
-				}),
+				items: component.items.map((item) => ({
+					media: { url: item.media.url },
+					description: item.description,
+					spoiler: item.spoiler,
+				})),
 			};
-			break;
 		case ComponentType.File:
-			converted = {
+			return {
 				type: ComponentType.File,
-				file: { url: string(object(component.file).url) },
-				...(typeof component.spoiler === "boolean"
-					? { spoiler: component.spoiler }
-					: {}),
+				file: { url: component.file.url },
+				spoiler: component.spoiler,
 			};
-			break;
 		case ComponentType.Container:
-			converted = {
+			return {
 				type: ComponentType.Container,
-				components: array(component.components).map((child) =>
-					convertComponent(object(child) as ResolvedComponentInput),
-				),
-				...(typeof component.accentColor === "number"
-					? { accentColor: component.accentColor }
-					: {}),
-				...(typeof component.spoiler === "boolean"
-					? { spoiler: component.spoiler }
-					: {}),
+				components: component.components.map(convertComponent),
+				accentColor: component.accent_color,
+				spoiler: component.spoiler,
 			};
-			break;
 		default:
-			converted = { type: component.type, unsupported: true };
+			return { type, unsupported: true };
 	}
-	return messageComponentsSchema.element.parse(converted);
 }
 
-function convertActionRowItem(value: JsonValue) {
-	const component = object(value);
-	const type = number(component.type) ?? -1;
-	if (type === ComponentType.Button) return convertButton(component);
-	if (type === ComponentType.StringSelect) {
-		return {
-			...convertSelectBase(component, ComponentType.StringSelect),
-			options: array(component.options).map((option) => {
-				const item = object(option);
-				return {
-					label: string(item.label),
-					value: string(item.value),
-					...(typeof item.description === "string"
-						? { description: item.description }
-						: {}),
-					...(item.emoji ? { emoji: convertEmoji(object(item.emoji)) } : {}),
-					...(typeof item.default === "boolean"
-						? { default: item.default }
-						: {}),
-				};
-			}),
-		};
+function convertActionRowItem(
+	component: APIComponentInMessageActionRow,
+): ActionRowItemOutput {
+	const type: number = component.type;
+	switch (component.type) {
+		case ComponentType.Button:
+			return convertButton(component);
+		case ComponentType.StringSelect:
+			return convertStringSelect(component);
+		case ComponentType.UserSelect:
+		case ComponentType.RoleSelect:
+		case ComponentType.MentionableSelect:
+		case ComponentType.ChannelSelect:
+			return convertAutoSelect(component);
+		default:
+			return { type, unsupported: true };
 	}
-	if (
-		type === ComponentType.UserSelect ||
-		type === ComponentType.RoleSelect ||
-		type === ComponentType.MentionableSelect ||
-		type === ComponentType.ChannelSelect
-	) {
-		return {
-			...convertSelectBase(component, type),
-			...(Array.isArray(component.channelTypes)
-				? { channelTypes: component.channelTypes.filter(isNumber) }
-				: {}),
-			...(Array.isArray(component.defaultValues)
-				? {
-						defaultValues: component.defaultValues.map((entry) => {
-							const item = object(entry);
-							return { id: string(item.id), type: string(item.type) };
-						}),
-					}
-				: {}),
-		};
-	}
-	return { type, unsupported: true as const };
 }
 
-function convertButton(component: Readonly<Record<string, JsonValue>>) {
+function convertButton(component: APIButtonComponent): ButtonOutput {
 	return {
 		type: ComponentType.Button,
-		style: number(component.style) ?? 1,
-		disabled: boolean(component.disabled) ?? false,
-		...(typeof component.label === "string" ? { label: component.label } : {}),
-		...(typeof component.url === "string" ? { url: component.url } : {}),
-		...(typeof component.customId === "string"
-			? { customId: component.customId }
-			: {}),
-		...(component.emoji
-			? { emoji: convertEmoji(object(component.emoji)) }
-			: {}),
+		style: component.style,
+		disabled: component.disabled ?? false,
+		label: "label" in component ? component.label : undefined,
+		url: "url" in component ? component.url : undefined,
+		customId: "custom_id" in component ? component.custom_id : undefined,
+		emoji:
+			"emoji" in component && component.emoji
+				? convertEmoji(component.emoji)
+				: undefined,
 	};
 }
 
-function convertAccessory(component: Readonly<Record<string, JsonValue>>) {
-	if (component.type === ComponentType.Thumbnail) {
-		return {
-			type: ComponentType.Thumbnail,
-			media: { url: string(object(component.media).url) },
-			...(typeof component.description === "string"
-				? { description: component.description }
-				: {}),
-			...(typeof component.spoiler === "boolean"
-				? { spoiler: component.spoiler }
-				: {}),
-		};
+function convertStringSelect(
+	component: APIStringSelectComponent,
+): StringSelectOutput {
+	return {
+		type: component.type,
+		customId: component.custom_id,
+		disabled: component.disabled ?? false,
+		placeholder: component.placeholder,
+		minValues: component.min_values,
+		maxValues: component.max_values,
+		options: component.options.map((option) => ({
+			label: option.label,
+			value: option.value,
+			description: option.description,
+			emoji: option.emoji ? convertEmoji(option.emoji) : undefined,
+			default: option.default,
+		})),
+	};
+}
+
+function convertAutoSelect(
+	component: APIAutoPopulatedSelectMenuComponent,
+): AutoSelectOutput {
+	return {
+		type: component.type,
+		customId: component.custom_id,
+		disabled: component.disabled ?? false,
+		placeholder: component.placeholder,
+		minValues: component.min_values,
+		maxValues: component.max_values,
+		channelTypes:
+			component.type === ComponentType.ChannelSelect
+				? component.channel_types
+				: undefined,
+		defaultValues: component.default_values?.map((entry) => ({
+			id: entry.id,
+			type: entry.type,
+		})),
+	};
+}
+
+function convertAccessory(
+	component: APISectionAccessoryComponent,
+): AccessoryOutput | undefined {
+	switch (component.type) {
+		case ComponentType.Button:
+			return convertButton(component);
+		case ComponentType.Thumbnail:
+			return convertThumbnail(component);
+		default:
+			return undefined;
 	}
-	return convertButton(component);
 }
 
-function convertSelectBase(
-	component: Readonly<Record<string, JsonValue>>,
-	type: number,
-) {
+function convertThumbnail(component: APIThumbnailComponent): AccessoryOutput {
 	return {
-		type,
-		customId: string(component.customId),
-		disabled: boolean(component.disabled) ?? false,
-		...(typeof component.placeholder === "string"
-			? { placeholder: component.placeholder }
-			: {}),
-		...(typeof component.minValues === "number"
-			? { minValues: component.minValues }
-			: {}),
-		...(typeof component.maxValues === "number"
-			? { maxValues: component.maxValues }
-			: {}),
+		type: ComponentType.Thumbnail,
+		media: { url: component.media.url },
+		description: component.description,
+		spoiler: component.spoiler,
 	};
 }
 
-function convertEmoji(emoji: Readonly<Record<string, JsonValue>>) {
+function convertEmoji(emoji: APIMessageComponentEmoji): EmojiOutput {
 	return {
-		id: typeof emoji.id === "string" ? emoji.id : null,
-		name: typeof emoji.name === "string" ? emoji.name : null,
-		animated: typeof emoji.animated === "boolean" ? emoji.animated : false,
+		id: emoji.id ?? null,
+		name: emoji.name ?? null,
+		animated: emoji.animated ?? false,
 	};
-}
-
-function object(
-	value: JsonValue | undefined,
-): Readonly<Record<string, JsonValue>> {
-	return value !== null && typeof value === "object" && !Array.isArray(value)
-		? (value as Readonly<Record<string, JsonValue>>)
-		: {};
-}
-
-function array(value: JsonValue | undefined): readonly JsonValue[] {
-	return Array.isArray(value) ? value : [];
-}
-
-function string(value: JsonValue | undefined): string {
-	return typeof value === "string" ? value : "";
-}
-
-function number(value: JsonValue | undefined): number | null {
-	return typeof value === "number" ? value : null;
-}
-
-function boolean(value: JsonValue | undefined): boolean | null {
-	return typeof value === "boolean" ? value : null;
-}
-
-function isNumber(value: JsonValue): value is number {
-	return typeof value === "number";
 }
 
 export const supportedV2ComponentTypes = [

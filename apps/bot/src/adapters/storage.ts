@@ -19,6 +19,7 @@ const allowedAttachmentHosts = new Set([
 	"cdn.discordapp.com",
 	"media.discordapp.net",
 ]);
+const R2_DELETE_OBJECTS_MAX_KEYS = 1_000;
 
 export interface UploadFromUrlInput {
 	readonly id: string;
@@ -248,8 +249,15 @@ export const makeAttachmentStorage = (): Effect.Effect<
 			function* (keys: readonly string[]) {
 				const validKeys = yield* Effect.forEach(keys, validateKey);
 				if (validKeys.length === 0) return;
-				for (let offset = 0; offset < validKeys.length; offset += 1000) {
-					const chunk = validKeys.slice(offset, offset + 1000);
+				for (
+					let offset = 0;
+					offset < validKeys.length;
+					offset += R2_DELETE_OBJECTS_MAX_KEYS
+				) {
+					const chunk = validKeys.slice(
+						offset,
+						offset + R2_DELETE_OBJECTS_MAX_KEYS,
+					);
 					yield* Effect.tryPromise({
 						try: (signal) =>
 							client.send(

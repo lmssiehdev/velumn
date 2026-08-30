@@ -9,20 +9,27 @@ import {
 	ErrorCapture,
 	type ErrorCaptureService,
 } from "../observability/error-capture";
+import {
+	BotMetrics,
+	type GatewayMutationOutcome,
+	type IndexMutationKind,
+} from "../observability/metrics";
 import { normalizeError, safeBoundaryMetadata } from "../observability/policy";
 import { Readiness } from "../runtime/readiness";
+import { boundedExponentialDelayMs } from "./backoff";
+import {
+	decodeIndexMutation,
+	type IndexingOperationError,
+	type IndexSubmission,
+} from "./model";
+import { indexMutationKind } from "./mutation-metadata";
 import {
 	IndexingCoordinator,
 	type IndexingCoordinatorService,
 	IndexingCoordinatorSupervisor,
 	submitIndexingAdmission,
 } from "./coordinator";
-import type {
-	IndexingOperationError,
-	IndexMutation,
-	IndexSubmission,
-} from "./model";
-import { retryDispositionFor } from "./policy";
+import { retryDispositionFor } from "./retry-policy";
 
 export interface GatewayMutationInboxOptions {
 	readonly leaseOwner: string;
@@ -31,6 +38,7 @@ export interface GatewayMutationInboxOptions {
 	readonly leaseDurationMs: number;
 	readonly initialRetryDelayMs: number;
 	readonly maximumRetryDelayMs: number;
+	readonly maximumAttemptCount: number;
 	readonly pollingIntervalMs: number;
 }
 
@@ -43,8 +51,13 @@ export const defaultGatewayMutationInboxOptions = (
 	leaseDurationMs: 300_000,
 	initialRetryDelayMs: 500,
 	maximumRetryDelayMs: 60_000,
+	maximumAttemptCount: 10,
 	pollingIntervalMs: 100,
 });
+
+const claimMutationTimeout = "5 seconds";
+const invalidPayloadErrorCode = "indexing:invalid-payload";
+const exhaustedErrorCode = "indexing:attempts-exhausted";
 
 export class GatewayMutationInbox extends Context.Service<
 	GatewayMutationInbox,
@@ -57,11 +70,11 @@ const retryDelay = (
 	options: GatewayMutationInboxOptions,
 	attemptCount: number,
 ) =>
-	Math.min(
-		options.maximumRetryDelayMs,
-		options.initialRetryDelayMs *
-			2 ** Math.min(30, Math.max(0, attemptCount - 1)),
-	);
+	boundedExponentialDelayMs({
+		initialDelayMs: options.initialRetryDelayMs,
+		maximumDelayMs: options.maximumRetryDelayMs,
+		attemptCount,
+	});
 
 export const gatewayMutationErrorCode = (
 	cause: Cause.Cause<IndexingOperationError>,
@@ -86,17 +99,75 @@ const processClaimedMutation = (
 ) =>
 	Effect.scoped(
 		Effect.gen(function* () {
+			const processingStartedAt = yield* Clock.currentTimeMillis;
 			const generation = row.attemptCount;
 			const leaseLost = yield* Ref.make(false);
-			// Registered before the renewal fiber so LIFO scope cleanup stops renewal
-			// before making the final fenced release attempt.
-			yield* Effect.addFinalizer(() =>
-				Ref.get(leaseLost).pipe(
-					Effect.flatMap((lost) =>
-						lost
-							? Effect.void
-							: repository.release(row.id, options.leaseOwner, generation),
+			const coordinatorOwnsClaim = yield* Ref.make(false);
+			const claimSettled = yield* Ref.make(false);
+			const metricKind = yield* Ref.make(Option.none<IndexMutationKind>());
+			const metricOutcome = yield* Ref.make(
+				Option.none<GatewayMutationOutcome>(),
+			);
+			const setMetricOutcome = (outcome: GatewayMutationOutcome) =>
+				Ref.update(metricOutcome, (current) =>
+					Option.isSome(current) ? current : Option.some(outcome),
+				);
+			const setOperationOutcome = (outcome: GatewayMutationOutcome) =>
+				setMetricOutcome(outcome).pipe(
+					Effect.andThen(Ref.get(metricOutcome)),
+					Effect.flatMap((current) =>
+						Effect.annotateCurrentSpan({
+							"operation.outcome": Option.getOrElse(current, () => outcome),
+						}),
 					),
+				);
+			yield* Effect.addFinalizer(() =>
+				Effect.all([Ref.get(metricKind), Ref.get(metricOutcome)]).pipe(
+					Effect.flatMap(([kind, outcome]) =>
+						Option.isSome(kind) && Option.isSome(outcome)
+							? Clock.currentTimeMillis.pipe(
+									Effect.flatMap((finishedAt) =>
+										BotMetrics.recordGatewayMutation({
+											kind: kind.value,
+											outcome: outcome.value,
+											durationMs: finishedAt - processingStartedAt,
+										}),
+									),
+								)
+							: Effect.void,
+					),
+				),
+			);
+			// Registered before renewal so LIFO cleanup stops renewal before a
+			// pre-admission claim is released.
+			yield* Effect.addFinalizer(() =>
+				Effect.all([
+					Ref.get(leaseLost),
+					Ref.get(coordinatorOwnsClaim),
+					Ref.get(claimSettled),
+				]).pipe(
+					Effect.flatMap(([lost, coordinatorOwned, settled]) => {
+						if (lost || coordinatorOwned || settled) return Effect.void;
+						return repository
+							.release(row.id, options.leaseOwner, generation)
+							.pipe(
+								Effect.interruptible,
+								Effect.timeoutOption(claimMutationTimeout),
+								Effect.flatMap((released) =>
+									Option.isNone(released)
+										? Effect.logError(
+												"Durable gateway mutation claim release timed out",
+												{
+													metric:
+														"indexing_gateway_mutation_claim_release_timed_out",
+													mutationId: row.id,
+													generation,
+												},
+											)
+										: Effect.void,
+								),
+							);
+					}),
 					Effect.catch((error) =>
 						error instanceof GatewayMutationLeaseLostError
 							? Effect.void
@@ -114,11 +185,44 @@ const processClaimedMutation = (
 					),
 				),
 			);
+			const failClaim = (errorCode: string) =>
+				repository.fail(row.id, options.leaseOwner, generation, errorCode);
+			const decodedMutation = yield* decodeIndexMutation(row.mutation).pipe(
+				Effect.map(Option.some),
+				Effect.catch((error) =>
+					Ref.set(metricKind, Option.some("invalid_payload")).pipe(
+						Effect.andThen(setOperationOutcome("failed")),
+						Effect.andThen(
+							BotMetrics.recordRetry("gateway_processing", "terminal"),
+						),
+						Effect.andThen(failClaim(invalidPayloadErrorCode)),
+						Effect.timeout(claimMutationTimeout),
+						Effect.tap(() => Ref.set(claimSettled, true)),
+						Effect.andThen(
+							errorCapture.captureCause(Cause.fail(error), {
+								boundary: "gateway_receipt_recovery",
+								operation: "gateway.claimed_process",
+								mutationId: String(row.id),
+								submissionId: row.submissionId,
+							}),
+						),
+						Effect.as(Option.none()),
+					),
+				),
+			);
+			if (Option.isNone(decodedMutation)) return;
+			const mutation = decodedMutation.value;
+			const kind = indexMutationKind(mutation);
+			yield* Ref.set(metricKind, Option.some(kind));
+			yield* Effect.annotateCurrentSpan({
+				"mutation.type": kind,
+				"submission.source": "gateway",
+			});
 			const submission: IndexSubmission = {
 				id: row.submissionId,
 				source: "gateway",
 				orderingKey: row.orderingKey,
-				mutation: row.mutation as IndexMutation,
+				mutation,
 				submittedAt: row.submittedAt.getTime(),
 			};
 			const mutationIds = (() => {
@@ -128,9 +232,7 @@ const processClaimedMutation = (
 						return {
 							messageId: submission.mutation.messageId,
 							channelId: submission.mutation.channelId,
-							...(submission.mutation.threadId
-								? { threadId: submission.mutation.threadId }
-								: {}),
+							threadId: submission.mutation.threadId ?? undefined,
 						};
 					case "DeleteThread":
 					case "ReconcileThread":
@@ -185,6 +287,7 @@ const processClaimedMutation = (
 						onFailure: (error) => {
 							if (error instanceof GatewayMutationLeaseLostError) {
 								return Ref.set(leaseLost, true).pipe(
+									Effect.andThen(setOperationOutcome("lease_lost")),
 									Effect.andThen(
 										Effect.logWarning("Durable gateway mutation lease lost", {
 											metric: "indexing_gateway_mutation_lease_lost",
@@ -194,18 +297,24 @@ const processClaimedMutation = (
 									),
 								);
 							}
-							return Effect.logWarning(
-								"Durable gateway mutation lease renewal failed; retrying",
-								{
-									metric: "indexing_gateway_mutation_lease_renewal_failed",
-									mutationId: row.id,
-									generation,
-									retryDelayMs,
-									...safeBoundaryMetadata(Cause.fail(error), {
-										boundary: "gateway_lease_renewal",
-									}),
-								},
+							return BotMetrics.recordRetry(
+								"gateway_processing",
+								"retryable",
 							).pipe(
+								Effect.andThen(
+									Effect.logWarning(
+										"Durable gateway mutation lease renewal failed; retrying",
+										{
+											metric: "indexing_gateway_mutation_lease_renewal_failed",
+											mutationId: row.id,
+											generation,
+											retryDelayMs,
+											...safeBoundaryMetadata(Cause.fail(error), {
+												boundary: "gateway_lease_renewal",
+											}),
+										},
+									),
+								),
 								Effect.andThen(
 									renewLease(
 										retryDelayMs,
@@ -234,95 +343,175 @@ const processClaimedMutation = (
 								),
 					),
 				);
+			const mutateCurrentClaim = <E, R>(effect: Effect.Effect<void, E, R>) =>
+				Effect.uninterruptibleMask((restore) =>
+					restore(
+						withCurrentClaim(effect.pipe(Effect.timeout(claimMutationTimeout))),
+					).pipe(Effect.andThen(Ref.set(claimSettled, true))),
+				);
 
-			yield* submitIndexingAdmission(coordinator, submission).pipe(
-				Effect.flatMap((admission) => {
-					if (admission._tag === "Closing") {
-						return withCurrentClaim(
-							Clock.currentTimeMillis.pipe(
-								Effect.flatMap((now) =>
-									repository.defer(
-										row.id,
-										options.leaseOwner,
-										generation,
-										"coordinator-closing",
-										new Date(now),
+			yield* Effect.uninterruptibleMask((restore) =>
+				restore(
+					submitIndexingAdmission<IndexingOperationError>(
+						{
+							...coordinator,
+							submit: (currentSubmission) =>
+								coordinator
+									.submit(currentSubmission)
+									.pipe(
+										Effect.tap((result) =>
+											result._tag === "Overloaded"
+												? BotMetrics.recordRetry(
+														"gateway_processing",
+														"retryable",
+													)
+												: Effect.void,
+										),
 									),
-								),
-							),
-						);
-					}
-
-					return admission.receipt.await.pipe(
-						Effect.flatMap((outcome) => {
-							if (outcome._tag === "Completed") {
-								return withCurrentClaim(
-									repository.complete(row.id, options.leaseOwner, generation),
-								);
-							}
-							const error = Option.getOrUndefined(
-								Cause.findErrorOption(outcome.cause),
-							);
-							const terminal =
-								!Cause.hasDies(outcome.cause) &&
-								!Cause.hasInterrupts(outcome.cause) &&
-								error !== undefined &&
-								retryDispositionFor(error.classification) === "terminal";
-							return Effect.gen(function* () {
-								yield* Effect.annotateCurrentSpan({
-									"operation.outcome": terminal ? "failed" : "deferred",
-									"error.type": Cause.hasDies(outcome.cause)
-										? "Defect"
-										: (error?._tag ?? "UnknownError"),
-									"error.classification": Cause.hasDies(outcome.cause)
-										? "defect"
-										: (error?.classification ?? "unknown"),
-									"retry.attempt": generation,
-								});
-								if (Cause.hasDies(outcome.cause)) {
-									yield* errorCapture.captureCause(outcome.cause, {
-										boundary: "gateway_receipt_recovery",
-										operation: "IndexingCoordinator.settleItem",
-										mutationId: String(row.id),
-										submissionId: row.submissionId,
-										...mutationIds,
-									});
-								}
-								yield* Effect.logWarning(
-									"Durable gateway mutation indexing failed",
-									{
-										metric: "indexing_gateway_mutation_indexing_failed",
-										mutationId: row.id,
-										generation,
-										...safeBoundaryMetadata(outcome.cause, {
-											boundary: "gateway_mutation_indexing",
-										}),
-									},
-								);
-								yield* withCurrentClaim(
-									terminal
-										? repository.complete(
-												row.id,
-												options.leaseOwner,
-												generation,
-											)
-										: Clock.currentTimeMillis.pipe(
+						},
+						submission,
+					),
+				).pipe(
+					Effect.flatMap((admission) => {
+						if (admission._tag === "Closing") {
+							return BotMetrics.recordRetry(
+								"gateway_processing",
+								"retryable",
+							).pipe(
+								Effect.andThen(
+									restore(
+										mutateCurrentClaim(
+											Clock.currentTimeMillis.pipe(
 												Effect.flatMap((now) =>
 													repository.defer(
 														row.id,
 														options.leaseOwner,
 														generation,
-														gatewayMutationErrorCode(outcome.cause),
-														new Date(now + retryDelay(options, generation)),
+														"coordinator-closing",
+														new Date(now),
 													),
 												),
 											),
-								);
-							});
-						}),
-						// Once accepted, the coordinator owns the mutation. Keep the DB claim
-						// until its receipt and terminal row mutation have both settled.
-						Effect.uninterruptible,
+										),
+									),
+								),
+								Effect.andThen(setOperationOutcome("closing")),
+							);
+						}
+
+						return Ref.set(coordinatorOwnsClaim, true).pipe(
+							Effect.andThen(restore(admission.receipt.await)),
+							Effect.flatMap((outcome) =>
+								Ref.set(coordinatorOwnsClaim, false).pipe(
+									Effect.andThen(
+										restore(
+											Effect.suspend(() => {
+												if (outcome._tag === "Completed") {
+													return mutateCurrentClaim(
+														repository.complete(
+															row.id,
+															options.leaseOwner,
+															generation,
+														),
+													).pipe(
+														Effect.andThen(setOperationOutcome("succeeded")),
+													);
+												}
+												const error = Option.getOrUndefined(
+													Cause.findErrorOption(outcome.cause),
+												);
+												const terminal =
+													!Cause.hasDies(outcome.cause) &&
+													!Cause.hasInterrupts(outcome.cause) &&
+													error !== undefined &&
+													retryDispositionFor(error.classification) ===
+														"terminal";
+												const exhausted =
+													generation >= options.maximumAttemptCount;
+												const failedPermanently = terminal || exhausted;
+												return Effect.gen(function* () {
+													yield* BotMetrics.recordRetry(
+														"gateway_processing",
+														failedPermanently ? "terminal" : "retryable",
+													);
+													yield* Effect.annotateCurrentSpan({
+														"error.type": Cause.hasDies(outcome.cause)
+															? "Defect"
+															: (error?._tag ?? "UnknownError"),
+														"error.classification": Cause.hasDies(outcome.cause)
+															? "defect"
+															: (error?.classification ?? "unknown"),
+														"retry.attempt": generation,
+													});
+													if (Cause.hasDies(outcome.cause)) {
+														yield* errorCapture.captureCause(outcome.cause, {
+															boundary: "gateway_receipt_recovery",
+															operation: "IndexingCoordinator.settleItem",
+															mutationId: String(row.id),
+															submissionId: row.submissionId,
+															...mutationIds,
+														});
+													}
+													yield* Effect.logWarning(
+														"Durable gateway mutation indexing failed",
+														{
+															metric:
+																"indexing_gateway_mutation_indexing_failed",
+															mutationId: row.id,
+															generation,
+															...safeBoundaryMetadata(outcome.cause, {
+																boundary: "gateway_mutation_indexing",
+															}),
+														},
+													);
+													yield* mutateCurrentClaim(
+														failedPermanently
+															? failClaim(
+																	exhausted
+																		? exhaustedErrorCode
+																		: gatewayMutationErrorCode(outcome.cause),
+																)
+															: Clock.currentTimeMillis.pipe(
+																	Effect.flatMap((now) =>
+																		repository.defer(
+																			row.id,
+																			options.leaseOwner,
+																			generation,
+																			gatewayMutationErrorCode(outcome.cause),
+																			new Date(
+																				now + retryDelay(options, generation),
+																			),
+																		),
+																	),
+																),
+													);
+													if (failedPermanently) {
+														yield* setOperationOutcome("failed");
+													} else {
+														yield* setOperationOutcome("deferred");
+													}
+												});
+											}),
+										),
+									),
+								),
+							),
+						);
+					}),
+				),
+			).pipe(
+				Effect.onExit((exit) => {
+					if (exit._tag === "Success") return Effect.void;
+					return Ref.get(leaseLost).pipe(
+						Effect.flatMap((lost) =>
+							setOperationOutcome(
+								lost
+									? "lease_lost"
+									: Cause.hasInterrupts(exit.cause)
+										? "closing"
+										: "failed",
+							),
+						),
 					);
 				}),
 			);
@@ -418,9 +607,7 @@ export const drainGatewayMutationBatch = (
 						"operation.name": "gateway.poll",
 						"operation.outcome": "failed",
 						"error.type": normalized.type,
-						...(normalized.typedOperation
-							? { "error.classification": normalized.typedOperation }
-							: {}),
+						"error.classification": normalized.typedOperation,
 					},
 				}),
 				Effect.catch(() => Effect.succeed(0)),
@@ -436,6 +623,7 @@ export const layerGatewayMutationInbox = (
 		Effect.gen(function* () {
 			for (const [name, value] of Object.entries(options)) {
 				if (name === "leaseOwner") continue;
+				if (value === undefined) continue;
 				if (!Number.isInteger(value) || (value as number) <= 0) {
 					return yield* Effect.die(
 						new RangeError(`${name} must be a positive integer`),
@@ -505,16 +693,23 @@ export const layerGatewayMutationInbox = (
 									coordinator.state.pipe(
 										Effect.flatMap((state) =>
 											state.accepting
-												? Effect.logWarning(
-														"Gateway mutation enqueue failed; retrying",
-														{
-															metric: "indexing_gateway_mutation_enqueue_retry",
-															delayMs,
-															...safeBoundaryMetadata(Cause.fail(error), {
-																boundary: "gateway_enqueue",
-															}),
-														},
+												? BotMetrics.recordRetry(
+														"gateway_enqueue",
+														"retryable",
 													).pipe(
+														Effect.andThen(
+															Effect.logWarning(
+																"Gateway mutation enqueue failed; retrying",
+																{
+																	metric:
+																		"indexing_gateway_mutation_enqueue_retry",
+																	delayMs,
+																	...safeBoundaryMetadata(Cause.fail(error), {
+																		boundary: "gateway_enqueue",
+																	}),
+																},
+															),
+														),
 														Effect.andThen(Effect.sleep(delayMs)),
 														Effect.andThen(
 															enqueue(
@@ -525,13 +720,20 @@ export const layerGatewayMutationInbox = (
 															),
 														),
 													)
-												: Effect.logWarning(
-														"Stopped gateway mutation enqueue during coordinator shutdown",
-														{
-															metric:
-																"indexing_gateway_mutation_enqueue_closing",
-															boundary: "gateway_enqueue_closing",
-														},
+												: BotMetrics.recordRetry(
+														"gateway_enqueue",
+														"terminal",
+													).pipe(
+														Effect.andThen(
+															Effect.logWarning(
+																"Stopped gateway mutation enqueue during coordinator shutdown",
+																{
+																	metric:
+																		"indexing_gateway_mutation_enqueue_closing",
+																	boundary: "gateway_enqueue_closing",
+																},
+															),
+														),
 													),
 										),
 									),

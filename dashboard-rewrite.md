@@ -48,25 +48,25 @@ Shared page payloads use these minimal shapes:
 
 ```ts
 type ServerIdentity = {
-  id: string
-  name: string
-  icon: string | null
-}
+	id: string;
+	name: string;
+	icon: string | null;
+};
 
 type SetupChannel = {
-  id: string
-  name: string
-  type: 'forum' | 'text'
-  selected: boolean
-}
+	id: string;
+	name: string;
+	type: "forum" | "text";
+	selected: boolean;
+};
 
 type IndexingJob = {
-  id: string
-  status: 'queued' | 'running' | 'failed' | 'succeeded'
-  progress: null | { completed: number; total: number }
-  startedAt: string | null
-  error: string | null
-}
+	id: string;
+	status: "queued" | "running" | "failed" | "succeeded";
+	progress: null | { completed: number; total: number };
+	startedAt: string | null;
+	error: string | null;
+};
 ```
 
 ## Global Shell Data
@@ -75,29 +75,29 @@ The authenticated shell needs one minimal payload:
 
 ```ts
 type DashboardShell = {
-  user: {
-    id: string
-    name: string
-    email: string
-    image: string | null
-  }
-  servers: Array<{
-    id: string
-    name: string
-    icon: string | null
-    role: 'owner' | 'admin' | 'manager'
-    capabilities: string[]
-    lifecycle: 'setup_required' | 'ready' | 'bot_disconnected'
-  }>
-  activeServer: null | {
-    id: string
-    name: string
-    icon: string | null
-    lifecycle: 'setup_required' | 'ready' | 'bot_disconnected'
-    forumUrl: string
-  }
-  lastUsedServerId: string | null
-}
+	user: {
+		id: string;
+		name: string;
+		email: string;
+		image: string | null;
+	};
+	servers: Array<{
+		id: string;
+		name: string;
+		icon: string | null;
+		role: "owner" | "admin" | "manager";
+		capabilities: string[];
+		lifecycle: "setup_required" | "ready" | "bot_disconnected";
+	}>;
+	activeServer: null | {
+		id: string;
+		name: string;
+		icon: string | null;
+		lifecycle: "setup_required" | "ready" | "bot_disconnected";
+		forumUrl: string;
+	};
+	lastUsedServerId: string | null;
+};
 ```
 
 The shell displays:
@@ -122,13 +122,13 @@ Do not send complete server database rows to the browser. Fields such as member 
 
 Normal pages use a consistent content header with a title, a one-sentence description, and right-aligned primary actions. Search and filters occupy a separate row below the header. Header actions wrap below the title at narrow content widths.
 
-| Route | Title | Description | Primary header action |
-| --- | --- | --- | --- |
-| `/dashboard/servers` | Servers | Choose a Discord server to manage. | Add server |
-| `/dashboard/servers/$serverId` | Overview | Connection, indexing, content, and publishing status for this server. | Visit forum |
-| `/dashboard/servers/$serverId/threads` | Threads | Content currently available through Velumn. | Visit forum |
-| `/dashboard/servers/$serverId/channels` | Channels | Choose which eligible Discord channels Velumn indexes. | Save changes when dirty |
-| `/dashboard/servers/$serverId/publishing` | Publishing | Manage the public URL and custom-domain verification. | Verify or refresh when applicable |
+| Route                                     | Title      | Description                                                           | Primary header action             |
+| ----------------------------------------- | ---------- | --------------------------------------------------------------------- | --------------------------------- |
+| `/dashboard/servers`                      | Servers    | Choose a Discord server to manage.                                    | Add server                        |
+| `/dashboard/servers/$serverId`            | Overview   | Connection, indexing, content, and publishing status for this server. | Visit forum                       |
+| `/dashboard/servers/$serverId/threads`    | Threads    | Content currently available through Velumn.                           | Visit forum                       |
+| `/dashboard/servers/$serverId/channels`   | Channels   | Choose which eligible Discord channels Velumn indexes.                | Save changes when dirty           |
+| `/dashboard/servers/$serverId/publishing` | Publishing | Manage the public URL and custom-domain verification.                 | Verify or refresh when applicable |
 
 ### `/dashboard/sign-in`
 
@@ -178,16 +178,16 @@ Data:
 
 ```ts
 type ServerListItem = {
-  id: string
-  name: string
-  icon: string | null
-  role: 'owner' | 'admin' | 'manager'
-  lifecycle: 'setup_required' | 'ready' | 'bot_disconnected'
-  enabledChannelCount: number
-  indexedThreadCount: number
-  lastIndexedAt: string | null
-  forumUrl: string | null
-}
+	id: string;
+	name: string;
+	icon: string | null;
+	role: "owner" | "admin" | "manager";
+	lifecycle: "setup_required" | "ready" | "bot_disconnected";
+	enabledChannelCount: number;
+	indexedThreadCount: number;
+	lastIndexedAt: string | null;
+	forumUrl: string | null;
+};
 ```
 
 The page also displays an add-server action. It must not load channels, threads, domain records, or full Discord guild objects for every server.
@@ -211,13 +211,13 @@ Data:
 
 ```ts
 type EligibleDiscordServer = {
-  id: string
-  name: string
-  icon: string | null
-  owner: boolean
-  canManage: boolean
-  installation: 'not_added' | 'awaiting_bot' | 'selecting_channels' | 'ready'
-}
+	id: string;
+	name: string;
+	icon: string | null;
+	owner: boolean;
+	canManage: boolean;
+	installation: "not_added" | "awaiting_bot" | "selecting_channels" | "ready";
+};
 ```
 
 Access:
@@ -240,12 +240,25 @@ This replaces separate invite-bot and select-channel page trees. The page is dri
 
 ```ts
 type ServerSetup =
-  | { state: 'invite_required'; server: ServerIdentity; requiredPermissions: string[] }
-  | { state: 'waiting_for_bot'; server: ServerIdentity; lastCheckedAt: string }
-  | { state: 'select_channels'; server: ServerIdentity; channels: SetupChannel[] }
-  | { state: 'starting_index'; server: ServerIdentity; job: IndexingJob }
-  | { state: 'failed'; server: ServerIdentity; message: string; retryable: boolean }
-  | { state: 'ready'; serverId: string }
+	| {
+			state: "invite_required";
+			server: ServerIdentity;
+			requiredPermissions: string[];
+	  }
+	| { state: "waiting_for_bot"; server: ServerIdentity; lastCheckedAt: string }
+	| {
+			state: "select_channels";
+			server: ServerIdentity;
+			channels: SetupChannel[];
+	  }
+	| { state: "starting_index"; server: ServerIdentity; job: IndexingJob }
+	| {
+			state: "failed";
+			server: ServerIdentity;
+			message: string;
+			retryable: boolean;
+	  }
+	| { state: "ready"; serverId: string };
 ```
 
 Display by state:
@@ -281,30 +294,30 @@ Data:
 
 ```ts
 type ServerOverview = {
-  server: ServerIdentity
-  forumUrl: string
-  bot: {
-    status: 'connected' | 'disconnected' | 'unknown'
-    lastSeenAt: string | null
-  }
-  indexing: {
-    status: 'idle' | 'queued' | 'running' | 'failed'
-    lastSucceededAt: string | null
-    error: string | null
-  }
-  channels: {
-    eligible: number
-    enabled: number
-  }
-  threads: {
-    total: number
-    recent: ThreadListItem[]
-  }
-  publishing: {
-    domain: string | null
-    status: 'default' | 'pending' | 'verified' | 'failed'
-  }
-}
+	server: ServerIdentity;
+	forumUrl: string;
+	bot: {
+		status: "connected" | "disconnected" | "unknown";
+		lastSeenAt: string | null;
+	};
+	indexing: {
+		status: "idle" | "queued" | "running" | "failed";
+		lastSucceededAt: string | null;
+		error: string | null;
+	};
+	channels: {
+		eligible: number;
+		enabled: number;
+	};
+	threads: {
+		total: number;
+		recent: ThreadListItem[];
+	};
+	publishing: {
+		domain: string | null;
+		status: "default" | "pending" | "verified" | "failed";
+	};
+};
 ```
 
 The overview must distinguish a new empty server, active initial indexing, a failed job, and a genuinely empty result. Zero threads does not automatically mean indexing is running.
@@ -335,15 +348,15 @@ Data per row:
 
 ```ts
 type ThreadListItem = {
-  id: string
-  title: string
-  parentChannel: { id: string; name: string }
-  messageCount: number
-  pinned: boolean
-  lastIndexedAt: string | null
-  discordUrl: string
-  publicUrl: string
-}
+	id: string;
+	title: string;
+	parentChannel: { id: string; name: string };
+	messageCount: number;
+	pinned: boolean;
+	lastIndexedAt: string | null;
+	discordUrl: string;
+	publicUrl: string;
+};
 ```
 
 Query state:
@@ -374,15 +387,15 @@ Data per row:
 
 ```ts
 type ChannelListItem = {
-  id: string
-  name: string
-  type: 'forum' | 'text'
-  indexingEnabled: boolean
-  indexedThreadCount: number
-  lastIndexedAt: string | null
-  status: 'idle' | 'queued' | 'indexing' | 'failed'
-  error: string | null
-}
+	id: string;
+	name: string;
+	type: "forum" | "text";
+	indexingEnabled: boolean;
+	indexedThreadCount: number;
+	lastIndexedAt: string | null;
+	status: "idle" | "queued" | "indexing" | "failed";
+	error: string | null;
+};
 ```
 
 Display `#name`, Forum or Text type, indexing control, right-aligned thread count, relative last-indexed time, and a labeled status. Failed rows expose a concise safe error without replacing the rest of the table.
@@ -409,16 +422,16 @@ Data:
 
 ```ts
 type PublishingSettings = {
-  defaultUrl: string
-  canonicalUrl: string
-  customDomain: string | null
-  verification: {
-    status: 'not_configured' | 'pending' | 'verified' | 'failed'
-    checkedAt: string | null
-    message: string | null
-    records: Array<{ type: string; name: string; value: string }>
-  }
-}
+	defaultUrl: string;
+	canonicalUrl: string;
+	customDomain: string | null;
+	verification: {
+		status: "not_configured" | "pending" | "verified" | "failed";
+		checkedAt: string | null;
+		message: string | null;
+		records: Array<{ type: string; name: string; value: string }>;
+	};
+};
 ```
 
 Return cached verification state in the initial payload. Refresh external Vercel verification independently so it does not block the shell or entire page.
@@ -477,16 +490,16 @@ Do not infer these states from unrelated data such as whether channels exist, wh
 
 List and table states follow this matrix:
 
-| State | Required display |
-| --- | --- |
-| Initial loading | Preserve the page header and expected column widths; show approximately eight skeleton rows. |
-| Background refresh | Keep existing data visible and show a subtle refreshing indicator. |
-| First-use empty | Explain the feature and provide the relevant setup action. |
-| Filtered empty | Explain that nothing matches and offer Clear filters. |
-| Error | Show an inline safe error with Retry; never present it as empty. |
-| Disconnected | Retain existing data, show a warning, and disable only bot-dependent mutations. |
-| Loading another page | Keep loaded rows visible and append loading rows or a local pagination indicator. |
-| Mutation pending | Disable only the affected control or row and expose its busy state accessibly. |
+| State                | Required display                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| Initial loading      | Preserve the page header and expected column widths; show approximately eight skeleton rows. |
+| Background refresh   | Keep existing data visible and show a subtle refreshing indicator.                           |
+| First-use empty      | Explain the feature and provide the relevant setup action.                                   |
+| Filtered empty       | Explain that nothing matches and offer Clear filters.                                        |
+| Error                | Show an inline safe error with Retry; never present it as empty.                             |
+| Disconnected         | Retain existing data, show a warning, and disable only bot-dependent mutations.              |
+| Loading another page | Keep loaded rows visible and append loading rows or a local pagination indicator.            |
+| Mutation pending     | Disable only the affected control or row and expose its busy state accessibly.               |
 
 Relative timestamps expose full localized timestamps. Numeric columns are right-aligned with tabular figures. Meaningful null values use domain copy such as `Never indexed` rather than an unexplained dash.
 

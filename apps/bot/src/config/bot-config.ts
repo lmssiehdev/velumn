@@ -43,7 +43,9 @@ export class BotConfig extends Context.Service<
 	static readonly layer = Layer.effect(
 		BotConfig,
 		Effect.gen(function* () {
-			const discordToken = yield* Config.redacted("DISCORD_BOT_TOKEN");
+			const discordToken = yield* nonEmptyConfig("DISCORD_BOT_TOKEN").pipe(
+				Config.map(Redacted.make),
+			);
 			const environment = yield* Config.literals(
 				["development", "production", "test"],
 				"NODE_ENV",
@@ -57,7 +59,9 @@ export class BotConfig extends Context.Service<
 			const apiPort = yield* Config.number("BOT_API_PORT").pipe(
 				Config.withDefault(8001),
 			);
-			const apiSecret = yield* Config.redacted("BOT_API_SECRET");
+			const apiSecret = yield* nonEmptyConfig("BOT_API_SECRET").pipe(
+				Config.map(Redacted.make),
+			);
 			const webOrigin = yield* Config.string("NEXT_PUBLIC_VELUMN_URL").pipe(
 				Config.withDefault("http://localhost:3000"),
 			);
@@ -68,12 +72,13 @@ export class BotConfig extends Context.Service<
 				nonEmptyConfig("MEILISEARCH_HOST"),
 			);
 			const meilisearchApiKey = yield* Config.option(
-				Config.redacted("MEILISEARCH_API_KEY"),
+				nonEmptyConfig("MEILISEARCH_API_KEY").pipe(Config.map(Redacted.make)),
 			);
-			const meilisearch = Option.map(meilisearchHost, (host) => ({
-				host,
-				apiKey: meilisearchApiKey,
-			}));
+			let meilisearch: Option.Option<MeilisearchConfig> = Option.none();
+			if (Option.isSome(meilisearchHost) || Option.isSome(meilisearchApiKey)) {
+				const host = yield* nonEmptyConfig("MEILISEARCH_HOST");
+				meilisearch = Option.some({ host, apiKey: meilisearchApiKey });
+			}
 			const r2Required = {
 				endpoint: nonEmptyConfig("R2_ENDPOINT"),
 				bucketName: nonEmptyConfig("R2_BUCKET_NAME"),

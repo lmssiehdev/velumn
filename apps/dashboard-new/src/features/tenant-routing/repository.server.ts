@@ -16,7 +16,10 @@ import {
   type TenantListInput,
 } from "./contracts"
 
-type ForumChannel = { id: string; name: string; type: number }
+type ForumChannel = Pick<
+  PublicForumShell["channels"][number],
+  "id" | "name" | "type"
+>
 
 export async function loadTenantForumHome(input: TenantListInput) {
   const capability = await resolveVerifiedPublicTenant(input.hostname)
@@ -109,15 +112,20 @@ function forumView(
   return {
     server: shell.server,
     channels: shell.channels.map(channelView),
-    threads: threads.items.map((thread) => ({
-      ...thread,
-      href: `/thread/${thread.id}/${getSlugFromTitle(thread.title)}`,
-      channelHref: `/channel/${thread.channel.id}`,
-    })),
+    pinnedThreads: threads.pinnedItems.map(threadView),
+    threads: threads.items.map(threadView),
     baseHref,
     cursor: cursor ?? null,
     nextCursor: threads.nextCursor,
     canonical: { origin, url: `${origin}/` },
+  }
+}
+
+function threadView(thread: PublicThreadListPage["items"][number]) {
+  return {
+    ...thread,
+    href: `/thread/${thread.id}/${getSlugFromTitle(thread.title)}`,
+    channelHref: `/channel/${thread.channel.id}`,
   }
 }
 

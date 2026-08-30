@@ -1,3 +1,7 @@
+import type { PublicForumShell as DbPublicForumShell } from "@repo/db/helpers/public-content"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
+import { z } from "zod"
+
 export type PublicForumScope =
   | { kind: "server"; id: string }
   | { kind: "channel"; id: string }
@@ -6,64 +10,47 @@ export type PublicForumInput = PublicForumScope & {
   cursor?: string
 }
 
-export type PublicForumShell = {
-  server: {
-    id: string
-    name: string
-    description: string | null
-    memberCount: number
-    icon: string | null
-    joinUrl: string | null
-    canonicalDomain: string | null
-  }
-  channels: Array<{
-    id: string
-    name: string
-    type: number
-  }>
-}
+const publicForumInputSchema = z.object({
+  kind: z.enum(["server", "channel"]),
+  id: discordSnowflakeSchema,
+  cursor: discordSnowflakeSchema.optional(),
+})
+
+const publicForumSearchSchema = z.object({
+  cursor: discordSnowflakeSchema.optional().catch(undefined),
+})
+
+export type PublicForumShell = DbPublicForumShell
 
 export type PublicForumPage = PublicForumShell & {
   activeChannelId: string | null
-  threads: Array<{
-    id: string
-    title: string
-    author: string
-    channel: { id: string; name: string }
-    pinned: boolean
-    messageCount: number
-  }>
+  pinnedThreads: PublicForumThread[]
+  threads: PublicForumThread[]
   cursor: string | null
   nextCursor: string | null
   canonicalUrl: string
   customDomain: string | null
 }
 
-export function validatePublicForumInput(value: unknown): PublicForumInput {
-  if (!isRecord(value)) throw new Error("Invalid public forum input")
-  const kind = value.kind
-  const id = value.id
-  const cursor = value.cursor
-  if (
-    (kind !== "server" && kind !== "channel") ||
-    !isSnowflake(id) ||
-    (cursor !== undefined && !isSnowflake(cursor))
-  ) {
-    throw new Error("Invalid public forum input")
-  }
-  return { kind, id, cursor }
+export type PublicForumThread = {
+  id: string
+  title: string
+  author: string
+  channel: { id: string; name: string }
+  pinned: boolean
+  messageCount: number
 }
 
-export function parsePublicForumSearch(search: Record<string, unknown>): {
-  cursor?: string
-} {
-  return isSnowflake(search.cursor) ? { cursor: search.cursor } : {}
+export function validatePublicForumInput(
+  value: Parameters<typeof publicForumInputSchema.safeParse>[0]
+): PublicForumInput {
+  const parsed = publicForumInputSchema.safeParse(value)
+  if (!parsed.success) throw new Error("Invalid public forum input")
+  return parsed.data
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function isSnowflake(value: unknown): value is string {
-  return typeof value === "string" && /^[0-9]{1,20}$/.test(value)
+export function parsePublicForumSearch(
+  search: Parameters<typeof publicForumSearchSchema.parse>[0]
+) {
+  return publicForumSearchSchema.parse(search)
 }

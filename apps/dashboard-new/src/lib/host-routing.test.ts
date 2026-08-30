@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   decideHostRouting,
   normalizeConfiguredHost,
+  normalizeHostname,
   type HostRoutingConfig,
 } from "./host-routing"
 
@@ -194,6 +195,19 @@ describe("configured hosts", () => {
   ])("rejects invalid configured host %s", (value) => {
     expect(normalizeConfiguredHost(value)).toBeNull()
   })
+})
+
+describe("hostnames", () => {
+  it("normalizes valid DNS names", () => {
+    expect(normalizeHostname("Docs.Example.com.")).toBe("docs.example.com")
+  })
+
+  it.each(["bad..example.com", "-bad.example.com", "bad-.example.com"])(
+    "rejects invalid DNS hostname %s",
+    (value) => {
+      expect(normalizeHostname(value)).toBeNull()
+    }
+  )
 })
 
 function decide(url: string) {

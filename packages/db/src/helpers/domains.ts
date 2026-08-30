@@ -1,10 +1,6 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "..";
-import {
-	type DBDomainLifecycle,
-	dbDomainLifecycle,
-	dbServer,
-} from "../schema";
+import { type DBDomainLifecycle, dbDomainLifecycle, dbServer } from "../schema";
 
 type ActiveDomainStatus = Exclude<
 	DBDomainLifecycle["status"],

@@ -44,6 +44,48 @@ describe("server environment", () => {
     })
   })
 
+  it("returns a complete Polar billing configuration", async () => {
+    vi.stubEnv("VELUMN_DASHBOARD_NEW_URL", "https://dashboard.example.com")
+    vi.stubEnv("POLAR_ACCESS_TOKEN", "polar-token")
+    vi.stubEnv("POLAR_WEBHOOK_SECRET", "polar-secret")
+    vi.stubEnv("POLAR_PRO_PRODUCT_ID", "product-id")
+    vi.stubEnv("POLAR_SERVER", "sandbox")
+
+    const { getPolarEnv } = await import("./env.server")
+
+    expect(getPolarEnv()).toEqual({
+      accessToken: "polar-token",
+      webhookSecret: "polar-secret",
+      productId: "product-id",
+      server: "sandbox",
+      dashboardOrigin: "https://dashboard.example.com",
+    })
+  })
+
+  it("allows billing to be entirely unconfigured", async () => {
+    vi.stubEnv("POLAR_ACCESS_TOKEN", "")
+    vi.stubEnv("POLAR_WEBHOOK_SECRET", "")
+    vi.stubEnv("POLAR_PRO_PRODUCT_ID", "")
+    vi.stubEnv("POLAR_SERVER", "")
+
+    const { getPolarEnv } = await import("./env.server")
+
+    expect(getPolarEnv()).toBeNull()
+  })
+
+  it("rejects partial Polar billing configuration", async () => {
+    vi.stubEnv("POLAR_ACCESS_TOKEN", "polar-token")
+    vi.stubEnv("POLAR_WEBHOOK_SECRET", "")
+    vi.stubEnv("POLAR_PRO_PRODUCT_ID", "")
+    vi.stubEnv("POLAR_SERVER", "sandbox")
+
+    const { getPolarEnv } = await import("./env.server")
+
+    expect(() => getPolarEnv()).toThrow(
+      "Polar billing configuration is incomplete: POLAR_WEBHOOK_SECRET, POLAR_PRO_PRODUCT_ID"
+    )
+  })
+
   it("requires an explicit dashboard origin in production", async () => {
     vi.stubEnv("NODE_ENV", "production")
     vi.stubEnv("VELUMN_DASHBOARD_NEW_URL", "")

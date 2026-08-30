@@ -1,5 +1,5 @@
 import { ChannelType, MessageFlags, MessageType } from "discord.js";
-import type { IndexErrorClassification, RetryDisposition } from "./model";
+import { Match } from "effect";
 
 export type SourceRejectionReason =
 	| "unsupported-source"
@@ -41,89 +41,82 @@ export type MessageEligibility =
 	  }
 	| { readonly _tag: "UnsupportedFuture"; readonly messageType: number };
 
-const publishableMessageTypes = new Set<number>([
-	MessageType.Default,
-	MessageType.Reply,
-	MessageType.ChatInputCommand,
-	MessageType.ThreadStarterMessage,
-	MessageType.ContextMenuCommand,
-]);
+type MessageTypeDisposition = "publishable" | "terminally-skipped";
 
-// Deliberately exhaustive for discord.js 14.27. New enum members require an
-// explicit product decision instead of silently becoming terminal skips.
-const knownMessageTypes = new Set<number>([
-	MessageType.Default,
-	MessageType.RecipientAdd,
-	MessageType.RecipientRemove,
-	MessageType.Call,
-	MessageType.ChannelNameChange,
-	MessageType.ChannelIconChange,
-	MessageType.ChannelPinnedMessage,
-	MessageType.UserJoin,
-	MessageType.GuildBoost,
-	MessageType.GuildBoostTier1,
-	MessageType.GuildBoostTier2,
-	MessageType.GuildBoostTier3,
-	MessageType.ChannelFollowAdd,
-	MessageType.GuildDiscoveryDisqualified,
-	MessageType.GuildDiscoveryRequalified,
-	MessageType.GuildDiscoveryGracePeriodInitialWarning,
-	MessageType.GuildDiscoveryGracePeriodFinalWarning,
-	MessageType.ThreadCreated,
-	MessageType.Reply,
-	MessageType.ChatInputCommand,
-	MessageType.ThreadStarterMessage,
-	MessageType.GuildInviteReminder,
-	MessageType.ContextMenuCommand,
-	MessageType.AutoModerationAction,
-	MessageType.RoleSubscriptionPurchase,
-	MessageType.InteractionPremiumUpsell,
-	MessageType.StageStart,
-	MessageType.StageEnd,
-	MessageType.StageSpeaker,
-	MessageType.StageRaiseHand,
-	MessageType.StageTopic,
-	MessageType.GuildApplicationPremiumSubscription,
-	MessageType.GuildIncidentAlertModeEnabled,
-	MessageType.GuildIncidentAlertModeDisabled,
-	MessageType.GuildIncidentReportRaid,
-	MessageType.GuildIncidentReportFalseAlarm,
-	MessageType.PurchaseNotification,
-	MessageType.PollResult,
-]);
+const messageTypeDispositions = {
+	[MessageType.Default]: "publishable",
+	[MessageType.RecipientAdd]: "terminally-skipped",
+	[MessageType.RecipientRemove]: "terminally-skipped",
+	[MessageType.Call]: "terminally-skipped",
+	[MessageType.ChannelNameChange]: "terminally-skipped",
+	[MessageType.ChannelIconChange]: "terminally-skipped",
+	[MessageType.ChannelPinnedMessage]: "terminally-skipped",
+	[MessageType.UserJoin]: "terminally-skipped",
+	[MessageType.GuildBoost]: "terminally-skipped",
+	[MessageType.GuildBoostTier1]: "terminally-skipped",
+	[MessageType.GuildBoostTier2]: "terminally-skipped",
+	[MessageType.GuildBoostTier3]: "terminally-skipped",
+	[MessageType.ChannelFollowAdd]: "terminally-skipped",
+	[MessageType.GuildDiscoveryDisqualified]: "terminally-skipped",
+	[MessageType.GuildDiscoveryRequalified]: "terminally-skipped",
+	[MessageType.GuildDiscoveryGracePeriodInitialWarning]: "terminally-skipped",
+	[MessageType.GuildDiscoveryGracePeriodFinalWarning]: "terminally-skipped",
+	[MessageType.ThreadCreated]: "terminally-skipped",
+	[MessageType.Reply]: "publishable",
+	[MessageType.ChatInputCommand]: "publishable",
+	[MessageType.ThreadStarterMessage]: "publishable",
+	[MessageType.GuildInviteReminder]: "terminally-skipped",
+	[MessageType.ContextMenuCommand]: "publishable",
+	[MessageType.AutoModerationAction]: "terminally-skipped",
+	[MessageType.RoleSubscriptionPurchase]: "terminally-skipped",
+	[MessageType.InteractionPremiumUpsell]: "terminally-skipped",
+	[MessageType.StageStart]: "terminally-skipped",
+	[MessageType.StageEnd]: "terminally-skipped",
+	[MessageType.StageSpeaker]: "terminally-skipped",
+	[MessageType.StageRaiseHand]: "terminally-skipped",
+	[MessageType.StageTopic]: "terminally-skipped",
+	[MessageType.GuildApplicationPremiumSubscription]: "terminally-skipped",
+	[MessageType.GuildIncidentAlertModeEnabled]: "terminally-skipped",
+	[MessageType.GuildIncidentAlertModeDisabled]: "terminally-skipped",
+	[MessageType.GuildIncidentReportRaid]: "terminally-skipped",
+	[MessageType.GuildIncidentReportFalseAlarm]: "terminally-skipped",
+	[MessageType.PurchaseNotification]: "terminally-skipped",
+	[MessageType.PollResult]: "terminally-skipped",
+} as const satisfies Readonly<Record<MessageType, MessageTypeDisposition>>;
 
-const sourceKind = (
-	facts: SourceEligibilityFacts,
-): "thread" | "root-announcement" | SourceRejectionReason => {
+const isMessageType = (type: number): type is MessageType =>
+	Object.hasOwn(messageTypeDispositions, type);
+
+const classifySource = (facts: SourceEligibilityFacts): SourceEligibility => {
 	if (facts.channelType === ChannelType.PublicThread) {
 		if (
 			facts.parentChannelType !== ChannelType.GuildText &&
 			facts.parentChannelType !== ChannelType.GuildForum
 		) {
-			return "unsupported-parent";
+			return { _tag: "Ineligible", reason: "unsupported-parent" };
 		}
-		return "thread";
+		return { _tag: "Eligible", kind: "thread" };
 	}
 
 	if (facts.channelType === ChannelType.AnnouncementThread) {
 		return facts.parentChannelType === ChannelType.GuildAnnouncement
-			? "thread"
-			: "unsupported-parent";
+			? { _tag: "Eligible", kind: "thread" }
+			: { _tag: "Ineligible", reason: "unsupported-parent" };
 	}
 
 	if (facts.channelType === ChannelType.GuildAnnouncement) {
-		return "root-announcement";
+		return { _tag: "Eligible", kind: "root-announcement" };
 	}
 
-	return "unsupported-source";
+	return { _tag: "Ineligible", reason: "unsupported-source" };
 };
 
 export const decideSourceEligibility = (
 	facts: SourceEligibilityFacts,
 ): SourceEligibility => {
-	const kind = sourceKind(facts);
-	if (kind !== "thread" && kind !== "root-announcement") {
-		return { _tag: "Ineligible", reason: kind };
+	const source = classifySource(facts);
+	if (source._tag === "Ineligible") {
+		return source;
 	}
 	if (!facts.indexingEnabled) {
 		return { _tag: "Ineligible", reason: "indexing-disabled" };
@@ -139,20 +132,34 @@ export const decideSourceEligibility = (
 	if (!facts.privacyAllowed) {
 		return { _tag: "Ineligible", reason: "privacy-rejected" };
 	}
-	return { _tag: "Eligible", kind };
+	return source;
 };
 
 export const classifyMessageType = (
 	type: number,
 ): MessageTypeClassification => {
-	if (publishableMessageTypes.has(type)) {
-		return { _tag: "Publishable", type: type as MessageType };
+	if (!isMessageType(type)) {
+		return { _tag: "UnsupportedFuture", type };
 	}
-	if (knownMessageTypes.has(type)) {
-		return { _tag: "TerminallySkipped", type: type as MessageType };
-	}
-	return { _tag: "UnsupportedFuture", type };
+	return messageTypeDispositions[type] === "publishable"
+		? { _tag: "Publishable", type }
+		: { _tag: "TerminallySkipped", type };
 };
+
+const messageEligibilityFor = Match.typeTags<
+	MessageTypeClassification,
+	MessageEligibility
+>()({
+	Publishable: () => ({ _tag: "Publishable" }),
+	TerminallySkipped: () => ({
+		_tag: "TerminallySkipped",
+		reason: "message-type",
+	}),
+	UnsupportedFuture: ({ type }) => ({
+		_tag: "UnsupportedFuture",
+		messageType: type,
+	}),
+});
 
 export const decideMessageEligibility = (
 	facts: SourceEligibilityFacts & {
@@ -168,24 +175,5 @@ export const decideMessageEligibility = (
 		return { _tag: "TerminallySkipped", reason: "voice-message" };
 	}
 
-	const messageType = classifyMessageType(facts.messageType);
-	if (messageType._tag === "UnsupportedFuture") {
-		return { _tag: "UnsupportedFuture", messageType: messageType.type };
-	}
-	return messageType._tag === "Publishable"
-		? { _tag: "Publishable" }
-		: { _tag: "TerminallySkipped", reason: "message-type" };
+	return messageEligibilityFor(classifyMessageType(facts.messageType));
 };
-
-const retryableClassifications = new Set<IndexErrorClassification>([
-	"discord-transient",
-	"partial-fetch",
-	"database",
-	"projection-submission",
-	"projection-completion",
-]);
-
-export const retryDispositionFor = (
-	classification: IndexErrorClassification,
-): RetryDisposition =>
-	retryableClassifications.has(classification) ? "retryable" : "terminal";

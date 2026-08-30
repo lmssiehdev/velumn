@@ -4,9 +4,9 @@ import { buildSitemapIndexXml, buildUrlSetXml } from "./xml"
 
 describe("buildUrlSetXml", () => {
   it("escapes XML-sensitive URL characters", () => {
-    expect(buildUrlSetXml([`https://example.com/?a=<&quote="'`])).toContain(
-      "https://example.com/?a=&lt;&amp;quote=&quot;&apos;"
-    )
+    expect(
+      buildUrlSetXml([{ loc: `https://example.com/?a=<&quote="'` }])
+    ).toContain("https://example.com/?a=&lt;&amp;quote=&quot;&apos;")
   })
 
   it("renders optional sitemap metadata", () => {

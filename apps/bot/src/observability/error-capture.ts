@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { type Cause, Config, Context, Effect, Layer, Option } from "effect";
+import {
+	type Cause,
+	Config,
+	Context,
+	Effect,
+	Layer,
+	Option,
+	Schema,
+} from "effect";
 import { type EventMessage, PostHog } from "posthog-node";
 import {
 	errorFingerprint,
@@ -52,7 +60,7 @@ interface PostHogClient {
 	readonly captureException: (
 		error: Error,
 		distinctId: string,
-		properties: Record<string, unknown>,
+		properties: NonNullable<EventMessage["properties"]>,
 		eventUUID: string,
 	) => void;
 	readonly shutdown: (timeoutMs: number) => Promise<void>;
@@ -103,52 +111,55 @@ const propertyAllowlist = new Set([
 	"projectionId",
 ]);
 
-const sanitizeExceptionList = (value: unknown): unknown => {
-	if (!Array.isArray(value)) return [];
-	return value.slice(0, 1).map((entry) => {
-		if (typeof entry !== "object" || entry === null) return {};
-		const item = entry as Record<string, unknown>;
-		const stacktrace = item.stacktrace;
-		const frames =
-			typeof stacktrace === "object" &&
-			stacktrace !== null &&
-			Array.isArray((stacktrace as Record<string, unknown>).frames)
-				? ((stacktrace as Record<string, unknown>).frames as unknown[])
-						.slice(0, 40)
-						.map((frame) => {
-							if (typeof frame !== "object" || frame === null) return {};
-							const source = frame as Record<string, unknown>;
-							const output: Record<string, string | number | boolean> = {};
-							for (const key of [
-								"filename",
-								"module",
-								"function",
-								"platform",
-								"in_app",
-								"lineno",
-								"colno",
-							]) {
-								const field = source[key];
-								if (typeof field === "string")
-									output[key] = sanitizeText(field).slice(0, 512);
-								else if (
-									typeof field === "number" ||
-									typeof field === "boolean"
-								)
-									output[key] = field;
-							}
-							return output;
-						})
-				: [];
+const exceptionFrameSchema = Schema.Struct({
+	filename: Schema.optional(Schema.String),
+	module: Schema.optional(Schema.String),
+	function: Schema.optional(Schema.String),
+	platform: Schema.optional(Schema.String),
+	in_app: Schema.optional(Schema.Boolean),
+	lineno: Schema.optional(Schema.Number),
+	colno: Schema.optional(Schema.Number),
+});
+const exceptionEntrySchema = Schema.Struct({
+	type: Schema.optional(Schema.String),
+	value: Schema.optional(Schema.String),
+	stacktrace: Schema.optional(
+		Schema.Struct({
+			frames: Schema.optional(Schema.Array(exceptionFrameSchema)),
+		}),
+	),
+});
+const decodeExceptionList = Schema.decodeUnknownOption(
+	Schema.Array(exceptionEntrySchema),
+);
+const decodePropertyString = Schema.decodeUnknownOption(Schema.String);
+const decodeJsonProperty = Schema.decodeUnknownOption(Schema.Json);
+
+const sanitizeFrameText = (value: string | undefined) =>
+	value === undefined ? undefined : sanitizeText(value).slice(0, 512);
+
+const sanitizeExceptionList = (
+	value: Parameters<typeof decodeExceptionList>[0],
+) => {
+	const entries = Option.getOrElse(decodeExceptionList(value), () => []);
+	return entries.slice(0, 1).map((item) => {
+		const frames = (item.stacktrace?.frames ?? [])
+			.slice(0, 40)
+			.map((frame) => ({
+				filename: sanitizeFrameText(frame.filename),
+				module: sanitizeFrameText(frame.module),
+				function: sanitizeFrameText(frame.function),
+				platform: sanitizeFrameText(frame.platform),
+				in_app: frame.in_app,
+				lineno: frame.lineno,
+				colno: frame.colno,
+			}));
 		return {
-			type: sanitizeText(
-				typeof item.type === "string" ? item.type : "UnknownError",
-			).slice(0, 128),
-			value: sanitizeText(
-				typeof item.value === "string"
-					? item.value
-					: "Failure details unavailable",
-			).slice(0, 2_000),
+			type: sanitizeText(item.type ?? "UnknownError").slice(0, 128),
+			value: sanitizeText(item.value ?? "Failure details unavailable").slice(
+				0,
+				2_000,
+			),
 			mechanism: { type: "generic", handled: true, synthetic: false },
 			stacktrace: { type: "raw", frames },
 		};
@@ -160,16 +171,21 @@ export const redactPostHogEvent = (
 ): EventMessage | null => {
 	if (event?.event !== "$exception") return event;
 	const properties = event.properties ?? {};
-	const safeProperties: Record<string, unknown> = {};
+	const safeProperties: NonNullable<EventMessage["properties"]> = {};
 	for (const key of propertyAllowlist) {
 		const value = properties[key];
 		if (value === undefined) continue;
-		safeProperties[key] =
-			key === "$exception_list"
-				? sanitizeExceptionList(value)
-				: typeof value === "string"
-					? sanitizeText(value)
-					: value;
+		if (key === "$exception_list") {
+			safeProperties[key] = sanitizeExceptionList(value);
+			continue;
+		}
+		const text = Option.getOrUndefined(decodePropertyString(value));
+		if (text !== undefined) {
+			safeProperties[key] = sanitizeText(text);
+			continue;
+		}
+		const json = Option.getOrUndefined(decodeJsonProperty(value));
+		if (json !== undefined) safeProperties[key] = json;
 	}
 	return { ...event, properties: safeProperties };
 };
@@ -205,9 +221,7 @@ const safeContextString = (
 ): string | undefined => {
 	try {
 		const value = context[key];
-		return typeof value === "string" && value.length > 0 && value.length <= 256
-			? value
-			: undefined;
+		return value && value.length > 0 && value.length <= 256 ? value : undefined;
 	} catch {
 		return undefined;
 	}
@@ -319,19 +333,12 @@ export const layerPostHogErrorCapture = (options: PostHogCaptureOptions = {}) =>
 										// A non-conforming tracer cannot prevent local or remote capture.
 									}
 								}
-								const properties = {
+								const properties: NonNullable<EventMessage["properties"]> = {
 									service_name: "velumn-bot",
-									...(serviceVersion
-										? { service_version: serviceVersion }
-										: {}),
 									deployment_environment: environment,
 									operation,
 									boundary,
 									error_type: normalized.type,
-									...(normalized.tag ? { error_tag: normalized.tag } : {}),
-									...(normalized.typedOperation
-										? { error_operation: normalized.typedOperation }
-										: {}),
 									failure_kind: selection.failure_kind,
 									cause_count: selection.cause_count,
 									reported_count: 1,
@@ -341,15 +348,20 @@ export const layerPostHogErrorCapture = (options: PostHogCaptureOptions = {}) =>
 									is_composite: selection.is_composite,
 									has_mixed_failure_kinds: selection.has_mixed_failure_kinds,
 									error_event_id: eventUUID,
-									...(traceId ? { trace_id: traceId } : {}),
-									...(spanId ? { span_id: spanId } : {}),
 									$exception_fingerprint: fingerprint,
 									$process_person_profile: false,
-									...(rawIds.guildId
-										? { $groups: { guild: rawIds.guildId } }
-										: {}),
 									...rawIds,
 								};
+								if (serviceVersion) properties.service_version = serviceVersion;
+								if (normalized.tag) properties.error_tag = normalized.tag;
+								if (normalized.typedOperation) {
+									properties.error_operation = normalized.typedOperation;
+								}
+								if (traceId) properties.trace_id = traceId;
+								if (spanId) properties.span_id = spanId;
+								if (rawIds.guildId) {
+									properties.$groups = { guild: rawIds.guildId };
+								}
 								yield* Effect.logError("Captured application error", {
 									eventUUID,
 									traceId,
@@ -371,12 +383,12 @@ export const layerPostHogErrorCapture = (options: PostHogCaptureOptions = {}) =>
 								} catch {
 									// Error capture is best effort and cannot alter application failure.
 								}
-								return {
-									eventUUID,
-									...(traceId ? { traceId } : {}),
-									...(spanId ? { spanId } : {}),
-									fingerprint,
-								};
+								if (traceId && spanId) {
+									return { eventUUID, traceId, spanId, fingerprint };
+								}
+								if (traceId) return { eventUUID, traceId, fingerprint };
+								if (spanId) return { eventUUID, spanId, fingerprint };
+								return { eventUUID, fingerprint };
 							}),
 					})),
 				),

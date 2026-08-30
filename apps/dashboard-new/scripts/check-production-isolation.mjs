@@ -63,6 +63,10 @@ assert(routes.__root__, "Production manifest is missing __root__")
 assert(routes["/"], "Production manifest is missing /")
 assert(routes["/thread"], "Production manifest is missing /thread")
 assert(
+  routes.__root__.children?.includes("/api/internal/billing/reconcile"),
+  "Production manifest is missing the billing reconciliation route"
+)
+assert(
   routes["/thread/$threadId/$slug"],
   "Production manifest is missing the public thread page"
 )
@@ -139,10 +143,9 @@ assert(
   "Public root still links to the legacy dashboard host"
 )
 
-const htmlAssets = new Set(
-  [...html.matchAll(/(?:href|src)="(\/assets\/[^"?]+)(?:\?[^"}]*)?"/g)].map(
-    (match) => match[1]
-  )
+const htmlAssets = collectHtmlAssets(html)
+const publicCssAssets = new Set(
+  [...htmlAssets].filter((asset) => asset.endsWith(".css"))
 )
 
 for (const asset of htmlAssets) {
@@ -164,12 +167,39 @@ for (const asset of htmlAssets) {
   )
 }
 
+assert(publicCssAssets.size > 0, "Public root did not load a stylesheet")
+
+const dashboardResponse = await server.fetch(
+  new Request("https://velumn.com/dashboard/sign-in", {
+    headers: { accept: "text/html" },
+  })
+)
+const dashboardHtml = await dashboardResponse.text()
+assert(
+  dashboardResponse.status === 200,
+  `Expected /dashboard/sign-in to return 200, received ${dashboardResponse.status}`
+)
+const dashboardHtmlAssets = collectHtmlAssets(dashboardHtml)
+assert(
+  [...dashboardCss].some((asset) => dashboardHtmlAssets.has(asset)),
+  "Dashboard sign-in did not load the dashboard stylesheet"
+)
+for (const asset of publicCssAssets) {
+  assert(
+    !dashboardHtmlAssets.has(asset),
+    `Dashboard sign-in loads public CSS: ${asset}`
+  )
+}
+
 const forbiddenBrowserSignatures = [
   "@repo/db",
   "@vercel/sdk",
   "better-auth",
   "DATABASE_URL",
   "DISCORD_CLIENT_SECRET",
+  "POLAR_ACCESS_TOKEN",
+  "POLAR_WEBHOOK_SECRET",
+  "POLAR_PRO_PRODUCT_ID",
   "VERCEL_BEARER_TOKEN",
 ]
 for (const asset of new Set([...publicAssets, ...publicThreadAssets])) {
@@ -182,6 +212,26 @@ for (const asset of new Set([...publicAssets, ...publicThreadAssets])) {
     assert(
       !content.includes(signature),
       `Public browser asset ${asset} contains server-only signature ${signature}`
+    )
+  }
+}
+
+const serverOnlyBrowserSignatures = [
+  "@polar-sh/sdk",
+  "DATABASE_URL",
+  "DISCORD_CLIENT_SECRET",
+  "POLAR_ACCESS_TOKEN",
+  "POLAR_WEBHOOK_SECRET",
+  "POLAR_PRO_PRODUCT_ID",
+  "VERCEL_BEARER_TOKEN",
+]
+for (const file of await readdir(clientAssets)) {
+  if (!file.endsWith(".js")) continue
+  const content = await readFile(path.join(clientAssets, file), "utf8")
+  for (const signature of serverOnlyBrowserSignatures) {
+    assert(
+      !content.includes(signature),
+      `Browser asset ${file} contains server-only signature ${signature}`
     )
   }
 }
@@ -317,10 +367,16 @@ function collectRouteAssets(route) {
   return [
     ...(route.preloads ?? []),
     ...(route.scripts ?? []).map((script) => script.attrs?.src),
-    ...(route.css ?? []).map((stylesheet) =>
-      typeof stylesheet === "string" ? stylesheet : stylesheet.href
-    ),
+    ...(route.css ?? []).map((stylesheet) => stylesheet.href ?? stylesheet),
   ].filter(Boolean)
+}
+
+function collectHtmlAssets(html) {
+  return new Set(
+    [...html.matchAll(/(?:href|src)="(\/assets\/[^"?]+)(?:\?[^"}]*)?"/g)].map(
+      (match) => match[1]
+    )
+  )
 }
 
 function assert(condition, message) {

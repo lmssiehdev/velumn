@@ -15,10 +15,13 @@ const configEffect = (values: Record<string, string>) =>
 			BotConfig.layer.pipe(
 				Layer.provide(
 					ConfigProvider.layer(
-						ConfigProvider.fromUnknown({
-							DISCORD_BOT_TOKEN: "discord-token",
-							BOT_API_SECRET: "api-secret",
-							...values,
+						ConfigProvider.fromEnv({
+							env: {
+								DISCORD_BOT_TOKEN: "discord-token",
+								BOT_API_SECRET: "api-secret",
+								...values,
+							},
+							preserveEmptyStrings: true,
 						}),
 					),
 				),
@@ -30,6 +33,17 @@ const loadConfig = (values: Record<string, string>) =>
 	Effect.runPromise(configEffect(values));
 
 describe("BotConfig optional service groups", () => {
+	it.each(["DISCORD_BOT_TOKEN", "BOT_API_SECRET"])(
+		"rejects an empty %s",
+		async (name) => {
+			const result = await Effect.runPromise(
+				Effect.result(configEffect({ [name]: "" })),
+			);
+
+			expect(Result.isFailure(result)).toBe(true);
+		},
+	);
+
 	it("leaves fully absent Meilisearch and R2 groups unconfigured", async () => {
 		const config = await loadConfig({});
 
@@ -56,6 +70,39 @@ describe("BotConfig optional service groups", () => {
 		expect(Redacted.value(r2.accessKeyId)).toBe("access-key");
 		expect(Redacted.value(r2.secretAccessKey)).toBe("secret-key");
 		expect(r2.publicBaseUrl).toBe("https://cdn.velumn.com");
+	});
+
+	it("loads a non-empty optional Meilisearch API key", async () => {
+		const config = await loadConfig({
+			MEILISEARCH_HOST: "http://localhost:7700",
+			MEILISEARCH_API_KEY: "search-key",
+		});
+
+		const meilisearch = Option.getOrThrow(config.meilisearch);
+		expect(Redacted.value(Option.getOrThrow(meilisearch.apiKey))).toBe(
+			"search-key",
+		);
+	});
+
+	it("rejects an empty optional Meilisearch API key", async () => {
+		const result = await Effect.runPromise(
+			Effect.result(
+				configEffect({
+					MEILISEARCH_HOST: "http://localhost:7700",
+					MEILISEARCH_API_KEY: "",
+				}),
+			),
+		);
+
+		expect(Result.isFailure(result)).toBe(true);
+	});
+
+	it("fails when a Meilisearch API key is provided without a host", async () => {
+		const result = await Effect.runPromise(
+			Effect.result(configEffect({ MEILISEARCH_API_KEY: "search-key" })),
+		);
+
+		expect(Result.isFailure(result)).toBe(true);
 	});
 
 	it("fails when R2 is partially configured", async () => {

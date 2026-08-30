@@ -4,6 +4,12 @@ import {
   createStart,
 } from "@tanstack/react-start"
 import { setResponseHeader } from "@tanstack/react-start/server"
+import { z } from "zod"
+
+const requestContextSchema = z.object({ requestId: z.uuid() })
+
+type LogFieldValue = boolean | number | string | null | undefined
+type LogFields = Readonly<Record<string, LogFieldValue>>
 
 const requestLoggingMiddleware = createMiddleware({ type: "request" }).server(
   async ({ request, pathname, handlerType, serverFnMeta, next }) => {
@@ -51,8 +57,7 @@ const serverFunctionLoggingMiddleware = createMiddleware({
   type: "function",
 }).server(async ({ context, method, serverFnMeta, next }) => {
   const startedAt = performance.now()
-  const requestId = (context as unknown as { requestId?: string } | undefined)
-    ?.requestId
+  const requestId = requestContextSchema.safeParse(context).data?.requestId
   const fields = {
     requestId,
     method,
@@ -88,24 +93,24 @@ function elapsed(startedAt: number) {
   return Math.round(performance.now() - startedAt)
 }
 
-function toErrorFields(error: unknown) {
-  if (error instanceof Response) {
+function toErrorFields(cause: unknown) {
+  if (cause instanceof Response) {
     return {
       errorType: "Response",
-      errorStatus: error.status,
-      errorStatusText: error.statusText,
+      errorStatus: cause.status,
+      errorStatusText: cause.statusText,
     }
   }
-  if (error instanceof Error) {
+  if (cause instanceof Error) {
     return {
-      errorType: error.name,
-      errorMessage: error.message.slice(0, 500),
+      errorType: cause.name,
+      errorMessage: cause.message.slice(0, 500),
     }
   }
   return { errorType: "UnknownError" }
 }
 
-function writeLog(level: "info" | "error", fields: Record<string, unknown>) {
+function writeLog(level: "info" | "error", fields: LogFields) {
   const record = JSON.stringify({
     timestamp: new Date().toISOString(),
     level,

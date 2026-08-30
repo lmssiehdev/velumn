@@ -1,6 +1,5 @@
 import {
 	ComponentType,
-	EmbedType,
 	PollLayoutType,
 	StickerFormatType,
 } from "discord-api-types/v10";
@@ -31,7 +30,7 @@ const buttonComponentSchema = z.object({
 	emoji: componentEmojiSchema,
 });
 
-const selectBaseShape = {
+const selectBaseFields = {
 	customId: z.string(),
 	placeholder: z.string().nullable().optional(),
 	minValues: z.number().int().nonnegative().optional(),
@@ -41,7 +40,7 @@ const selectBaseShape = {
 
 const stringSelectComponentSchema = z.object({
 	type: z.literal(ComponentType.StringSelect),
-	...selectBaseShape,
+	...selectBaseFields,
 	options: z.array(
 		z.object({
 			label: z.string(),
@@ -60,7 +59,7 @@ const autoSelectComponentSchema = z.object({
 		z.literal(ComponentType.MentionableSelect),
 		z.literal(ComponentType.ChannelSelect),
 	]),
-	...selectBaseShape,
+	...selectBaseFields,
 	channelTypes: z.array(z.number()).optional(),
 	defaultValues: z
 		.array(z.object({ id: z.string(), type: z.string() }))
@@ -268,59 +267,63 @@ export type PollSchema = z.infer<typeof pollSchema>;
 //
 // Embed Schema
 //
-export type EmbedSchema = z.infer<typeof embedSchema>;
-export const embedSchema = z
-	.object({
-		title: z.string(),
-		type: z.enum(EmbedType),
-		description: z.string(),
-		url: z.string(),
-		timestamp: z.string(),
-		color: z.number(),
-		footer: z.object({
+const uint32Schema = z.number().int().min(0).max(4_294_967_295);
+const embedMediaSchema = z.object({
+	url: z.string().optional(),
+	proxy_url: z.string().optional(),
+	height: uint32Schema.optional(),
+	width: uint32Schema.optional(),
+	content_type: z.string().optional(),
+	placeholder: z.string().optional(),
+	placeholder_version: uint32Schema.optional(),
+	description: z.string().optional(),
+	flags: uint32Schema.optional(),
+});
+
+export const embedSchema = z.object({
+	type: z.string(),
+	title: z.string().optional(),
+	description: z.string().optional(),
+	url: z.string().optional(),
+	timestamp: z.string().optional(),
+	color: z.number().int().optional(),
+	footer: z
+		.object({
 			text: z.string(),
 			icon_url: z.string().optional(),
 			proxy_icon_url: z.string().optional(),
-		}),
-		image: z.object({
-			url: z.string(),
-			proxy_url: z.string().optional(),
-			height: z.number().optional(),
-			width: z.number().optional(),
-		}),
-		thumbnail: z.object({
-			url: z.string(),
-			proxy_url: z.string().optional(),
-			height: z.number().optional(),
-			width: z.number().optional(),
-		}),
-		video: z.object({
+		})
+		.optional(),
+	image: embedMediaSchema.optional(),
+	thumbnail: embedMediaSchema.optional(),
+	video: embedMediaSchema.optional(),
+	provider: z
+		.object({
+			name: z.string(),
 			url: z.string().optional(),
-			proxy_url: z.string().optional(),
-			height: z.number().optional(),
-			width: z.number().optional(),
-		}),
-		provider: z
-			.object({
-				name: z.string(),
-				url: z.string(),
-			})
-			.partial(),
-		author: z.object({
-			name: z.string().max(256),
+		})
+		.optional(),
+	author: z
+		.object({
+			name: z.string(),
 			url: z.string().optional(),
 			icon_url: z.string().optional(),
 			proxy_icon_url: z.string().optional(),
-		}),
-		fields: z.array(
+		})
+		.optional(),
+	fields: z
+		.array(
 			z.object({
-				name: z.string().max(256),
-				value: z.string().max(1024),
-				inline: z.boolean().optional(),
+				name: z.string(),
+				value: z.string(),
+				inline: z.boolean(),
 			}),
-		),
-	})
-	.partial();
+		)
+		.optional(),
+	flags: z.number().int().nullable().optional(),
+	components: z.array(messageComponentSchema).optional(),
+});
+export type EmbedSchema = z.infer<typeof embedSchema>;
 
 //
 // Attachments

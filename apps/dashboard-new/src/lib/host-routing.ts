@@ -127,7 +127,7 @@ function containsInvalidAuthorityCharacter(value: string) {
   })
 }
 
-function normalizeHostname(value: string) {
+export function normalizeHostname(value: string) {
   let hostname = value.toLowerCase()
   if (hostname.endsWith("..")) return null
   if (hostname.endsWith(".")) hostname = hostname.slice(0, -1)

@@ -1,4 +1,5 @@
 import mdx from "@mdx-js/rollup"
+import rehypeSlug from "rehype-slug"
 import { defineConfig } from "vite"
 import { devtools } from "@tanstack/devtools-vite"
 import { tanstackStart } from "@tanstack/react-start/plugin/vite"
@@ -12,7 +13,7 @@ const config = defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "better-auth", "@better-auth/core"],
   },
   plugins: [
-    { ...mdx(), enforce: "pre" },
+    { ...mdx({ rehypePlugins: [rehypeSlug] }), enforce: "pre" },
     devtools(),
     tailwindcss(),
     tanstackStart({

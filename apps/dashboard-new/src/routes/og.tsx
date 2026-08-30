@@ -1,3 +1,4 @@
+import { isDiscordSnowflake } from "@repo/utils/helpers/discord"
 import { createFileRoute } from "@tanstack/react-router"
 import ImageResponse from "takumi-js/response"
 
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/og")({
     handlers: {
       GET: async ({ request }) => {
         const threadId = new URL(request.url).searchParams.get("id")
-        if (!threadId || !/^[0-9]{1,20}$/.test(threadId)) {
+        if (!isDiscordSnowflake(threadId)) {
           return new Response("Invalid thread ID", { status: 400 })
         }
 

@@ -1,6 +1,7 @@
 {
 	"name": "discord-indexer-monorepo",
 	"devDependencies": {
+		"@oxlint/plugins": "1.78.0",
 		"oxfmt": "0.63.0",
 		"oxlint": "1.78.0",
 		"turbo": "^2.10.9",
@@ -24,6 +25,8 @@
 		"test": "turbo run test --filter=dashboard-new... --filter=bot...",
 		"dev:bot": "turbo run dev --filter=bot",
 		"dev:dashboard-new": "turbo run dev --filter=dashboard-new",
+		"discord-spec:check": "node scripts/discord-api-spec.mjs check",
+		"discord-spec:update": "node scripts/discord-api-spec.mjs update",
 		"nuke": "bunx npkill -D -y && rm bun.lock"
 	},
 	"workspaces": {

@@ -23,7 +23,6 @@
 		"@effect/platform-bun": "4.0.0-beta.106",
 		"@repo/db": "workspace:*",
 		"@repo/logger": "workspace:*",
-		"@t3-oss/env-core": "^0.13.10",
 		"@types/bun": "^1.2.23",
 		"discord-api-types": "0.38.53",
 		"discord.js": "14.27.0",
@@ -31,7 +30,6 @@
 		"effect": "4.0.0-beta.106",
 		"meilisearch": "^0.54.0",
 		"pg": "^8.16.3",
-		"posthog-node": "5.48.1",
-		"zod": "^4.2.1"
+		"posthog-node": "5.48.1"
 	}
 }

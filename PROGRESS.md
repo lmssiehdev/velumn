@@ -147,14 +147,14 @@ Some contract fields have no column in the current schema. They are returned as
 with plausible-looking values. This matches how the unreachable `starting_index`
 job detail was handled.
 
-| Field | Status |
-| --- | --- |
-| `lastIndexedAt` (server and thread) | no column; omitted from UI |
-| `indexing.status` / `lastSucceededAt` / `error` | no job table; card removed |
-| `bot.lastSeenAt` | no heartbeat persisted; not rendered |
-| `lastUsedServerId` | no preference persisted; always `null` |
-| `role` / `capabilities` | flat `manager`; not rendered |
-| domain verification details | only domain and verified boolean persist; records, provider errors, and check time are refreshed live |
+| Field                                           | Status                                                                                                |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `lastIndexedAt` (server and thread)             | no column; omitted from UI                                                                            |
+| `indexing.status` / `lastSucceededAt` / `error` | no job table; card removed                                                                            |
+| `bot.lastSeenAt`                                | no heartbeat persisted; not rendered                                                                  |
+| `lastUsedServerId`                              | no preference persisted; always `null`                                                                |
+| `role` / `capabilities`                         | flat `manager`; not rendered                                                                          |
+| domain verification details                     | only domain and verified boolean persist; records, provider errors, and check time are refreshed live |
 
 Each becomes real only when the corresponding additive migration lands, under
 the review rules in "State Model Decision" above.

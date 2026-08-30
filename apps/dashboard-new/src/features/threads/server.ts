@@ -1,4 +1,5 @@
 import { getDashboardThreadPage } from "@repo/db/helpers/dashboard-threads"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
@@ -8,22 +9,21 @@ import {
   getThreadUrl,
   toServerIdentity,
 } from "@/features/dashboard/urls"
+import {
+  THREAD_PAGE_SIZE_LIMIT,
+  threadChannelIdsSchema,
+  threadDirectionSchema,
+  threadPinnedSchema,
+  threadQuerySchema,
+  threadSortSchema,
+} from "./search"
 
-const serverIdSchema = z.string().regex(/^\d+$/)
-const threadSortSchema = z.enum([
-  "newest",
-  "title",
-  "parentChannel",
-  "messageCount",
-])
-const threadDirectionSchema = z.enum(["asc", "desc"])
-const threadPinnedSchema = z.enum(["pinned", "unpinned"])
 const requestSchema = z.object({
-  serverId: serverIdSchema,
+  serverId: discordSnowflakeSchema,
   page: z.number().int().positive(),
-  pageSize: z.number().int().min(1).max(100),
-  search: z.string().max(100),
-  channelIds: z.array(serverIdSchema).max(20),
+  pageSize: z.number().int().min(1).max(THREAD_PAGE_SIZE_LIMIT),
+  search: threadQuerySchema,
+  channelIds: threadChannelIdsSchema,
   pinned: z.union([threadPinnedSchema, z.literal("all")]),
   sort: threadSortSchema,
   direction: threadDirectionSchema,

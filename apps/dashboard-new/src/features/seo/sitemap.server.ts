@@ -67,8 +67,8 @@ export async function getTenantSitemapResponse(
       : []
     return xml(
       buildUrlSetXml([
-        `${tenant.origin}/`,
-        ...threads.map((thread) => tenant.threadUrl(thread)),
+        { loc: `${tenant.origin}/` },
+        ...threads.map((thread) => ({ loc: tenant.threadUrl(thread) })),
       ])
     )
   }
@@ -93,10 +93,12 @@ export async function getTenantSitemapChunkResponse(
 
   const tenant = await deps.resolveTenant(hostname)
   if (!tenant) return notFound()
-  if (!range) return xml(buildUrlSetXml([`${tenant.origin}/`]))
+  if (!range) return xml(buildUrlSetXml([{ loc: `${tenant.origin}/` }]))
 
   const threads = await deps.getThreads(tenant.serverId, range, SITEMAP_LIMIT)
-  return xml(buildUrlSetXml(threads.map((thread) => tenant.threadUrl(thread))))
+  return xml(
+    buildUrlSetXml(threads.map((thread) => ({ loc: tenant.threadUrl(thread) })))
+  )
 }
 
 function xml(body: string) {

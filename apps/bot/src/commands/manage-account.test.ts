@@ -28,12 +28,20 @@ interface CommandHarness {
 	readonly edits: InteractionEditReplyOptions[];
 }
 
+const commandInteraction = (
+	value: Parameters<typeof structuredClone>[0],
+): ChatInputCommandInteraction => value as ChatInputCommandInteraction;
+
+const buttonInteraction = (
+	value: Parameters<typeof structuredClone>[0],
+): ButtonInteraction => value as ButtonInteraction;
+
 const makeCommandHarness = Effect.fn("makeCommandHarness")(function* (
 	id = "session-1",
 ) {
 	const replied = yield* Deferred.make<void>();
 	const edits: InteractionEditReplyOptions[] = [];
-	const interaction = {
+	const interaction = commandInteraction({
 		id,
 		user,
 		reply: async (_options: InteractionReplyOptions) => {
@@ -44,7 +52,7 @@ const makeCommandHarness = Effect.fn("makeCommandHarness")(function* (
 			edits.push(options);
 			return {};
 		},
-	} as unknown as ChatInputCommandInteraction;
+	});
 
 	return { interaction, replied, edits } satisfies CommandHarness;
 });
@@ -57,7 +65,7 @@ const makeButton = (
 	const replies: InteractionReplyOptions[] = [];
 	const edits: InteractionEditReplyOptions[] = [];
 	const updates: InteractionUpdateOptions[] = [];
-	const interaction = {
+	const interaction = buttonInteraction({
 		customId,
 		user: overrideUser,
 		deferUpdate: async () => {
@@ -78,7 +86,7 @@ const makeButton = (
 			events.push("edit");
 			return {};
 		},
-	} as unknown as ButtonInteraction;
+	});
 
 	return { interaction, replies, edits, updates };
 };

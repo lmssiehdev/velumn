@@ -1,3 +1,4 @@
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import { PermissionFlagsBits } from "discord-api-types/v10"
 import { z } from "zod"
 
@@ -5,7 +6,7 @@ import type { OnboardingLifecycle } from "@repo/db/lifecycle"
 import type { EligibleDiscordServer } from "@/features/dashboard/contracts"
 
 export const discordGuildSchema = z.object({
-  id: z.string().regex(/^\d+$/),
+  id: discordSnowflakeSchema,
   name: z.string().min(1),
   icon: z.string().nullable(),
   owner: z.boolean(),

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import {
+  Link,
   createFileRoute,
   notFound,
   redirect,
@@ -213,6 +214,29 @@ function PublishingSettings({
         </div>
 
         <div className="min-w-0">
+          {!data.customDomain && !data.canAddCustomDomain && (
+            <div className="mb-6 flex flex-col gap-3 rounded-lg border bg-muted/30 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium">
+                  Custom domains are included with Pro
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Upgrade this server to publish under a domain you control.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                render={
+                  <Link
+                    to="/dashboard/servers/$serverId/billing"
+                    params={{ serverId }}
+                  />
+                }
+              >
+                View plans
+              </Button>
+            </div>
+          )}
           <form onSubmit={handleAdd}>
             <label htmlFor="custom-domain" className="text-sm font-medium">
               Enter your domain URL
@@ -235,7 +259,7 @@ function PublishingSettings({
                   autoComplete="url"
                   className={cn(data.customDomain && "cursor-default")}
                   readOnly={Boolean(data.customDomain)}
-                  disabled={addDomain.isPending}
+                  disabled={addDomain.isPending || !data.canAddCustomDomain}
                   onChange={(event) => {
                     setDomainInput(event.target.value)
                     setAddError(null)
@@ -296,7 +320,11 @@ function PublishingSettings({
                 <Button
                   type="submit"
                   className="h-9"
-                  disabled={!domainInput.trim() || addDomain.isPending}
+                  disabled={
+                    !domainInput.trim() ||
+                    addDomain.isPending ||
+                    !data.canAddCustomDomain
+                  }
                 >
                   {addDomain.isPending ? (
                     <LoaderCircle className="animate-spin" />

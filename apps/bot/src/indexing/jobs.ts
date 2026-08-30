@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type {
+	CompleteIndexingJobInput,
 	CreateIndexingJobInput,
 	StoredReconciliationCandidate,
 } from "@repo/db/helpers/indexing";
 import type { DBIndexingJob, IndexingJobSummary } from "@repo/db/schema/index";
+import { DISCORD_ARCHIVED_THREAD_PAGE_LIMIT } from "@repo/utils/helpers/discord";
 import {
 	type AnyThreadChannel,
-	ChannelFlags,
 	ChannelType,
 	type FetchedThreadsMore,
 	type GuildBasedChannel,
@@ -17,6 +18,7 @@ import {
 	Clock,
 	Context,
 	Effect,
+	Exit,
 	FiberMap,
 	Layer,
 	type Scope,
@@ -28,6 +30,12 @@ import {
 } from "../adapters/indexing-repository";
 import { DiscordClient } from "../discord/client";
 import { ErrorCapture } from "../observability/error-capture";
+import {
+	BotMetrics,
+	type MetricOutcome,
+	type ReconciliationKind,
+} from "../observability/metrics";
+import { toIndexingChannelMetadata } from "./channel-metadata";
 import { IndexingCoordinator } from "./coordinator";
 import { DiscordHistory, type ThreadParentChannel } from "./discord-history";
 import {
@@ -102,46 +110,6 @@ const supportedThread = (
 	channel.type === ChannelType.PublicThread ||
 	channel.type === ChannelType.AnnouncementThread;
 
-const channelMetadata = (channel: GuildBasedChannel, observedAt: Date) => ({
-	id: channel.id,
-	serverId: channel.guildId,
-	parentId: channel.parentId,
-	authorId: channel.isThread() ? (channel.ownerId ?? null) : null,
-	channelName: channel.name,
-	position: "position" in channel ? channel.position : 0,
-	nsfw: "nsfw" in channel ? channel.nsfw : false,
-	botPermissions: null,
-	botPermissionsCheckedAt: null,
-	observedAt,
-	archived: channel.isThread() ? (channel.archived ?? false) : false,
-	locked: channel.isThread() ? (channel.locked ?? false) : false,
-	archivedTimestamp:
-		channel.isThread() && channel.archiveTimestamp
-			? channel.archiveTimestamp
-			: null,
-	lastIndexedMessageId: null,
-	type: channel.type,
-	pinned: channel.isThread() && channel.flags.has(ChannelFlags.Pinned),
-	upvotes: 0,
-	downvotes: 0,
-	availableTags:
-		channel.type === ChannelType.GuildForum
-			? {
-					_tag: "Replace" as const,
-					items: (channel.availableTags ?? []).map((tag) => ({
-						id: tag.id,
-						name: tag.name,
-						moderated: tag.moderated,
-						emojiId: tag.emoji?.id ?? null,
-						emojiName: tag.emoji?.name ?? null,
-					})),
-				}
-			: { _tag: "NotFetched" as const },
-	appliedTagIds: channel.isThread()
-		? { _tag: "Replace" as const, items: channel.appliedTags }
-		: { _tag: "NotFetched" as const },
-});
-
 export const makeThreadPlanner = (
 	options: ReconciliationJobOptions,
 ): Effect.Effect<
@@ -154,7 +122,14 @@ export const makeThreadPlanner = (
 		const repository = yield* IndexingRepository;
 		const upsertChannel = (channel: GuildBasedChannel, observedAt: Date) =>
 			repository
-				.upsertChannelMetadata(channelMetadata(channel, observedAt))
+				.upsertChannelMetadata(
+					toIndexingChannelMetadata(channel, {
+						observedAt,
+						position: "position" in channel ? channel.position : 0,
+						botPermissions: null,
+						botPermissionsCheckedAt: null,
+					}),
+				)
 				.pipe(Effect.map((result) => result._tag === "Applied"));
 
 		const loadStored = (
@@ -351,7 +326,7 @@ export const makeThreadPlanner = (
 								yield* history.fetchArchivedPublicThreadPage({
 									channel: parent,
 									before,
-									limit: 100,
+									limit: DISCORD_ARCHIVED_THREAD_PAGE_LIMIT,
 								});
 							const threads: AnyThreadChannel[] = [
 								...archivedPage.threads.values(),
@@ -418,6 +393,57 @@ const addSummary = (
 	projectionsPending: 0,
 });
 
+const terminalResult = (
+	exit: Exit.Exit<CompleteIndexingJobInput, unknown>,
+): CompleteIndexingJobInput => {
+	if (Exit.isSuccess(exit)) return exit.value;
+	return Cause.hasInterruptsOnly(exit.cause)
+		? { status: "cancelled" }
+		: { status: "failed", errorCode: "job-failed" };
+};
+
+const reconciliationKind = (
+	kind: DBIndexingJob["kind"],
+): ReconciliationKind => {
+	switch (kind) {
+		case "thread_reconciliation":
+			return "thread";
+		case "guild_reconciliation":
+			return "guild";
+		case "channel_reconciliation":
+			return "channel";
+		default:
+			return "full";
+	}
+};
+
+const reconciliationTrigger = (trigger: string) => {
+	switch (trigger.trim().toLowerCase()) {
+		case "schedule":
+		case "scheduled":
+			return "schedule" as const;
+		case "manual":
+			return "manual" as const;
+		default:
+			return "other" as const;
+	}
+};
+
+const reconciliationOutcome = (
+	status: CompleteIndexingJobInput["status"],
+): MetricOutcome => {
+	switch (status) {
+		case "succeeded":
+			return "succeeded";
+		case "cancelled":
+			return "cancelled";
+		case "partial":
+			return "partial";
+		case "failed":
+			return "failed";
+	}
+};
+
 export const makeReconciliationJobs = (
 	options: ReconciliationJobOptions = conservativeReconciliationJobOptions,
 ): Effect.Effect<
@@ -469,97 +495,124 @@ export const makeReconciliationJobs = (
 			job: DBIndexingJob,
 			scopes: readonly ReconciliationScope[] | "scheduled",
 			reconciliationOptions: ReconciliationOptions,
-		) =>
-			semaphore
-				.withPermits(1)(
-					Effect.gen(function* () {
-						const running = yield* repository.startJob(job.id);
-						if (!running) {
-							yield* repository.completeJob(job.id, { status: "cancelled" });
-							return;
-						}
+		) => {
+			const kind = reconciliationKind(job.kind);
+			const trigger = reconciliationTrigger(job.trigger);
+			return Clock.currentTimeMillis.pipe(
+				Effect.flatMap((startedAt) =>
+					semaphore
+						.withPermits(1)(
+							Effect.gen(function* () {
+								const running = yield* repository.startJob(job.id);
+								if (!running) return { status: "cancelled" } as const;
 
-						let summary = emptySummary();
-						let partial = false;
-						let workScopes: readonly ReconciliationScope[];
-						if (scopes === "scheduled") {
-							const storedGuildIds = yield* repository.activeServerIds();
-							const connected = new Set(discord.client.guilds.cache.keys());
-							for (const guildId of storedGuildIds) {
-								if (connected.has(guildId)) continue;
-								summary = { ...summary, planned: summary.planned + 1 };
-								if (yield* submitGuildLeave(guildId)) {
-									summary = { ...summary, processed: summary.processed + 1 };
+								let summary = emptySummary();
+								let partial = false;
+								let workScopes: readonly ReconciliationScope[];
+								if (scopes === "scheduled") {
+									const storedGuildIds = yield* repository.activeServerIds();
+									const connected = new Set(discord.client.guilds.cache.keys());
+									for (const guildId of storedGuildIds) {
+										if (connected.has(guildId)) continue;
+										summary = { ...summary, planned: summary.planned + 1 };
+										if (yield* submitGuildLeave(guildId)) {
+											summary = {
+												...summary,
+												processed: summary.processed + 1,
+											};
+										} else {
+											partial = true;
+											summary = { ...summary, failed: summary.failed + 1 };
+										}
+									}
+									workScopes = [...connected].map((guildId) => ({
+										_tag: "Guild" as const,
+										guildId,
+									}));
 								} else {
-									partial = true;
-									summary = { ...summary, failed: summary.failed + 1 };
+									workScopes = scopes;
 								}
-							}
-							workScopes = [...connected].map((guildId) => ({
-								_tag: "Guild" as const,
-								guildId,
-							}));
-						} else {
-							workScopes = scopes;
-						}
 
-						for (const scope of workScopes) {
-							const result = yield* runScope(scope, reconciliationOptions);
-							summary = addSummary(summary, result);
-							partial ||= result.status !== "succeeded";
-						}
-						if (summary.failed > 0 && summary.processed === 0) {
-							yield* repository.completeJob(job.id, {
-								status: "failed",
-								summary,
-								errorCode: "reconciliation-failed",
-							});
-						} else if (partial) {
-							yield* repository.completeJob(job.id, {
-								status: "partial",
-								summary,
-							});
-						} else {
-							yield* repository.completeJob(job.id, {
-								status: "succeeded",
-								summary,
-							});
-						}
-					}),
-				)
-				.pipe(
-					Effect.tapCause((cause) =>
-						!Cause.hasInterruptsOnly(cause)
-							? errorCapture.captureCause(cause, {
-									boundary: "reconciliation_job",
-									operation: "reconciliation.job",
-									jobId: job.id,
-								})
-							: Effect.void,
-					),
-					Effect.withSpan("reconciliation.job", {
-						root: true,
-						attributes: {
-							"operation.name": "reconciliation.job",
-							jobId: job.id,
-						},
-					}),
-					Effect.onInterrupt(() =>
-						repository
-							.completeJob(job.id, { status: "cancelled" })
-							.pipe(Effect.ignore),
-					),
-					Effect.catchCause((cause) =>
-						repository
-							.completeJob(job.id, {
-								status: "failed",
-								errorCode: Cause.hasInterruptsOnly(cause)
-									? "cancelled"
-									: "job-failed",
-							})
-							.pipe(Effect.ignore),
-					),
-				);
+								for (const scope of workScopes) {
+									const result = yield* runScope(scope, reconciliationOptions);
+									summary = addSummary(summary, result);
+									partial ||= result.status !== "succeeded";
+								}
+								if (summary.failed > 0 && summary.processed === 0) {
+									return {
+										status: "failed",
+										summary,
+										errorCode: "reconciliation-failed",
+									} as const;
+								}
+								if (partial) {
+									return {
+										status: "partial",
+										summary,
+									} as const;
+								}
+								return {
+									status: "succeeded",
+									summary,
+								} as const;
+							}),
+						)
+						.pipe(
+							Effect.tapCause((cause) =>
+								!Cause.hasInterruptsOnly(cause)
+									? errorCapture.captureCause(cause, {
+											boundary: "reconciliation_job",
+											operation: "reconciliation.job",
+											jobId: job.id,
+										})
+									: Effect.void,
+							),
+							Effect.onExit((exit) => {
+								const terminal = terminalResult(exit);
+								const summary = terminal.summary;
+								return Effect.gen(function* () {
+									yield* Effect.annotateCurrentSpan({
+										"operation.outcome": terminal.status,
+										"job.planned_count": summary?.planned,
+										"job.processed_count": summary?.processed,
+										"job.committed_count": summary?.committed,
+										"job.skipped_count": summary?.skipped,
+										"job.failed_count": summary?.failed,
+										"job.projections_pending_count":
+											summary?.projectionsPending,
+									});
+									yield* repository.completeJob(job.id, terminal).pipe(
+										Effect.tapCause((cause) =>
+											errorCapture.captureCause(cause, {
+												boundary: "reconciliation_job",
+												operation: "reconciliation.job.complete",
+												jobId: job.id,
+											}),
+										),
+										Effect.catchCause(() => Effect.void),
+									);
+									const completedAt = yield* Clock.currentTimeMillis;
+									yield* BotMetrics.recordReconciliationJob({
+										kind,
+										trigger,
+										outcome: reconciliationOutcome(terminal.status),
+										durationMs: completedAt - startedAt,
+									});
+								});
+							}),
+							Effect.withSpan("reconciliation.job", {
+								root: true,
+								attributes: {
+									"operation.name": "reconciliation.job",
+									"job.kind": kind,
+									"job.trigger": trigger,
+								},
+							}),
+							Effect.catchCause(() => Effect.void),
+						),
+				),
+			);
+		};
 
 		const start = (
 			input: CreateIndexingJobInput,

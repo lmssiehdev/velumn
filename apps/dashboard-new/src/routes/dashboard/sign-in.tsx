@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { LoaderCircle } from "lucide-react"
 import { useState } from "react"
+import { z } from "zod"
 
 import { BrandMark } from "@/components/brand-mark"
 import { Button } from "@/components/ui/button"
@@ -8,13 +9,15 @@ import { authClient } from "@/lib/auth-client"
 import { getAuthAvailability } from "@/lib/auth-functions"
 import { safeReturnTo } from "@/lib/safe-return-to"
 
-function parseSignInSearch(search: Record<string, unknown>) {
-  return {
-    ...(typeof search.redirect === "string"
-      ? { redirect: search.redirect }
-      : {}),
-    ...(typeof search.error === "string" ? { error: search.error } : {}),
-  }
+const signInSearchSchema = z.object({
+  redirect: z.string().optional().catch(undefined),
+  error: z.string().optional().catch(undefined),
+})
+
+function parseSignInSearch(
+  search: Parameters<typeof signInSearchSchema.parse>[0]
+) {
+  return signInSearchSchema.parse(search)
 }
 
 export const Route = createFileRoute("/dashboard/sign-in")({

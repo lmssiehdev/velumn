@@ -123,7 +123,7 @@ export type DBIndexingContainerTombstoneInsert =
 
 export const indexingGatewayMutationStatusEnum = pgEnum(
 	"indexing_gateway_mutation_status",
-	["pending", "processing"],
+	["pending", "processing", "failed"],
 );
 
 export const dbIndexingGatewayMutation = pgTable(

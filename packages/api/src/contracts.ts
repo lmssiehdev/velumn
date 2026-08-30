@@ -35,7 +35,6 @@ export interface SearchResult {
 	readonly estimatedTotalHits?: number;
 	readonly processingTimeMs: number;
 	readonly query: string;
-	readonly [key: string]: unknown;
 }
 
 export interface SearchRequest {

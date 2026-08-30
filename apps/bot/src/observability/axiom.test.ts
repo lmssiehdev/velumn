@@ -7,6 +7,7 @@ import {
 	Layer,
 	Logger,
 	Option,
+	Schema,
 	Scope,
 	Tracer,
 } from "effect";
@@ -24,12 +25,15 @@ import {
 	layerPostHogErrorCapture,
 	redactPostHogEvent,
 } from "./error-capture";
+import { BotMetrics } from "./metrics";
 
 interface CapturedRequest {
 	readonly url: string;
 	readonly headers: Record<string, string>;
 	readonly body?: string;
 }
+
+const decodeRequestBody = Schema.decodeUnknownOption(Schema.String);
 
 const testLayer = (
 	env: Record<string, string>,
@@ -41,9 +45,10 @@ const testLayer = (
 			requests.push({
 				url: request.url,
 				headers: request.headers,
-				...(request.body._tag === "Uint8Array"
-					? { body: new TextDecoder().decode(request.body.body) }
-					: {}),
+				body:
+					request.body._tag === "Uint8Array"
+						? new TextDecoder().decode(request.body.body)
+						: undefined,
 			});
 			return HttpClientResponse.fromWeb(request, new Response());
 		}),
@@ -104,6 +109,160 @@ describe("Axiom telemetry", () => {
 				).pipe(Effect.scoped),
 			);
 			assert.isTrue(Exit.isSuccess(enabled));
+		}),
+	);
+
+	it.effect(
+		"does not export metrics when the metrics dataset is missing or blank",
+		() =>
+			Effect.gen(function* () {
+				for (const metricsDataset of [undefined, "   "]) {
+					const requests: CapturedRequest[] = [];
+					const scope = yield* Scope.make();
+					const context = yield* Layer.build(
+						testLayer(
+							metricsDataset === undefined
+								? {
+										AXIOM_TOKEN: "token",
+										AXIOM_TRACES_DATASET: "bot-traces",
+									}
+								: {
+										AXIOM_TOKEN: "token",
+										AXIOM_TRACES_DATASET: "bot-traces",
+										AXIOM_METRICS_DATASET: metricsDataset,
+									},
+							requests,
+						),
+					).pipe(Scope.provide(scope));
+					yield* Effect.void.pipe(
+						Effect.withSpan("metrics.disabled"),
+						Effect.provide(context),
+					);
+					yield* Scope.close(scope, Exit.void);
+
+					assert.isTrue(requests.some(({ url }) => url.endsWith("/v1/traces")));
+					assert.isFalse(
+						requests.some(({ url }) => url.endsWith("/v1/metrics")),
+					);
+				}
+			}),
+	);
+
+	it.effect("exports only typed low-cardinality metrics to their dataset", () =>
+		Effect.gen(function* () {
+			const requests: CapturedRequest[] = [];
+			const scope = yield* Scope.make();
+			const context = yield* Layer.build(
+				testLayer(
+					{
+						AXIOM_TOKEN: "token",
+						AXIOM_TRACES_DATASET: "bot-traces",
+						AXIOM_METRICS_DATASET: "bot-metrics",
+						AXIOM_OTLP_ENDPOINT: "https://axiom.invalid/",
+						NODE_ENV: "production",
+						OTEL_SERVICE_VERSION: "1.2.3",
+					},
+					requests,
+				),
+			).pipe(Scope.provide(scope));
+			const privateValue =
+				"123456789012345678 PRIVATE_MESSAGE user@example.com https://private.invalid";
+			const inputWithIgnoredPrivateData = {
+				category: "message" as const,
+				outcome: "succeeded" as const,
+				durationMs: 42,
+				messageId: privateValue,
+				content: privateValue,
+			};
+
+			void ({
+				// @ts-expect-error Raw event names are not an allowed metric dimension.
+				category: privateValue,
+				outcome: "succeeded",
+				durationMs: 1,
+			} satisfies Parameters<typeof BotMetrics.recordDiscordEvent>[0]);
+			yield* BotMetrics.recordDiscordEvent(inputWithIgnoredPrivateData).pipe(
+				Effect.provide(context),
+			);
+			yield* BotMetrics.setQueueDepth("gateway_mutations", 7).pipe(
+				Effect.provide(context),
+			);
+			yield* Effect.void.pipe(
+				Effect.withSpan("metrics.enabled"),
+				Effect.provide(context),
+			);
+			yield* Scope.close(scope, Exit.void);
+
+			const traces = requests.find(({ url }) => url.endsWith("/v1/traces"));
+			const metrics = requests.find(({ url }) => url.endsWith("/v1/metrics"));
+			assert.isDefined(traces);
+			assert.isDefined(metrics);
+			assert.equal(traces?.url, "https://axiom.invalid/v1/traces");
+			assert.equal(metrics?.url, "https://axiom.invalid/v1/metrics");
+			assert.equal(traces?.headers["x-axiom-dataset"], "bot-traces");
+			assert.equal(metrics?.headers["x-axiom-dataset"], "bot-metrics");
+			assert.isFalse(requests.some(({ url }) => url.endsWith("/v1/logs")));
+			const body = metrics?.body ?? "";
+			assert.notInclude(body, privateValue);
+
+			const payload = JSON.parse(body) as {
+				resourceMetrics: Array<{
+					resource: { attributes: unknown[] };
+					scopeMetrics: Array<{
+						metrics: Array<{
+							name: string;
+							sum?: {
+								dataPoints: Array<{
+									attributes: Array<{
+										key: string;
+										value: { stringValue?: string };
+									}>;
+									asDouble?: number;
+								}>;
+							};
+							histogram?: {
+								dataPoints: Array<{
+									attributes: Array<{
+										key: string;
+										value: { stringValue?: string };
+									}>;
+									count: number;
+									sum: number;
+								}>;
+							};
+						}>;
+					}>;
+				}>;
+			};
+			const resource = payload.resourceMetrics[0];
+			const resourceAttributes = JSON.stringify(resource?.resource.attributes);
+			assert.include(resourceAttributes, "velumn-bot");
+			assert.include(resourceAttributes, "1.2.3");
+			assert.include(resourceAttributes, "service.namespace");
+			assert.include(resourceAttributes, "deployment.environment.name");
+			const exported = resource?.scopeMetrics[0]?.metrics ?? [];
+			const eventCount = exported.find(
+				({ name }) => name === "velumn_bot_discord_events_total",
+			);
+			const eventDuration = exported.find(
+				({ name }) => name === "velumn_bot_discord_event_duration_ms",
+			);
+			const attributes = Object.fromEntries(
+				(eventCount?.sum?.dataPoints[0]?.attributes ?? []).map(
+					({ key, value }) => [key, value.stringValue],
+				),
+			);
+			assert.deepEqual(attributes, {
+				category: "message",
+				outcome: "succeeded",
+			});
+			assert.equal(eventCount?.sum?.dataPoints[0]?.asDouble, 1);
+			assert.equal(eventDuration?.histogram?.dataPoints[0]?.count, 1);
+			assert.equal(eventDuration?.histogram?.dataPoints[0]?.sum, 42);
+			assert.include(
+				exported.map(({ name }) => name),
+				"velumn_bot_queue_depth",
+			);
 		}),
 	);
 
@@ -185,7 +344,20 @@ describe("Axiom telemetry", () => {
 						"operation.name": "projector.poll",
 						"operation.outcome": "failed",
 						"retry.attempt": 2,
+						"retry.disposition": "terminal",
 						"batch.claimed_count": 4,
+						"discord.event.category": "message",
+						"mutation.type": "upsert_message",
+						"submission.source": "gateway",
+						"projection.operation": "message_upsert",
+						"job.kind": "guild",
+						"job.trigger": "manual",
+						"job.planned_count": 5,
+						"job.processed_count": 4,
+						"job.committed_count": 3,
+						"job.skipped_count": 1,
+						"job.failed_count": 1,
+						"job.projections_pending_count": 2,
 						"error.event_id": "event-42",
 						"error.type": "WorkerError",
 						"error.fingerprint": "velumn:v1:fingerprint",
@@ -273,14 +445,27 @@ describe("Axiom telemetry", () => {
 					span.attributes.every(({ key }) =>
 						[
 							"batch.claimed_count",
+							"discord.event.category",
 							"discord.guild_id",
 							"error.event_id",
 							"error.fingerprint",
 							"error.type",
 							"jobId",
+							"job.committed_count",
+							"job.failed_count",
+							"job.kind",
+							"job.planned_count",
+							"job.processed_count",
+							"job.projections_pending_count",
+							"job.skipped_count",
+							"job.trigger",
+							"mutation.type",
 							"operation.name",
 							"operation.outcome",
+							"projection.operation",
 							"retry.attempt",
+							"retry.disposition",
+							"submission.source",
 						].includes(key),
 					),
 				);
@@ -290,14 +475,27 @@ describe("Axiom telemetry", () => {
 			const failed = spans.find((span) => span.name === "projector.poll");
 			assert.deepEqual(failed?.attributes.map(({ key }) => key).sort(), [
 				"batch.claimed_count",
+				"discord.event.category",
 				"discord.guild_id",
 				"error.event_id",
 				"error.fingerprint",
 				"error.type",
+				"job.committed_count",
+				"job.failed_count",
+				"job.kind",
+				"job.planned_count",
+				"job.processed_count",
+				"job.projections_pending_count",
+				"job.skipped_count",
+				"job.trigger",
 				"jobId",
+				"mutation.type",
 				"operation.name",
 				"operation.outcome",
+				"projection.operation",
 				"retry.attempt",
+				"retry.disposition",
+				"submission.source",
 			]);
 			assert.equal(failed?.events.length, 2);
 			assert.isTrue(failed?.events.every(({ name }) => name === "exception"));
@@ -365,8 +563,8 @@ describe("Axiom telemetry", () => {
 				flushAt: 20,
 				before_send: redactPostHogEvent,
 				fetch: async (_url, options) => {
-					if (typeof options.body === "string")
-						postHogPayloads.push(options.body);
+					const body = Option.getOrUndefined(decodeRequestBody(options.body));
+					if (body !== undefined) postHogPayloads.push(body);
 					return {
 						status: 200,
 						text: async () => "{}",

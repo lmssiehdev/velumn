@@ -28,6 +28,12 @@ export type PublicMessageMentions = {
 	roles: PublicMention[];
 };
 
+type ParsedMessageMetadata = NonNullable<MessageMetadataSchema>;
+type MentionSnapshots =
+	| ParsedMessageMetadata["users"]
+	| ParsedMessageMetadata["channels"]
+	| ParsedMessageMetadata["roles"];
+
 export type PublicReferenceState = "available" | "unavailable" | "redacted";
 
 export function classifyPublicReference({
@@ -126,7 +132,7 @@ function projectMentions(
 function orderedIds(
 	content: string,
 	pattern: RegExp,
-	snapshots: Record<string, unknown> | undefined,
+	snapshots: MentionSnapshots,
 ): string[] {
 	return [
 		...new Set([

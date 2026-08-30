@@ -1,8 +1,7 @@
-import { setServerChannelSelection } from "@repo/db/helpers/channels"
 import { captureOnboardingEvent } from "@repo/utils/onboarding-analytics"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import {
   checkIfServerExistsForUser,
-  createBotInvite,
   getChannelsInServer,
   getExistingThreadCountsByChannel,
   getOnboardingInstallationForUser,
@@ -25,8 +24,14 @@ import { createBotApiClient } from "@/lib/bot-api.server"
 
 import { getDiscordGuildIcon, toInstallationState } from "./discord"
 import { fetchDiscordGuilds, type DiscordGuildsResult } from "./discord-server"
+import { InviteAlreadyClaimed, prepareServerInvite } from "./invite.server"
+import {
+  ChannelSelectionChanged,
+  ChannelSelectionRequired,
+  validateAndPersistChannelSelection,
+} from "../channels/selection.server"
 
-const serverIdSchema = z.string().regex(/^\d+$/)
+const serverIdSchema = discordSnowflakeSchema
 const requiredPermissionCopy = [
   "View selected channels",
   "Read message history",
@@ -250,29 +255,28 @@ export const createServerInvite = createServerFn({ method: "POST" })
       }
     }
 
-    try {
-      await createBotInvite({
-        userId: context.session.user.id,
-        serverId: data.serverId,
-      })
-      void captureOnboardingEvent({
-        event: "discord_authorization_opened",
-        serverId: data.serverId,
-        userId: context.session.user.id,
-      })
-      return {
-        status: "ok" as const,
-        inviteUrl: createDiscordInviteUrl(data.serverId),
-      }
-    } catch (error) {
+    const invite = await prepareServerInvite({
+      userId: context.session.user.id,
+      serverId: data.serverId,
+    })
+    if (invite.isErr()) {
       return {
         status: "error" as const,
-        code: "invite_conflict" as const,
-        message:
-          error instanceof Error
-            ? error.message
-            : "This server could not be prepared for installation.",
+        code:
+          invite.error instanceof InviteAlreadyClaimed
+            ? ("invite_conflict" as const)
+            : ("invite_unavailable" as const),
+        message: invite.error.message,
       }
+    }
+    void captureOnboardingEvent({
+      event: "discord_authorization_opened",
+      serverId: data.serverId,
+      userId: context.session.user.id,
+    })
+    return {
+      status: "ok" as const,
+      inviteUrl: createDiscordInviteUrl(data.serverId),
     }
   })
 
@@ -305,22 +309,22 @@ export const finishServerSetup = createServerFn({ method: "POST" })
     }
 
     const channels = await getChannelsInServer(data.serverId)
-    const selectedIds = new Set(data.selectedChannelIds)
-    if (selectedIds.size !== data.selectedChannelIds.length) {
+    const selection = await validateAndPersistChannelSelection({
+      availableChannelIds: channels.map((channel) => channel.id),
+      selectedChannelIds: data.selectedChannelIds,
+      serverId: data.serverId,
+    })
+    if (selection.isErr()) {
+      const code =
+        selection.error instanceof ChannelSelectionChanged
+          ? ("invalid_channels" as const)
+          : selection.error instanceof ChannelSelectionRequired
+            ? ("channel_required" as const)
+            : ("save_unavailable" as const)
       return {
         status: "error" as const,
-        code: "invalid_channels" as const,
-        message: "The channel selection contains duplicates.",
-      }
-    }
-    const channelIds = new Set(channels.map((channel) => channel.id))
-    if (
-      data.selectedChannelIds.some((channelId) => !channelIds.has(channelId))
-    ) {
-      return {
-        status: "error" as const,
-        code: "invalid_channels" as const,
-        message: "The channel selection contains an unavailable channel.",
+        code,
+        message: selection.error.message,
       }
     }
 
@@ -331,13 +335,6 @@ export const finishServerSetup = createServerFn({ method: "POST" })
       userId: context.session.user.id,
     })
 
-    await setServerChannelSelection({
-      serverId: data.serverId,
-      channels: channels.map((channel) => ({
-        channelId: channel.id,
-        status: selectedIds.has(channel.id),
-      })),
-    })
     const initialIndex = await requestInitialIndex(data.serverId)
     if (initialIndex.isErr()) {
       return {

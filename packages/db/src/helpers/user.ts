@@ -137,64 +137,95 @@ export async function anonymizeUser(user: DBUser, anonymizeName: boolean) {
 		});
 }
 
+type AuthoredMessage = {
+	readonly id: string;
+	readonly partitionKey: string | null;
+	readonly serverId: string;
+};
+
+export interface DiscordUserPrivacyTransaction {
+	findAuthoredMessages(userId: string): Promise<AuthoredMessage[]>;
+	upsertIgnoredUser(user: DBUser): Promise<void>;
+	deleteMessageAttachments(messageIds: string[]): Promise<void>;
+	redactAuthoredMessages(userId: string): Promise<void>;
+	enqueueMessagePurges(messages: AuthoredMessage[]): Promise<void>;
+}
+
+export interface DiscordUserPrivacyDatabase {
+	transaction<Result>(
+		run: (tx: DiscordUserPrivacyTransaction) => Promise<Result>,
+	): Promise<Result>;
+}
+
+const discordUserPrivacyDatabase: DiscordUserPrivacyDatabase = {
+	transaction: async (run) =>
+		await db.transaction(async (tx) =>
+			run({
+				findAuthoredMessages: async (userId) =>
+					await tx
+						.select({
+							id: dbMessage.id,
+							partitionKey: dbMessage.primaryChannelId,
+							serverId: dbMessage.serverId,
+						})
+						.from(dbMessage)
+						.where(eq(dbMessage.authorId, userId)),
+				upsertIgnoredUser: async (user) => {
+					await tx
+						.insert(dbDiscordUser)
+						.values({ ...user, anonymizeName: true, isIgnored: true })
+						.onConflictDoUpdate({
+							target: dbDiscordUser.id,
+							set: { anonymizeName: true, isIgnored: true },
+						});
+				},
+				deleteMessageAttachments: async (messageIds) => {
+					if (messageIds.length > 0) {
+						await tx
+							.delete(dbAttachments)
+							.where(inArray(dbAttachments.messageId, messageIds));
+					}
+				},
+				redactAuthoredMessages: async (userId) => {
+					await tx
+						.update(dbMessage)
+						.set({
+							content: "",
+							cleanContent: "",
+							embeds: null,
+							reactions: null,
+							snapshot: null,
+							poll: null,
+							isIgnored: true,
+						})
+						.where(eq(dbMessage.authorId, userId));
+				},
+				enqueueMessagePurges: async (messages) => {
+					await enqueueMeiliProjections(
+						messages.map((message) => ({
+							operation: "message_delete",
+							entityId: message.id,
+							partitionKey: message.partitionKey ?? message.id,
+							serverId: message.serverId,
+							jobId: null,
+						})),
+						tx,
+					);
+				},
+			}),
+		),
+};
+
 export async function ignoreDiscordUser(
 	user: DBUser,
-	database: Pick<typeof db, "transaction"> = db,
+	database: DiscordUserPrivacyDatabase = discordUserPrivacyDatabase,
 ) {
 	return await database.transaction(async (tx) => {
-		const messages = await tx
-			.select({
-				id: dbMessage.id,
-				partitionKey: dbMessage.primaryChannelId,
-				serverId: dbMessage.serverId,
-			})
-			.from(dbMessage)
-			.where(eq(dbMessage.authorId, user.id));
-
-		await tx
-			.insert(dbDiscordUser)
-			.values({
-				...user,
-				anonymizeName: true,
-				isIgnored: true,
-			})
-			.onConflictDoUpdate({
-				target: dbDiscordUser.id,
-				set: {
-					anonymizeName: true,
-					isIgnored: true,
-				},
-			});
-		if (messages.length > 0) {
-			await tx.delete(dbAttachments).where(
-				inArray(
-					dbAttachments.messageId,
-					messages.map(({ id }) => id),
-				),
-			);
-		}
-		await tx
-			.update(dbMessage)
-			.set({
-				content: "",
-				cleanContent: "",
-				embeds: null,
-				reactions: null,
-				snapshot: null,
-				poll: null,
-				isIgnored: true,
-			})
-			.where(eq(dbMessage.authorId, user.id));
-		await enqueueMeiliProjections(
-			messages.map((message) => ({
-				operation: "message_delete",
-				entityId: message.id,
-				partitionKey: message.partitionKey ?? message.id,
-				serverId: message.serverId,
-				jobId: null,
-			})),
-			tx,
-		);
+		const messages = await tx.findAuthoredMessages(user.id);
+		await tx.upsertIgnoredUser(user);
+		await tx.deleteMessageAttachments(messages.map(({ id }) => id));
+		await tx.redactAuthoredMessages(user.id);
+		await tx.enqueueMessagePurges(messages);
 
 		return messages.map(({ id }) => id);
 	});
@@ -233,16 +264,12 @@ export async function findManyDiscordAccountsById(ids: string[]) {
 export async function upsertManyDiscordAccounts(users: DBUser[]) {
 	const existing = await findManyDiscordAccountsById(users.map((x) => x.id));
 
-	const existingMap = existing.reduce(
-		(acc, cur) => {
-			acc[cur.id] = cur;
-			return acc;
-		},
-		{} as Record<string, DBUser>,
+	const existingById = new Map(
+		existing.map((account) => [account.id, account]),
 	);
 
-	const toCreate = users.filter((c) => !existingMap[c.id]).map((c) => c);
-	const toUpdate = users.filter((c) => existingMap[c.id]).map((c) => c);
+	const toCreate = users.filter((account) => !existingById.has(account.id));
+	const toUpdate = users.filter((account) => existingById.has(account.id));
 
 	const [created, updated] = await Promise.all([
 		updateManyDiscordAccounts(toUpdate),

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { Cause } from "effect";
+import { Cause, Option, Schema } from "effect";
 
 export const reportBoundaries = [
 	"application",
@@ -20,27 +20,38 @@ export type ReportEnvironment =
 	| "test"
 	| "unknown";
 
-const boundarySet = new Set<string>(reportBoundaries);
 const staticNamePattern = /^[A-Za-z][A-Za-z0-9]*(?:[._:/-][A-Za-z0-9]+)*$/;
 const typePattern = /^[A-Za-z_$][A-Za-z0-9_$.-]{0,127}$/;
 const maximumMessageLength = 2_000;
 const maximumStackLength = 16_000;
 const maximumStackFrames = 40;
 
-export const reportBoundary = (value: unknown): ReportBoundary | "unknown" =>
-	typeof value === "string" && boundarySet.has(value)
-		? (value as ReportBoundary)
-		: "unknown";
+const reportBoundarySchema = Schema.Literals(reportBoundaries);
+const reportEnvironmentSchema = Schema.Literals([
+	"development",
+	"production",
+	"test",
+]);
+const decodeReportBoundary = Schema.decodeUnknownOption(reportBoundarySchema);
+const decodeReportEnvironment = Schema.decodeUnknownOption(
+	reportEnvironmentSchema,
+);
+const decodeReflectable = Schema.decodeUnknownOption(Schema.ObjectKeyword);
+const decodeString = Schema.decodeUnknownOption(Schema.String);
+const decodeNumber = Schema.decodeUnknownOption(Schema.Number);
+const decodeBoolean = Schema.decodeUnknownOption(Schema.Boolean);
+const decodeBigInt = Schema.decodeUnknownOption(Schema.BigInt);
+
+export const reportBoundary = (
+	value: Parameters<typeof decodeReportBoundary>[0],
+): ReportBoundary | "unknown" =>
+	Option.getOrElse(decodeReportBoundary(value), () => "unknown");
 
 export const reportEnvironment = (value: string): ReportEnvironment => {
-	switch (value.trim()) {
-		case "development":
-		case "production":
-		case "test":
-			return value.trim() as ReportEnvironment;
-		default:
-			return "unknown";
-	}
+	return Option.getOrElse(
+		decodeReportEnvironment(value.trim()),
+		() => "unknown",
+	);
 };
 
 const truncate = (value: string, maximum: number) =>
@@ -107,33 +118,35 @@ export const sanitizeText = (input: string): string => {
 	return value;
 };
 
-const safeField = (value: unknown, key: string): unknown => {
-	if (
-		(typeof value !== "object" || value === null) &&
-		typeof value !== "function"
-	) {
-		return undefined;
-	}
+const safeField = (
+	value: Parameters<typeof decodeReflectable>[0],
+	key: string,
+): Parameters<typeof decodeReflectable>[0] => {
 	try {
-		return Reflect.get(value, key);
+		const target = Option.getOrUndefined(decodeReflectable(value));
+		return target ? Reflect.get(target, key) : undefined;
 	} catch {
 		return undefined;
 	}
 };
 
-const safeString = (value: unknown): string | undefined => {
-	if (typeof value === "string") return value;
-	if (
-		typeof value === "number" ||
-		typeof value === "boolean" ||
-		typeof value === "bigint"
-	) {
-		return String(value);
-	}
+const safeString = (
+	value: Parameters<typeof decodeString>[0],
+): string | undefined => {
+	const stringValue = Option.getOrUndefined(decodeString(value));
+	if (stringValue !== undefined) return stringValue;
+	const numberValue = Option.getOrUndefined(decodeNumber(value));
+	if (numberValue !== undefined) return String(numberValue);
+	const booleanValue = Option.getOrUndefined(decodeBoolean(value));
+	if (booleanValue !== undefined) return String(booleanValue);
+	const bigintValue = Option.getOrUndefined(decodeBigInt(value));
+	if (bigintValue !== undefined) return String(bigintValue);
 	return undefined;
 };
 
-const isNativeError = (value: unknown): value is Error => {
+const isNativeError = (
+	value: Parameters<typeof decodeReflectable>[0],
+): value is Error => {
 	try {
 		return value instanceof Error;
 	} catch {
@@ -150,7 +163,9 @@ export interface NormalizedError {
 	readonly stack: string;
 }
 
-export const normalizeError = (value: unknown): NormalizedError => {
+export const normalizeError = (
+	value: Parameters<typeof decodeReflectable>[0],
+): NormalizedError => {
 	const rawName = safeString(safeField(value, "name"));
 	const rawTag = safeString(safeField(value, "_tag"));
 	const rawOperation = safeString(safeField(value, "operation"));
@@ -181,7 +196,7 @@ export const normalizeError = (value: unknown): NormalizedError => {
 	};
 	let needsMessage = genericMessage(rawMessage);
 	let needsStack = genericStack(rawStack);
-	let current: unknown = value;
+	let current = value;
 	const seen = new WeakSet<object>();
 	for (let depth = 0; depth < 5 && (needsMessage || needsStack); depth++) {
 		if (!isNativeError(current) || seen.has(current)) break;
@@ -221,14 +236,12 @@ export const normalizeError = (value: unknown): NormalizedError => {
 		name: { value: type, configurable: true },
 		stack: { value: stack, configurable: true },
 	});
-	return {
-		error,
-		type,
-		...(tag ? { tag } : {}),
-		...(typedOperation ? { typedOperation } : {}),
-		message,
-		stack,
-	};
+	if (tag && typedOperation) {
+		return { error, type, tag, typedOperation, message, stack };
+	}
+	if (tag) return { error, type, tag, message, stack };
+	if (typedOperation) return { error, type, typedOperation, message, stack };
+	return { error, type, message, stack };
 };
 
 export interface CauseSelection {
@@ -310,12 +323,15 @@ export const inspectCause = (
 	}
 };
 
-export const staticOperation = (value: unknown, fallback: string): string =>
-	typeof value === "string" &&
-	value.length <= 128 &&
-	staticNamePattern.test(value)
-		? value
+export const staticOperation = (
+	value: Parameters<typeof decodeString>[0],
+	fallback: string,
+): string => {
+	const parsed = Option.getOrUndefined(decodeString(value));
+	return parsed && parsed.length <= 128 && staticNamePattern.test(parsed)
+		? parsed
 		: fallback;
+};
 
 const firstInAppFrame = (stack: string): string => {
 	for (const line of stack.split("\n").slice(1)) {
@@ -356,7 +372,7 @@ export const errorFingerprint = (input: {
 
 export const safeBoundaryMetadata = (
 	cause: Cause.Cause<unknown>,
-	_context?: unknown,
+	_context?: { readonly boundary: string },
 ) => {
 	const selection = inspectCause(cause);
 	if (selection === "interrupt-only")

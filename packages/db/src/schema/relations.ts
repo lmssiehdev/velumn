@@ -12,6 +12,8 @@ export const relations = defineRelations(schema, (r) => ({
 		accounts: r.many.account(),
 		sessions: r.many.session(),
 		servers: r.many.userServers(),
+		polarSubscriptions: r.many.dbPolarSubscription(),
+		polarCheckoutAttempts: r.many.dbPolarCheckoutAttempt(),
 	},
 	session: {
 		user: r.one.user({
@@ -22,11 +24,40 @@ export const relations = defineRelations(schema, (r) => ({
 	dbServer: {
 		channels: r.many.dbChannel(),
 		indexingJobs: r.many.dbIndexingJob(),
+		polarSubscriptions: r.many.dbPolarSubscription(),
+		polarCheckoutAttempts: r.many.dbPolarCheckoutAttempt(),
+		grants: r.many.dbServerGrant(),
 		domainLifecycle: r.one.dbDomainLifecycle({
 			from: r.dbServer.id,
 			to: r.dbDomainLifecycle.serverId,
 		}),
 		users: r.many.userServers(),
+	},
+	dbPolarSubscription: {
+		server: r.one.dbServer({
+			from: r.dbPolarSubscription.serverId,
+			to: r.dbServer.id,
+		}),
+		purchaser: r.one.user({
+			from: r.dbPolarSubscription.purchaserUserId,
+			to: r.user.id,
+		}),
+	},
+	dbPolarCheckoutAttempt: {
+		server: r.one.dbServer({
+			from: r.dbPolarCheckoutAttempt.serverId,
+			to: r.dbServer.id,
+		}),
+		user: r.one.user({
+			from: r.dbPolarCheckoutAttempt.userId,
+			to: r.user.id,
+		}),
+	},
+	dbServerGrant: {
+		server: r.one.dbServer({
+			from: r.dbServerGrant.serverId,
+			to: r.dbServer.id,
+		}),
 	},
 	dbDomainLifecycle: {
 		server: r.one.dbServer({

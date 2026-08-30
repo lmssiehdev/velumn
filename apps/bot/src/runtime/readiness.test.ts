@@ -1,6 +1,19 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Metric } from "effect";
 import { Readiness } from "./readiness";
+
+const readinessGauge = (component: string) =>
+	Metric.snapshot.pipe(
+		Effect.map((snapshots) => {
+			const snapshot = snapshots.find(
+				(metric) =>
+					metric.id === "velumn_bot_readiness" &&
+					metric.attributes?.component === component,
+			);
+			assert.equal(snapshot?.type, "Gauge");
+			return snapshot?.type === "Gauge" ? snapshot.state.value : undefined;
+		}),
+	);
 
 describe("Readiness", () => {
 	it.effect("is ready only when every required subsystem is ready", () =>
@@ -16,9 +29,13 @@ describe("Readiness", () => {
 				gatewayMutationInbox: false,
 				projector: false,
 			});
+			assert.equal(yield* readinessGauge("discord"), 0);
+			assert.equal(yield* readinessGauge("service"), 0);
 
 			yield* readiness.setDiscordReady(true);
 			assert.isFalse((yield* readiness.get).ready);
+			assert.equal(yield* readinessGauge("discord"), 1);
+			assert.equal(yield* readinessGauge("service"), 0);
 
 			yield* readiness.setCommandsReady(true);
 			assert.isFalse((yield* readiness.get).ready);
@@ -42,9 +59,13 @@ describe("Readiness", () => {
 				gatewayMutationInbox: true,
 				projector: true,
 			});
+			assert.equal(yield* readinessGauge("projector"), 1);
+			assert.equal(yield* readinessGauge("service"), 1);
 
 			yield* readiness.setDiscordReady(false);
 			assert.isFalse((yield* readiness.get).ready);
+			assert.equal(yield* readinessGauge("discord"), 0);
+			assert.equal(yield* readinessGauge("service"), 0);
 		}).pipe(Effect.provide(Readiness.layer)),
 	);
 });

@@ -99,7 +99,7 @@ BubbleBuddy is useful for:
 ### Secondary research source
 
 - `../AnswerOverflow`: research material for selected principles and indexing behavior. It is not an OpenCode reference and is not a template.
-- [`discord-api-spec-source.md`](./discord-api-spec-source.md): pinned manifest for Discord's preview HTTP API specification; reference only, with no vendored JSON.
+- [`discord-api-spec-source.md`](./discord-api-spec-source.md): provenance and usage guidance for the vendored Discord preview HTTP API specification.
 
 Executor is useful as a set of constraints rather than a structure to reproduce:
 

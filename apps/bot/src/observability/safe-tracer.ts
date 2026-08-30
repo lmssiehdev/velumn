@@ -1,4 +1,4 @@
-import { Effect, Exit, Layer, Tracer } from "effect";
+import { Effect, Exit, Layer, Option, Schema, Tracer } from "effect";
 import type { HttpClient } from "effect/unstable/http";
 import {
 	OtlpExporter,
@@ -34,37 +34,110 @@ const allowedAttributeKeys = new Set([
 	"error.fingerprint",
 	"operation.name",
 	"operation.outcome",
+	"discord.event.category",
+	"mutation.type",
+	"submission.source",
+	"projection.operation",
+	"job.kind",
+	"job.trigger",
 	"retry.classification",
 	"retry.attempt",
+	"retry.disposition",
 	"batch.claimed_count",
 	"batch.failed_count",
 	"batch.processed_count",
+	"job.planned_count",
+	"job.processed_count",
+	"job.committed_count",
+	"job.skipped_count",
+	"job.failed_count",
+	"job.projections_pending_count",
 	"item.count",
 ]);
 
+const allowedCategoricalValues = new Map<string, ReadonlySet<string>>([
+	[
+		"discord.event.category",
+		new Set([
+			"message",
+			"channel",
+			"thread",
+			"guild",
+			"member",
+			"role",
+			"interaction",
+			"other",
+		]),
+	],
+	[
+		"mutation.type",
+		new Set([
+			"invalid_payload",
+			"upsert_message",
+			"delete_message",
+			"delete_thread",
+			"reconcile_thread",
+			"upsert_channel",
+			"delete_channel",
+			"install_guild",
+			"upsert_guild",
+			"delete_guild",
+			"upsert_user",
+			"reconcile_bot_member_permissions",
+			"reconcile_role_permissions",
+		]),
+	],
+	[
+		"submission.source",
+		new Set(["gateway", "manual", "reconciliation", "scheduled"]),
+	],
+	[
+		"projection.operation",
+		new Set([
+			"message_upsert",
+			"container_refresh",
+			"rebuild",
+			"message_delete",
+			"container_delete",
+			"server_delete",
+		]),
+	],
+	["job.kind", new Set(["guild", "channel", "thread", "permissions", "full"])],
+	["job.trigger", new Set(["schedule", "manual", "other"])],
+	["retry.disposition", new Set(["retryable", "terminal"])],
+]);
+
+const decodeBooleanAttribute = Schema.decodeUnknownOption(Schema.Boolean);
+const decodeNumberAttribute = Schema.decodeUnknownOption(Schema.Number);
+const decodeStringAttribute = Schema.decodeUnknownOption(Schema.String);
+
 const safeAttribute = (
 	key: string,
-	value: unknown,
+	value: Parameters<typeof decodeStringAttribute>[0],
 ): string | number | boolean | undefined => {
 	if (!allowedAttributeKeys.has(key)) return undefined;
-	if (typeof value === "boolean") return value;
-	if (typeof value === "number")
-		return Number.isFinite(value) && Math.abs(value) <= 1_000_000_000
-			? value
+	const booleanValue = Option.getOrUndefined(decodeBooleanAttribute(value));
+	if (booleanValue !== undefined) return booleanValue;
+	const numberValue = Option.getOrUndefined(decodeNumberAttribute(value));
+	if (numberValue !== undefined)
+		return Number.isFinite(numberValue) &&
+			Math.abs(numberValue) <= 1_000_000_000
+			? numberValue
 			: undefined;
-	if (typeof value === "string")
-		return value.length > 0 && value.length <= 256 ? value : undefined;
+	const stringValue = Option.getOrUndefined(decodeStringAttribute(value));
+	if (stringValue !== undefined)
+		return stringValue.length > 0 &&
+			stringValue.length <= 256 &&
+			(allowedCategoricalValues.get(key)?.has(stringValue) ?? true)
+			? stringValue
+			: undefined;
 	return undefined;
 };
 
-const safeAttributes = (
-	attributes: Readonly<Record<string, unknown>> | ReadonlyMap<string, unknown>,
-) => {
+const safeAttributes = (attributes: Tracer.Span["attributes"]) => {
 	const output: Record<string, string | number | boolean> = {};
 	try {
-		for (const [key, value] of attributes instanceof Map
-			? attributes
-			: Object.entries(attributes)) {
+		for (const [key, value] of attributes) {
 			const safeValue = safeAttribute(key, value);
 			if (safeValue !== undefined) output[key] = safeValue;
 		}

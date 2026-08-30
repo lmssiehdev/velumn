@@ -1,4 +1,8 @@
 import { logger } from "@repo/logger";
+import {
+	DISCORD_PERMANENT_INVITE_MAX_AGE_SECONDS,
+	DISCORD_UNLIMITED_INVITE_MAX_USES,
+} from "@repo/utils/helpers/discord";
 import type { Guild } from "discord.js";
 
 export async function createServerInvite(guild: Guild) {
@@ -19,8 +23,8 @@ export async function createServerInvite(guild: Guild) {
 
 		if (channel) {
 			const invite = await guild.invites.create(channel.id, {
-				maxAge: 0,
-				maxUses: 0,
+				maxAge: DISCORD_PERMANENT_INVITE_MAX_AGE_SECONDS,
+				maxUses: DISCORD_UNLIMITED_INVITE_MAX_USES,
 				unique: false,
 				reason: "used by velumn.com",
 			});
@@ -31,7 +35,9 @@ export async function createServerInvite(guild: Guild) {
 		// we check for existing invites first
 		const existingInvites = await guild.invites.fetch();
 		const permanentInvite = existingInvites.find(
-			(invite) => invite.maxAge === 0 && invite.maxUses === 0,
+			(invite) =>
+				invite.maxAge === DISCORD_PERMANENT_INVITE_MAX_AGE_SECONDS &&
+				invite.maxUses === DISCORD_UNLIMITED_INVITE_MAX_USES,
 		);
 
 		logger.error("No suitable channel found to create invite", {

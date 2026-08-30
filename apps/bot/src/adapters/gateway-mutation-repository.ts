@@ -1,5 +1,6 @@
 import type { DBIndexingGatewayMutation } from "@repo/db/schema/index";
 import { Context, Effect, Layer, Schema } from "effect";
+import type { IndexMutation } from "../indexing/model";
 
 export class GatewayMutationRepositoryError extends Schema.TaggedError<GatewayMutationRepositoryError>()(
 	"GatewayMutationRepositoryError",
@@ -8,6 +9,7 @@ export class GatewayMutationRepositoryError extends Schema.TaggedError<GatewayMu
 			"enqueue",
 			"claim",
 			"complete",
+			"fail",
 			"defer",
 			"renew",
 			"release",
@@ -19,7 +21,13 @@ export class GatewayMutationRepositoryError extends Schema.TaggedError<GatewayMu
 export class GatewayMutationLeaseLostError extends Schema.TaggedError<GatewayMutationLeaseLostError>()(
 	"GatewayMutationLeaseLostError",
 	{
-		operation: Schema.Literals(["complete", "defer", "renew", "release"]),
+		operation: Schema.Literals([
+			"complete",
+			"defer",
+			"fail",
+			"renew",
+			"release",
+		]),
 		mutationId: Schema.Number,
 	},
 ) {}
@@ -28,7 +36,7 @@ export class GatewayMutationRepository extends Context.Service<
 	GatewayMutationRepository,
 	{
 		readonly enqueue: (input: {
-			readonly mutation: unknown;
+			readonly mutation: IndexMutation;
 			readonly orderingKey: string;
 			readonly submissionId: string;
 			readonly submittedAt: Date;
@@ -59,6 +67,15 @@ export class GatewayMutationRepository extends Context.Service<
 			generation: number,
 			errorCode: string,
 			nextAttemptAt: Date,
+		) => Effect.Effect<
+			void,
+			GatewayMutationRepositoryError | GatewayMutationLeaseLostError
+		>;
+		readonly fail: (
+			id: number,
+			leaseOwner: string,
+			generation: number,
+			errorCode: string,
 		) => Effect.Effect<
 			void,
 			GatewayMutationRepositoryError | GatewayMutationLeaseLostError
@@ -124,6 +141,26 @@ export class GatewayMutationRepository extends Context.Service<
 							: Effect.fail(
 									new GatewayMutationLeaseLostError({
 										operation: "defer",
+										mutationId: id,
+									}),
+								),
+					),
+				),
+			fail: (id, leaseOwner, generation, errorCode) =>
+				fromHelpers("fail", (helpers) =>
+					helpers.failIndexingGatewayMutation(
+						id,
+						leaseOwner,
+						generation,
+						errorCode,
+					),
+				).pipe(
+					Effect.flatMap((failed) =>
+						failed
+							? Effect.void
+							: Effect.fail(
+									new GatewayMutationLeaseLostError({
+										operation: "fail",
 										mutationId: id,
 									}),
 								),

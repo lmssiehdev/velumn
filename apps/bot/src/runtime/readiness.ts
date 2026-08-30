@@ -1,4 +1,5 @@
-import { Context, Effect, Layer, Ref } from "effect";
+import { Context, Effect, Layer, Ref, Semaphore } from "effect";
+import { BotMetrics, type ReadinessComponent } from "../observability/metrics";
 
 export interface ReadinessState {
 	readonly ready: boolean;
@@ -40,6 +41,20 @@ export class Readiness extends Context.Service<
 		Readiness,
 		Effect.gen(function* () {
 			const state = yield* Ref.make(initialState);
+			const updates = yield* Semaphore.make(1);
+			yield* Effect.forEach(
+				[
+					"service",
+					"discord",
+					"commands",
+					"http",
+					"indexing_coordinator",
+					"gateway_mutation_inbox",
+					"projector",
+				] as const,
+				(component) => BotMetrics.setReadiness(component, false),
+				{ discard: true },
+			);
 			const update = (
 				field:
 					| "discord"
@@ -49,31 +64,47 @@ export class Readiness extends Context.Service<
 					| "gatewayMutationInbox"
 					| "projector",
 				value: boolean,
+				component: ReadinessComponent,
 			) =>
-				Ref.update(state, (current) => {
-					const next = { ...current, [field]: value };
-					return {
-						...next,
-						ready:
-							next.discord &&
-							next.commands &&
-							next.http &&
-							next.indexingCoordinator &&
-							next.gatewayMutationInbox &&
-							next.projector,
-					};
-				});
+				updates
+					.withPermits(1)(
+						Ref.modify(state, (current) => {
+							const changed = { ...current, [field]: value };
+							const next = {
+								...changed,
+								ready:
+									changed.discord &&
+									changed.commands &&
+									changed.http &&
+									changed.indexingCoordinator &&
+									changed.gatewayMutationInbox &&
+									changed.projector,
+							};
+							return [next, next];
+						}).pipe(
+							Effect.flatMap((next) =>
+								Effect.all(
+									[
+										BotMetrics.setReadiness(component, value),
+										BotMetrics.setReadiness("service", next.ready),
+									],
+									{ discard: true },
+								),
+							),
+						),
+					)
+					.pipe(Effect.uninterruptible);
 
 			return Readiness.of({
 				get: Ref.get(state),
-				setDiscordReady: (ready) => update("discord", ready),
-				setCommandsReady: (ready) => update("commands", ready),
-				setHttpReady: (ready) => update("http", ready),
+				setDiscordReady: (ready) => update("discord", ready, "discord"),
+				setCommandsReady: (ready) => update("commands", ready, "commands"),
+				setHttpReady: (ready) => update("http", ready, "http"),
 				setIndexingCoordinatorReady: (ready) =>
-					update("indexingCoordinator", ready),
+					update("indexingCoordinator", ready, "indexing_coordinator"),
 				setGatewayMutationInboxReady: (ready) =>
-					update("gatewayMutationInbox", ready),
-				setProjectorReady: (ready) => update("projector", ready),
+					update("gatewayMutationInbox", ready, "gateway_mutation_inbox"),
+				setProjectorReady: (ready) => update("projector", ready, "projector"),
 			});
 		}),
 	);

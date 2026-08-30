@@ -71,7 +71,7 @@ const buttonBase =
 
 export function NewLandingPage() {
   return (
-    <div className="new-landing-surface">
+    <div className="min-w-80 overflow-x-clip bg-[#f7f5ed] font-sans antialiased">
       <a
         className="fixed top-3 left-3 z-50 -translate-y-16 rounded-md bg-[#20201e] px-4 py-2 text-sm text-white transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] focus:translate-y-0"
         href="#main-content"
@@ -175,7 +175,7 @@ function Hero() {
           </a>
         </div>
         <p className="mt-4 text-xs text-[#77766f]">
-          7 days free. No credit card required.
+          7-day Pro trial. Cancel anytime.
         </p>
       </div>
       <HeroDemo />
@@ -821,7 +821,7 @@ function FinalCTA() {
           <ArrowUpRight />
         </a>
         <p className="mt-4 text-xs text-[#68647a]">
-          7 days free. No credit card required.
+          7-day Pro trial. Cancel anytime.
         </p>
       </div>
     </section>

@@ -1,4 +1,7 @@
-import { constructDiscordLink } from "@repo/utils/helpers/discord";
+import {
+	constructDiscordLink,
+	isDiscordSnowflake,
+} from "@repo/utils/helpers/discord";
 import { getSlugFromTitle } from "@repo/utils/helpers/slugify";
 import { getDateFromSnowflake } from "@repo/utils/helpers/snowflake";
 import { ChannelType } from "discord-api-types/v10";
@@ -25,7 +28,9 @@ import {
 	type DBMessage,
 	dbAttachments,
 	dbChannel,
+	dbChannelAppliedTag,
 	dbDiscordUser,
+	dbForumTag,
 	dbMessage,
 	dbServer,
 	dbThreadBacklink,
@@ -41,9 +46,9 @@ import { dedupeDatabaseRead } from "./request-cache";
 import type {
 	DBSnapshotSchema,
 	EmbedSchema,
+	MessageComponentsSchema,
 	MessageMetadataSchema,
 	PollSchema,
-	RowsSchema,
 	StickerSchema,
 } from "./validation";
 
@@ -134,6 +139,13 @@ export type PublicForumShell = {
 		id: string;
 		name: string;
 		type: (typeof PUBLIC_PARENT_CHANNEL_TYPES)[number];
+		position: number;
+		hasThreads: boolean;
+		category: {
+			id: string;
+			name: string;
+			position: number;
+		} | null;
 	}>;
 };
 
@@ -154,18 +166,21 @@ export type PublicThreadMetadata = {
 };
 
 export type PublicThreadListPage = {
-	items: Array<{
-		id: string;
-		title: string;
-		author: string;
-		channel: {
-			id: string;
-			name: string;
-		};
-		pinned: boolean;
-		messageCount: number;
-	}>;
+	pinnedItems: PublicThreadListItem[];
+	items: PublicThreadListItem[];
 	nextCursor: string | null;
+};
+
+export type PublicThreadListItem = {
+	id: string;
+	title: string;
+	author: string;
+	channel: {
+		id: string;
+		name: string;
+	};
+	pinned: boolean;
+	messageCount: number;
 };
 
 export type PublicThreadOgSummary = {
@@ -244,7 +259,7 @@ export type PublicThreadMessage = {
 	metadata: MessageMetadataSchema | null;
 	embeds: EmbedSchema[] | null;
 	poll: PollSchema | null;
-	components: RowsSchema[] | null;
+	components: MessageComponentsSchema | null;
 	snapshot: (DBSnapshotSchema & { mentions: PublicMessageMentions }) | null;
 	stickers: StickerSchema | null;
 	author: {
@@ -274,10 +289,6 @@ export type PublicThreadMessage = {
 		isSnapshot: boolean;
 	}>;
 };
-
-function isSnowflake(value: string): boolean {
-	return /^[0-9]{1,20}$/.test(value);
-}
 
 function publicThreadPredicate(serverId?: string) {
 	return and(
@@ -378,7 +389,7 @@ async function queryVerifiedPublicTenant(
 export async function resolvePublicServer(
 	serverId: string,
 ): Promise<PublicServerCapability | null> {
-	if (!isSnowflake(serverId)) return null;
+	if (!isDiscordSnowflake(serverId)) return null;
 	return dedupeDatabaseRead(`public-server:${serverId}`, () =>
 		queryPublicServer(serverId),
 	);
@@ -387,7 +398,7 @@ export async function resolvePublicServer(
 export async function resolvePublicThreadServer(
 	threadId: string,
 ): Promise<PublicServerCapability | null> {
-	if (!isSnowflake(threadId)) return null;
+	if (!isDiscordSnowflake(threadId)) return null;
 	return dedupeDatabaseRead(`public-thread-server:${threadId}`, async () => {
 		const [server] = await db
 			.select({ id: dbServer.id, name: dbServer.name })
@@ -435,7 +446,7 @@ export async function resolveManagedServer({
 	userId: string;
 	serverId: string;
 }): Promise<ManagedServerCapability | null> {
-	if (!userId || !isSnowflake(serverId)) return null;
+	if (!userId || !isDiscordSnowflake(serverId)) return null;
 	return dedupeDatabaseRead(`managed-server:${userId}:${serverId}`, () =>
 		queryManagedServer({ userId, serverId }),
 	);
@@ -478,49 +489,79 @@ export async function getPublicForumShell(
 async function queryPublicForumShell(
 	serverId: string,
 ): Promise<PublicForumShell | null> {
-	const rows = await db
-		.select({
-			serverId: dbServer.id,
-			serverName: dbServer.name,
-			serverDescription: dbServer.description,
-			serverMemberCount: dbServer.memberCount,
-			serverIcon: dbServer.icon,
-			serverInvite: dbServer.serverInvite,
-			serverCustomDomain: dbServer.customDomain,
-			serverDomainVerified: dbServer.domainVerified,
-			channelId: dbChannel.id,
-			channelName: dbChannel.channelName,
-			channelType: dbChannel.type,
-		})
-		.from(dbServer)
-		.leftJoin(
-			dbChannel,
-			and(
-				eq(dbChannel.serverId, dbServer.id),
-				or(
-					isNull(dbChannel.parentId),
-					exists(
-						db
-							.select({ one: sql`1` })
-							.from(publicShellCategory)
-							.where(
-								and(
-									eq(publicShellCategory.id, dbChannel.parentId),
-									eq(publicShellCategory.serverId, dbChannel.serverId),
-									eq(publicShellCategory.type, ChannelType.GuildCategory),
+	const [rows, populatedChannelRows] = await Promise.all([
+		db
+			.select({
+				serverId: dbServer.id,
+				serverName: dbServer.name,
+				serverDescription: dbServer.description,
+				serverMemberCount: dbServer.memberCount,
+				serverIcon: dbServer.icon,
+				serverInvite: dbServer.serverInvite,
+				serverCustomDomain: dbServer.customDomain,
+				serverDomainVerified: dbServer.domainVerified,
+				channelId: dbChannel.id,
+				channelName: dbChannel.channelName,
+				channelType: dbChannel.type,
+				channelPosition: dbChannel.position,
+				categoryId: publicShellCategory.id,
+				categoryName: publicShellCategory.channelName,
+				categoryPosition: publicShellCategory.position,
+			})
+			.from(dbServer)
+			.leftJoin(
+				dbChannel,
+				and(
+					eq(dbChannel.serverId, dbServer.id),
+					or(
+						isNull(dbChannel.parentId),
+						exists(
+							db
+								.select({ one: sql`1` })
+								.from(publicShellCategory)
+								.where(
+									and(
+										eq(publicShellCategory.id, dbChannel.parentId),
+										eq(publicShellCategory.serverId, dbChannel.serverId),
+										eq(publicShellCategory.type, ChannelType.GuildCategory),
+									),
 								),
-							),
+						),
 					),
+					inArray(dbChannel.type, [...PUBLIC_PARENT_CHANNEL_TYPES]),
+					eq(dbChannel.indexingEnabled, true),
 				),
-				inArray(dbChannel.type, [...PUBLIC_PARENT_CHANNEL_TYPES]),
-				eq(dbChannel.indexingEnabled, true),
+			)
+			.leftJoin(
+				publicShellCategory,
+				and(
+					eq(publicShellCategory.id, dbChannel.parentId),
+					eq(publicShellCategory.serverId, dbChannel.serverId),
+					eq(publicShellCategory.type, ChannelType.GuildCategory),
+				),
+			)
+			.where(and(eq(dbServer.id, serverId), isNull(dbServer.kickedAt)))
+			.orderBy(
+				asc(publicShellCategory.position),
+				asc(dbChannel.position),
+				asc(dbChannel.id),
 			),
-		)
-		.where(and(eq(dbServer.id, serverId), isNull(dbServer.kickedAt)))
-		.orderBy(asc(dbChannel.channelName), asc(dbChannel.id));
+		db
+			.selectDistinct({ channelId: publicThreadParent.id })
+			.from(dbChannel)
+			.innerJoin(dbServer, eq(dbChannel.serverId, dbServer.id))
+			.innerJoin(
+				publicThreadParent,
+				eq(dbChannel.parentId, publicThreadParent.id),
+			)
+			.where(publicThreadPredicate(serverId)),
+	]);
 
 	const first = rows[0];
 	if (!first) return null;
+	const populatedChannelIds = new Set(
+		populatedChannelRows.map((row) => row.channelId),
+	);
 	return {
 		server: {
 			id: first.serverId,
@@ -543,6 +584,16 @@ async function queryPublicForumShell(
 							id: row.channelId,
 							name: row.channelName ?? "Unknown channel",
 							type: row.channelType as (typeof PUBLIC_PARENT_CHANNEL_TYPES)[number],
+							position: row.channelPosition ?? 0,
+							hasThreads: populatedChannelIds.has(row.channelId),
+							category:
+								row.categoryId === null
+									? null
+									: {
+											id: row.categoryId,
+											name: row.categoryName ?? "Unnamed category",
+											position: row.categoryPosition ?? 0,
+										},
 						},
 					]
 				: [],
@@ -553,7 +604,7 @@ async function queryPublicForumShell(
 export async function resolvePublicChannel(
 	channelId: string,
 ): Promise<PublicChannelCapability | null> {
-	if (!isSnowflake(channelId)) return null;
+	if (!isDiscordSnowflake(channelId)) return null;
 	return dedupeDatabaseRead(`public-channel:platform:${channelId}`, () =>
 		queryPublicChannel(channelId),
 	);
@@ -565,7 +616,7 @@ export async function resolveTenantPublicChannel(
 ): Promise<PublicChannelCapability | null> {
 	if (
 		tenantCapability[publicContentCapability] !== true ||
-		!isSnowflake(channelId)
+		!isDiscordSnowflake(channelId)
 	) {
 		return null;
 	}
@@ -638,7 +689,10 @@ export async function getPublicThreadMetadata(
 	capability: PublicContentCapability,
 	threadId: string,
 ): Promise<PublicThreadMetadata | null> {
-	if (capability[publicContentCapability] !== true || !isSnowflake(threadId)) {
+	if (
+		capability[publicContentCapability] !== true ||
+		!isDiscordSnowflake(threadId)
+	) {
 		return null;
 	}
 	return dedupeDatabaseRead(
@@ -754,8 +808,8 @@ export async function listPublicThreads(
 ): Promise<PublicThreadListPage | null> {
 	if (
 		capability[publicContentCapability] !== true ||
-		(channelId !== undefined && !isSnowflake(channelId)) ||
-		(cursor !== undefined && !isSnowflake(cursor)) ||
+		(channelId !== undefined && !isDiscordSnowflake(channelId)) ||
+		(cursor !== undefined && !isDiscordSnowflake(cursor)) ||
 		!Number.isInteger(limit) ||
 		limit < 1 ||
 		limit > 50
@@ -799,68 +853,76 @@ async function queryPublicThreads(
 		)
 		.groupBy(dbMessage.primaryChannelId)
 		.as("public_message_counts");
-	const rows = await db
-		.select({
-			id: dbChannel.id,
-			title: dbChannel.channelName,
-			channelId: publicThreadParent.id,
-			channelName: publicThreadParent.channelName,
-			starterMetadata: publicListStarter.metadata,
-			authorName: publicListAuthor.displayName,
-			authorAnonymized: publicListAuthor.anonymizeName,
-			pinned: dbChannel.pinned,
-			messageCount: sql<number>`coalesce(${messageCounts.count}, 0)::int`,
-		})
-		.from(dbChannel)
-		.innerJoin(dbServer, eq(dbChannel.serverId, dbServer.id))
-		.innerJoin(
-			publicThreadParent,
-			eq(dbChannel.parentId, publicThreadParent.id),
-		)
-		.innerJoin(
-			publicListStarter,
-			and(
-				eq(publicListStarter.serverId, dbChannel.serverId),
-				eq(publicListStarter.primaryChannelId, dbChannel.id),
-				eq(publicListStarter.starterMessage, true),
-				eq(publicListStarter.isIgnored, false),
-			),
-		)
-		.innerJoin(
-			publicListAuthor,
-			and(
-				eq(publicListStarter.authorId, publicListAuthor.id),
-				or(
-					isNull(publicListAuthor.isIgnored),
-					eq(publicListAuthor.isIgnored, false),
+	const queryRows = (pinned: boolean, rowCursor?: string) =>
+		db
+			.select({
+				id: dbChannel.id,
+				title: dbChannel.channelName,
+				channelId: publicThreadParent.id,
+				channelName: publicThreadParent.channelName,
+				starterMetadata: publicListStarter.metadata,
+				authorName: publicListAuthor.displayName,
+				authorAnonymized: publicListAuthor.anonymizeName,
+				pinned: dbChannel.pinned,
+				messageCount: sql<number>`coalesce(${messageCounts.count}, 0)::int`,
+			})
+			.from(dbChannel)
+			.innerJoin(dbServer, eq(dbChannel.serverId, dbServer.id))
+			.innerJoin(
+				publicThreadParent,
+				eq(dbChannel.parentId, publicThreadParent.id),
+			)
+			.innerJoin(
+				publicListStarter,
+				and(
+					eq(publicListStarter.serverId, dbChannel.serverId),
+					eq(publicListStarter.primaryChannelId, dbChannel.id),
+					eq(publicListStarter.starterMessage, true),
+					eq(publicListStarter.isIgnored, false),
 				),
-			),
-		)
-		.leftJoin(messageCounts, eq(messageCounts.threadId, dbChannel.id))
-		.where(
-			and(
-				publicThreadPredicate(capability.serverId),
-				channelId ? eq(publicThreadParent.id, channelId) : undefined,
-				cursor ? lt(dbChannel.id, cursor) : undefined,
-			),
-		)
-		.orderBy(desc(dbChannel.id))
-		.limit(limit + 1);
+			)
+			.innerJoin(
+				publicListAuthor,
+				and(
+					eq(publicListStarter.authorId, publicListAuthor.id),
+					or(
+						isNull(publicListAuthor.isIgnored),
+						eq(publicListAuthor.isIgnored, false),
+					),
+				),
+			)
+			.leftJoin(messageCounts, eq(messageCounts.threadId, dbChannel.id))
+			.where(
+				and(
+					publicThreadPredicate(capability.serverId),
+					channelId ? eq(publicThreadParent.id, channelId) : undefined,
+					eq(dbChannel.pinned, pinned),
+					rowCursor ? lt(dbChannel.id, rowCursor) : undefined,
+				),
+			)
+			.orderBy(desc(dbChannel.id));
+
+	const [pinnedRows, rows] = await Promise.all([
+		cursor ? Promise.resolve([]) : queryRows(true),
+		queryRows(false, cursor).limit(limit + 1),
+	]);
 
 	const hasMore = rows.length > limit;
 	const pageRows = hasMore ? rows.slice(0, limit) : rows;
+	const toItem = (row: (typeof rows)[number]): PublicThreadListItem => ({
+		id: row.id,
+		title: row.title ?? "Untitled thread",
+		author: getPublicListAuthorName(row),
+		channel: {
+			id: row.channelId,
+			name: row.channelName ?? "Unknown channel",
+		},
+		pinned: row.pinned,
+		messageCount: row.messageCount,
+	});
 	return {
-		items: pageRows.map((row) => ({
-			id: row.id,
-			title: row.title ?? "Untitled thread",
-			author: getPublicListAuthorName(row),
-			channel: {
-				id: row.channelId,
-				name: row.channelName ?? "Unknown channel",
-			},
-			pinned: row.pinned,
-			messageCount: row.messageCount,
-		})),
+		pinnedItems: pinnedRows.map(toItem),
+		items: pageRows.map(toItem),
 		nextCursor: hasMore ? (pageRows.at(-1)?.id ?? null) : null,
 	};
 }
@@ -882,7 +944,7 @@ export async function getPublicThreadPage(
 	threadId: string,
 ): Promise<PublicThreadPage | null> {
 	if (
-		!isSnowflake(threadId) ||
+		!isDiscordSnowflake(threadId) ||
 		(capability !== null && capability[publicContentCapability] !== true)
 	) {
 		return null;
@@ -899,7 +961,7 @@ export async function getPublicThreadOgSummary(
 	threadId: string,
 ): Promise<PublicThreadOgSummary | null> {
 	if (
-		!isSnowflake(threadId) ||
+		!isDiscordSnowflake(threadId) ||
 		(capability !== null && capability[publicContentCapability] !== true)
 	) {
 		return null;
@@ -1132,49 +1194,72 @@ async function queryPublicThreadPage(
 			),
 		),
 	];
-	const [attachmentRows, userRows, channelRows, references, backlinks] =
-		await Promise.all([
-			db
-				.select({
-					id: dbAttachments.id,
-					messageId: dbAttachments.messageId,
-					name: dbAttachments.name,
-					url: dbAttachments.proxyURL,
-					description: dbAttachments.description,
-					contentType: dbAttachments.contentType,
-					size: dbAttachments.size,
-					width: dbAttachments.width,
-					height: dbAttachments.height,
-					isSnapshot: dbAttachments.isSnapshot,
-				})
-				.from(dbAttachments)
-				.where(inArray(dbAttachments.messageId, messageIds))
-				.orderBy(asc(dbAttachments.messageId), asc(dbAttachments.id)),
-			mentionIds.users.length > 0
-				? db
-						.select({
-							id: dbDiscordUser.id,
-							name: dbDiscordUser.displayName,
-							redacted: dbDiscordUser.isIgnored,
-							anonymized: dbDiscordUser.anonymizeName,
-						})
-						.from(dbDiscordUser)
-						.where(inArray(dbDiscordUser.id, mentionIds.users))
-				: [],
-			mentionIds.channels.length > 0
-				? db
-						.select({ id: dbChannel.id, name: dbChannel.channelName })
-						.from(dbChannel)
-						.where(
-							and(
-								eq(dbChannel.serverId, starterRow.serverId),
-								inArray(dbChannel.id, mentionIds.channels),
-							),
-						)
-				: [],
-			queryPublicReferences(referenceIds, capability?.serverId),
-			queryPublicBacklinks(threadId, capability?.serverId),
-		]);
+	const [
+		attachmentRows,
+		tagRows,
+		userRows,
+		channelRows,
+		references,
+		backlinks,
+	] = await Promise.all([
+		db
+			.select({
+				id: dbAttachments.id,
+				messageId: dbAttachments.messageId,
+				name: dbAttachments.name,
+				url: dbAttachments.proxyURL,
+				description: dbAttachments.description,
+				contentType: dbAttachments.contentType,
+				size: dbAttachments.size,
+				width: dbAttachments.width,
+				height: dbAttachments.height,
+				isSnapshot: dbAttachments.isSnapshot,
+			})
+			.from(dbAttachments)
+			.where(inArray(dbAttachments.messageId, messageIds))
+			.orderBy(asc(dbAttachments.messageId), asc(dbAttachments.id)),
+		db
+			.select({
+				id: dbForumTag.id,
+				name: dbForumTag.name,
+				moderated: dbForumTag.moderated,
+				emojiId: dbForumTag.emojiId,
+				emojiName: dbForumTag.emojiName,
+			})
+			.from(dbChannelAppliedTag)
+			.innerJoin(dbForumTag, eq(dbChannelAppliedTag.tagId, dbForumTag.id))
+			.where(
+				and(
+					eq(dbChannelAppliedTag.channelId, threadId),
+					eq(dbForumTag.channelId, starterRow.parentId),
+				),
+			)
+			.orderBy(asc(dbForumTag.id)),
+		mentionIds.users.length > 0
+			? db
+					.select({
+						id: dbDiscordUser.id,
+						name: dbDiscordUser.displayName,
+						redacted: dbDiscordUser.isIgnored,
+						anonymized: dbDiscordUser.anonymizeName,
+					})
+					.from(dbDiscordUser)
+					.where(inArray(dbDiscordUser.id, mentionIds.users))
+			: [],
+		mentionIds.channels.length > 0
+			? db
+					.select({ id: dbChannel.id, name: dbChannel.channelName })
+					.from(dbChannel)
+					.where(
+						and(
+							eq(dbChannel.serverId, starterRow.serverId),
+							inArray(dbChannel.id, mentionIds.channels),
+						),
+					)
+			: [],
+		queryPublicReferences(referenceIds, capability?.serverId),
+		queryPublicBacklinks(threadId, capability?.serverId),
+	]);
 	const attachmentsByMessage = new Map<
 		string,
 		PublicThreadMessage["attachments"]
@@ -1197,7 +1282,7 @@ async function queryPublicThreadPage(
 		if (messageAttachments) messageAttachments.push(projected);
 		else attachmentsByMessage.set(attachment.messageId, [projected]);
 	}
-	const tags: PublicThreadPage["tags"] = [];
+	const tags: PublicThreadPage["tags"] = tagRows;
 	const allMentions = enrichPublicMessageMentions(
 		[...mentionInputs, ...snapshotMentionInputs],
 		userRows.map((row) => ({

@@ -7,7 +7,8 @@ import {
 	MessageFlags,
 	MessageType,
 } from "discord.js";
-import { Clock, Effect, Exit, Fiber, Layer } from "effect";
+import { type APIEmbed, EmbedFlags, EmbedType } from "discord-api-types/v10";
+import { Clock, Effect, Exit, Fiber, Layer, Metric, Tracer } from "effect";
 import { TestClock } from "effect/testing";
 import {
 	type IndexedMutationResult,
@@ -20,11 +21,11 @@ import {
 	GuildInstallationRepositoryError,
 	type GuildInstallationRepository as GuildInstallationRepositoryService,
 } from "../adapters/repository";
-import { DiscordHistory } from "./discord-history";
+import { DiscordHistory, DiscordHistoryUnknownError } from "./discord-history";
 import type { IndexMutation } from "./model";
 import { makeIndexMutationProcessor } from "./mutation";
 
-const as = <A>(value: unknown): A => value as A;
+const as = <A>(value: Parameters<typeof structuredClone>[0]): A => value as A;
 
 const sourceFacts = {
 	sourceId: "thread",
@@ -82,6 +83,20 @@ const message = as<Parameters<DiscordHistory["Service"]["hydrateMessage"]>[0]>({
 	attachments: new Collection(),
 	reactions: { cache: new Collection() },
 	components: [],
+	embeds: [
+		{
+			toJSON: (): APIEmbed => ({
+				title: "Release notes",
+				provider: { url: "https://example.com" },
+				fields: [{ name: "Status", value: "Ready" }],
+				image: {
+					url: "https://cdn.discordapp.com/release.png",
+					content_type: "image/png",
+				},
+				flags: EmbedFlags.IsContentInventoryEntry,
+			}),
+		},
+	],
 });
 
 const upsert: IndexMutation = {
@@ -206,20 +221,78 @@ const run = (
 	);
 
 describe("IndexMutationProcessor", () => {
+	it.effect("records each successful public process invocation once", () =>
+		Effect.gen(function* () {
+			const snapshots = yield* run(
+				{
+					_tag: "DeleteMessage",
+					messageId: "message",
+					channelId: "channel",
+					threadId: null,
+					observedAt: 1,
+				},
+				makeRepository(),
+			).pipe(Effect.andThen(Metric.snapshot));
+			const counter = snapshots.find(
+				(snapshot) =>
+					snapshot.id === "velumn_bot_indexing_mutations_total" &&
+					snapshot.attributes?.kind === "delete_message" &&
+					snapshot.attributes.outcome === "succeeded",
+			);
+			const duration = snapshots.find(
+				(snapshot) =>
+					snapshot.id === "velumn_bot_indexing_mutation_duration_ms" &&
+					snapshot.attributes?.kind === "delete_message" &&
+					snapshot.attributes.outcome === "succeeded",
+			);
+			assert.isDefined(counter);
+			assert.isDefined(duration);
+			assert.equal((counter.state as Metric.CounterState<number>).count, 1);
+			assert.equal((duration.state as Metric.HistogramState).count, 1);
+		}).pipe(Effect.provideService(Metric.MetricRegistry, new Map())),
+	);
+
+	it.effect("records cancellation once", () =>
+		Effect.gen(function* () {
+			const fiber = yield* Effect.forkChild(
+				run(
+					{
+						_tag: "DeleteMessage",
+						messageId: "message",
+						channelId: "channel",
+						threadId: null,
+						observedAt: 1,
+					},
+					makeRepository({ deleteMessage: () => Effect.never }),
+				),
+			);
+			yield* Effect.yieldNow;
+			yield* Fiber.interrupt(fiber);
+			const snapshots = yield* Metric.snapshot;
+			const counter = snapshots.find(
+				(snapshot) =>
+					snapshot.id === "velumn_bot_indexing_mutations_total" &&
+					snapshot.attributes?.kind === "delete_message" &&
+					snapshot.attributes.outcome === "cancelled",
+			);
+			assert.isDefined(counter);
+			assert.equal((counter.state as Metric.CounterState<number>).count, 1);
+		}).pipe(Effect.provideService(Metric.MetricRegistry, new Map())),
+	);
+
 	it.effect("does not silently accept an unknown persisted mutation", () =>
 		Effect.gen(function* () {
 			const exit = yield* Effect.exit(
-				run(
-					{ _tag: "FutureMutation" } as unknown as IndexMutation,
-					makeRepository(),
-				),
+				run(as<IndexMutation>({ _tag: "FutureMutation" }), makeRepository()),
 			);
 			assert.isTrue(Exit.isFailure(exit));
 		}),
 	);
 
 	it.effect("fetches, converts, and commits an upsert", () => {
-		const commits: unknown[] = [];
+		const commits: Array<
+			Parameters<IndexingRepositoryService["Service"]["commitMessage"]>[0]
+		> = [];
 		return run(
 			upsert,
 			makeRepository({
@@ -237,16 +310,31 @@ describe("IndexMutationProcessor", () => {
 			Effect.tap(() =>
 				Effect.sync(() => {
 					assert.lengthOf(commits, 1);
-					const commit = as<{
-						messages: Array<{
-							content: string;
-							publicationChannelId: string;
-							sourceVersion: number;
-						}>;
-					}>(commits[0]);
-					assert.equal(commit.messages[0]?.content, "hello");
-					assert.equal(commit.messages[0]?.publicationChannelId, "thread");
-					assert.equal(commit.messages[0]?.sourceVersion, upsert.observedAt);
+					const commit = commits[0];
+					if (commit === undefined) assert.fail("expected a commit");
+					const committedMessage = commit.messages[0];
+					if (committedMessage === undefined) {
+						assert.fail("expected a committed message");
+					}
+					if (committedMessage.embeds._tag !== "Replace") {
+						assert.fail("expected embeds to be replaced");
+					}
+					assert.equal(committedMessage.content, "hello");
+					assert.deepEqual(committedMessage.embeds.items, [
+						{
+							type: EmbedType.Rich,
+							title: "Release notes",
+							provider: { name: "", url: "https://example.com" },
+							fields: [{ name: "Status", value: "Ready", inline: false }],
+							image: {
+								url: "https://cdn.discordapp.com/release.png",
+								content_type: "image/png",
+							},
+							flags: EmbedFlags.IsContentInventoryEntry,
+						},
+					]);
+					assert.equal(committedMessage.publicationChannelId, "thread");
+					assert.equal(committedMessage.sourceVersion, upsert.observedAt);
 				}),
 			),
 		);
@@ -352,6 +440,98 @@ describe("IndexMutationProcessor", () => {
 			assert.equal(attempts, 2);
 		});
 	});
+
+	it.effect("records actual retries and the terminal failure once", () =>
+		Effect.gen(function* () {
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (options) => {
+					const span = new Tracer.NativeSpan(options);
+					spans.push(span);
+					return span;
+				},
+			});
+			let attempts = 0;
+			const fiber = yield* Effect.forkChild(
+				run(
+					upsert,
+					makeRepository({
+						sourceFacts: () => {
+							attempts += 1;
+							return Effect.fail(
+								new IndexingRepositoryError({
+									operation: "source-facts",
+									cause: "temporary",
+								}),
+							);
+						},
+					}),
+					makeHistory(),
+					makeInstallationRepository(),
+					{ maximumRetries: 1, initialRetryDelay: "100 millis" },
+				).pipe(Effect.provideService(Tracer.Tracer, tracer)),
+			);
+			yield* Effect.yieldNow;
+			yield* TestClock.adjust("100 millis");
+			const exit = yield* Fiber.await(fiber);
+			assert.isTrue(Exit.isFailure(exit));
+			assert.equal(attempts, 2);
+
+			const snapshots = yield* Metric.snapshot;
+			const retryCount = (disposition: "retryable" | "terminal") =>
+				(
+					snapshots.find(
+						(snapshot) =>
+							snapshot.id === "velumn_bot_retries_total" &&
+							snapshot.attributes?.operation === "indexing_mutation" &&
+							snapshot.attributes.disposition === disposition,
+					)?.state as Metric.CounterState<number> | undefined
+				)?.count ?? 0;
+			assert.equal(retryCount("retryable"), 1);
+			assert.equal(retryCount("terminal"), 1);
+			const failed = snapshots.find(
+				(snapshot) =>
+					snapshot.id === "velumn_bot_indexing_mutations_total" &&
+					snapshot.attributes?.kind === "upsert_message" &&
+					snapshot.attributes.outcome === "failed",
+			);
+			assert.isDefined(failed);
+			assert.equal((failed.state as Metric.CounterState<number>).count, 1);
+			const span = spans.find(
+				(span) => span.name === "IndexMutationProcessor.process",
+			);
+			assert.equal(span?.attributes.get("mutation.type"), "upsert_message");
+			assert.equal(span?.attributes.get("operation.outcome"), "failed");
+			assert.equal(span?.attributes.get("error.classification"), "database");
+			assert.equal(span?.attributes.get("retry.disposition"), "terminal");
+		}).pipe(Effect.provideService(Metric.MetricRegistry, new Map())),
+	);
+
+	it.effect("classifies unknown Discord failures as terminal", () =>
+		Effect.gen(function* () {
+			let attempts = 0;
+			const error = yield* Effect.flip(
+				run(
+					upsert,
+					makeRepository(),
+					makeHistory({
+						fetchMessage: () => {
+							attempts += 1;
+							return Effect.fail(
+								new DiscordHistoryUnknownError({
+									operation: "fetch-message",
+									cause: new Error("unclassified Discord response"),
+								}),
+							);
+						},
+					}),
+				),
+			);
+
+			assert.equal(error.classification, "discord-unknown");
+			assert.equal(attempts, 1);
+		}),
+	);
 
 	it.effect("accepts a stale reconciliation as a completed outcome", () => {
 		let reconciled = false;

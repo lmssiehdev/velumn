@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Cause, Clock, Context, Effect, Layer, Option } from "effect";
+import { Cause, Clock, Context, Effect, Exit, Layer, Option } from "effect";
 import {
 	IndexingRepository,
 	type IndexingRepositoryFailure,
@@ -12,8 +12,14 @@ import {
 } from "../adapters/search";
 import { BotConfig } from "../config/bot-config";
 import { ErrorCapture } from "../observability/error-capture";
+import {
+	BotMetrics,
+	type MetricOutcome,
+	type ProjectorOperation,
+} from "../observability/metrics";
 import { normalizeError, safeBoundaryMetadata } from "../observability/policy";
 import { Readiness } from "../runtime/readiness";
+import { boundedExponentialDelayMs } from "./backoff";
 
 export interface MeiliProjectorOptions {
 	readonly leaseOwner: string;
@@ -53,6 +59,31 @@ export class MeiliProjector extends Context.Service<MeiliProjector, true>()(
 	"velumn/bot/indexing/MeiliProjector",
 ) {}
 
+const recordProjectorOperation = <A, E, R>(
+	operation: ProjectorOperation,
+	effect: Effect.Effect<A, E, R>,
+	onSuccess: (value: A) => MetricOutcome,
+) =>
+	Effect.gen(function* () {
+		const startedAt = yield* Clock.currentTimeMillis;
+		return yield* effect.pipe(
+			Effect.onExit((exit) =>
+				Effect.gen(function* () {
+					const completedAt = yield* Clock.currentTimeMillis;
+					yield* BotMetrics.recordProjectorOperation({
+						operation,
+						outcome: Exit.isSuccess(exit)
+							? onSuccess(exit.value)
+							: Cause.hasInterruptsOnly(exit.cause)
+								? "cancelled"
+								: "failed",
+						durationMs: completedAt - startedAt,
+					});
+				}),
+			),
+		);
+	});
+
 const validateOptions = (options: MeiliProjectorOptions) => {
 	for (const [name, value] of Object.entries(options)) {
 		if (name === "leaseOwner") continue;
@@ -74,8 +105,8 @@ export const projectMeiliBatch = (
 	MeiliProjectorBatchResult,
 	MeiliProjectorError,
 	IndexingRepository | SearchIndex
-> =>
-	Effect.gen(function* () {
+> => {
+	const poll = Effect.gen(function* () {
 		yield* Effect.sync(() => validateOptions(options));
 		const repository = yield* IndexingRepository;
 		const search = yield* SearchIndex;
@@ -104,9 +135,7 @@ export const projectMeiliBatch = (
 								"operation.name": "projector.poll",
 								"operation.outcome": "failed",
 								"error.type": normalized.type,
-								...(normalized.typedOperation
-									? { "error.classification": normalized.typedOperation }
-									: {}),
+								"error.classification": normalized.typedOperation,
 							},
 						}),
 					);
@@ -129,11 +158,33 @@ export const projectMeiliBatch = (
 						() => ({ continuePartition: true, failedCount: 0 }),
 						(state, row) =>
 							state.continuePartition
-								? processProjection(options, repository, search, row).pipe(
+								? recordProjectorOperation(
+										"project",
+										processProjection(options, repository, search, row).pipe(
+											Effect.tap((disposition) =>
+												disposition === "deferred"
+													? BotMetrics.recordRetry("projector", "retryable")
+													: disposition === "failed"
+														? BotMetrics.recordRetry("projector", "terminal")
+														: Effect.void,
+											),
+											Effect.onExit((exit) =>
+												Effect.annotateCurrentSpan({
+													"operation.outcome": Exit.isSuccess(exit)
+														? exit.value
+														: Cause.hasInterruptsOnly(exit.cause)
+															? "cancelled"
+															: "failed",
+												}),
+											),
+										),
+										(disposition) =>
+											disposition === "completed" ? "succeeded" : disposition,
+									).pipe(
 										Effect.withSpan("projector.projection", {
 											attributes: {
 												"operation.name": "projector.projection",
-												projectionId: row.id,
+												"projection.operation": row.operation,
 												"retry.attempt": row.attemptCount,
 											},
 										}),
@@ -178,12 +229,33 @@ export const projectMeiliBatch = (
 			}),
 		);
 	}).pipe(
-		Effect.ensuring(
-			IndexingRepository.use((repository) =>
-				repository.release(options.leaseOwner).pipe(Effect.ignore),
-			),
+		Effect.onExit((sourceExit) =>
+			Effect.gen(function* () {
+				const repository = yield* IndexingRepository;
+				const errorCapture = yield* ErrorCapture;
+				const releaseExit = yield* repository.release(options.leaseOwner).pipe(
+					Effect.tapCause((cause) =>
+						errorCapture.captureCause(cause, {
+							boundary: "projector_poll_attempt",
+							operation: "projector.release",
+						}),
+					),
+					Effect.exit,
+				);
+				if (Exit.isSuccess(sourceExit) && Exit.isFailure(releaseExit)) {
+					return yield* Effect.failCause(releaseExit.cause);
+				}
+			}),
 		),
 	);
+	return recordProjectorOperation("poll", poll, (result) =>
+		result.claimedCount === 0
+			? "skipped"
+			: result.failedCount > 0
+				? "failed"
+				: "succeeded",
+	);
+};
 
 const processProjection = (
 	options: MeiliProjectorOptions,
@@ -318,11 +390,11 @@ const mutationFor = (
 };
 
 const retryDelay = (options: MeiliProjectorOptions, attemptCount: number) =>
-	Math.min(
-		options.maximumRetryDelayMs,
-		options.initialRetryDelayMs *
-			2 ** Math.min(30, Math.max(0, attemptCount - 1)),
-	);
+	boundedExponentialDelayMs({
+		initialDelayMs: options.initialRetryDelayMs,
+		maximumDelayMs: options.maximumRetryDelayMs,
+		attemptCount,
+	});
 
 const errorCode = (error: SearchError | IndexingRepositoryFailure) =>
 	error._tag === "SearchNotConfiguredError"

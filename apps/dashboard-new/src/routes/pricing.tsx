@@ -2,8 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowRight, ArrowUpRight, Check, GitFork } from "lucide-react"
 import type { ReactNode } from "react"
 
-import questrialUrl from "../assets/Questrial-Regular.ttf?url"
-import marketingCss from "@/features/marketing/new-landing.css?url"
+import globalsCss from "@/globals.css?url"
 import { cn } from "@/lib/utils"
 
 const title = "Simple Pricing for Searchable Discord Answers | Velumn"
@@ -20,7 +19,7 @@ export const Route = createFileRoute("/pricing")({
       { property: "og:url", content: "https://velumn.com/pricing" },
     ],
     links: [
-      { rel: "stylesheet", href: marketingCss },
+      { rel: "stylesheet", href: globalsCss },
       { rel: "canonical", href: "https://velumn.com/pricing" },
     ],
   }),
@@ -43,11 +42,7 @@ const proFeatures = [
 
 function PricingPage() {
   return (
-    <div
-      className="min-h-screen bg-[#fefcf6] antialiased"
-      style={{ fontFamily: '"Questrial", sans-serif' }}
-    >
-      <style>{`@font-face{font-family:"Questrial";src:url("${questrialUrl}") format("truetype");font-style:normal;font-weight:400;font-display:swap}`}</style>
+    <div className="min-h-screen bg-[#fefcf6] font-sans antialiased">
       <a
         className="fixed top-3 left-3 z-50 -translate-y-16 rounded-md bg-[#20201e] px-4 py-2 text-sm text-white transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] focus:translate-y-0 motion-reduce:transition-none"
         href="#main-content"
@@ -125,7 +120,7 @@ function Pricing() {
             </li>
             <li className="flex items-center gap-2">
               <Check aria-hidden="true" className="size-4 text-[#527d22]" />
-              No credit card
+              Cancel anytime
             </li>
             <li className="flex items-center gap-2">
               <Check aria-hidden="true" className="size-4 text-[#527d22]" />

@@ -1,15 +1,19 @@
-import { setServerChannelSelection } from "@repo/db/helpers/channels"
 import { getDashboardChannels } from "@repo/db/helpers/dashboard-channels"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
 import { authorizeManagementServer } from "@/features/dashboard/server-context"
 import { toServerIdentity } from "@/features/dashboard/urls"
 
-const serverIdSchema = z.string().regex(/^\d+$/)
+import {
+  ChannelSelectionChanged,
+  ChannelSelectionRequired,
+  validateAndPersistChannelSelection,
+} from "./selection.server"
 
 export const getChannelsPage = createServerFn({ method: "GET" })
-  .validator(z.object({ serverId: serverIdSchema }))
+  .validator(z.object({ serverId: discordSnowflakeSchema }))
   .handler(async ({ data }) => {
     const authorization = await authorizeManagementServer(
       data.serverId,
@@ -31,11 +35,11 @@ export const getChannelsPage = createServerFn({ method: "GET" })
 export const saveChannelSelection = createServerFn({ method: "POST" })
   .validator(
     z.object({
-      serverId: serverIdSchema,
+      serverId: discordSnowflakeSchema,
       channels: z
         .array(
           z.object({
-            id: serverIdSchema,
+            id: discordSnowflakeSchema,
             indexingEnabled: z.boolean(),
           })
         )
@@ -57,50 +61,34 @@ export const saveChannelSelection = createServerFn({ method: "POST" })
       }
     }
     const currentChannels = await getDashboardChannels(data.serverId)
-    const submittedIds = new Set(data.channels.map((channel) => channel.id))
-    if (
-      submittedIds.size !== data.channels.length ||
-      currentChannels.length !== data.channels.length ||
-      currentChannels.some((channel) => !submittedIds.has(channel.id))
-    ) {
+    const selectedChannelIds = data.channels
+      .filter((channel) => channel.indexingEnabled)
+      .map((channel) => channel.id)
+    const result = await validateAndPersistChannelSelection({
+      availableChannelIds: currentChannels.map((channel) => channel.id),
+      selectedChannelIds,
+      serverId: data.serverId,
+      submittedChannelIds: data.channels.map((channel) => channel.id),
+    })
+    if (result.isErr()) {
+      const code =
+        result.error instanceof ChannelSelectionChanged
+          ? ("invalid_channels" as const)
+          : result.error instanceof ChannelSelectionRequired
+            ? ("channel_required" as const)
+            : ("save_unavailable" as const)
       return {
         status: "error" as const,
-        code: "invalid_channels" as const,
-        message:
-          "The channel list changed in Discord. Refresh and review your selection.",
-      }
-    }
-    if (!data.channels.some((channel) => channel.indexingEnabled)) {
-      return {
-        status: "error" as const,
-        code: "channel_required" as const,
-        message: "Keep at least one channel enabled for indexing.",
+        code,
+        message: result.error.message,
       }
     }
 
-    try {
-      await setServerChannelSelection({
-        serverId: data.serverId,
-        channels: data.channels.map((channel) => ({
-          channelId: channel.id,
-          status: channel.indexingEnabled,
-        })),
-      })
-      return {
-        status: "ok" as const,
-        data: currentChannels.map((channel) => ({
-          ...channel,
-          indexingEnabled:
-            data.channels.find((submitted) => submitted.id === channel.id)
-              ?.indexingEnabled ?? channel.indexingEnabled,
-        })),
-      }
-    } catch {
-      return {
-        status: "error" as const,
-        code: "invalid_channels" as const,
-        message:
-          "The channel list changed in Discord. Refresh and review your selection.",
-      }
+    return {
+      status: "ok" as const,
+      data: currentChannels.map((channel) => ({
+        ...channel,
+        indexingEnabled: selectedChannelIds.includes(channel.id),
+      })),
     }
   })

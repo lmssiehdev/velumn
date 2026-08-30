@@ -1,0 +1,9 @@
+{
+	"repository": "https://github.com/discord/discord-api-spec",
+	"commit": "e2bb9417565db2b26b1ea960c63b7f9075d799ab",
+	"file": "specs/openapi.json",
+	"rawUrl": "https://raw.githubusercontent.com/discord/discord-api-spec/e2bb9417565db2b26b1ea960c63b7f9075d799ab/specs/openapi.json",
+	"sha256": "f6cd197cbe47eeb6967a606980636b7fab3f72863255e17cd087cbbfe2f03bd2",
+	"byteCount": 1184027,
+	"license": "MIT"
+}

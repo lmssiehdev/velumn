@@ -74,9 +74,8 @@ export class GuildInstallationRepository extends Context.Service<
 			complete: (input) =>
 				Effect.tryPromise({
 					try: async () => {
-						const { completeGatewayGuildInstallation } = await import(
-							"@repo/db/helpers/servers"
-						);
+						const { completeGatewayGuildInstallation } =
+							await import("@repo/db/helpers/servers");
 						return await completeGatewayGuildInstallation(input);
 					},
 					catch: (cause) =>

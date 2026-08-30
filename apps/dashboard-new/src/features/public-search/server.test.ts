@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest"
+import { z } from "zod"
 
-import type { PublicSearchResponse } from "./contracts"
+import {
+  canonicalPublicSearchRequestSchema,
+  type PublicSearchResponse,
+} from "./contracts"
 import {
   getTrustedRequestIp,
   handleCanonicalPublicSearch,
@@ -33,7 +37,10 @@ const response: PublicSearchResponse = {
   query: "effect",
 }
 
-function request(body: unknown, headers: Record<string, string> = {}) {
+function request(
+  body: z.input<typeof canonicalPublicSearchRequestSchema>,
+  headers: Record<string, string> = {}
+) {
   return new Request("https://velumn.com/api/search", {
     method: "POST",
     headers: {

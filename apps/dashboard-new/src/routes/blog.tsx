@@ -17,10 +17,10 @@ function BlogLayout() {
           <Link className="blog-brand" to="/">
             Velumn
           </Link>
-          <nav aria-label="Blog navigation">
+          <nav aria-label="Blog navigation" className="blog-nav">
             <Link to="/blog">All posts</Link>
-            <Link preload={false} to="/dashboard">
-              Dashboard
+            <Link className="blog-nav__cta" preload={false} to="/dashboard">
+              Open Velumn
             </Link>
           </nav>
         </div>

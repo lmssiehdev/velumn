@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Exit, Option, Tracer } from "effect";
+import { Cause, Effect, Exit, Metric, Option, Tracer } from "effect";
 import {
 	IndexingRepository,
 	IndexingRepositoryError,
@@ -239,6 +239,17 @@ const run = (
 		Effect.provideService(SearchIndex, search),
 	);
 
+const counterValue = (
+	name: string,
+	description: string,
+	attributes: Record<string, string>,
+) =>
+	Metric.value(
+		Metric.counter(name, { description, incremental: true }).pipe(
+			Metric.withAttributes(attributes),
+		),
+	).pipe(Effect.map(({ count }) => count));
+
 describe("Meili projector", () => {
 	it.effect("preserves add, update, and delete order within a partition", () =>
 		Effect.gen(function* () {
@@ -344,9 +355,101 @@ describe("Meili projector", () => {
 	);
 
 	it.effect(
+		"captures a failed lease release exactly once and propagates it",
+		() =>
+			Effect.gen(function* () {
+				const operations: string[] = [];
+				const base = makeRepository([]).service;
+				const releaseError = new IndexingRepositoryError({
+					operation: "release",
+					cause: new Error("release failed"),
+				});
+				const failingRepository = IndexingRepository.of({
+					...base,
+					release: () => Effect.fail(releaseError),
+				});
+
+				const exit = yield* run(failingRepository, makeSearch([])).pipe(
+					Effect.provideService(ErrorCapture, {
+						captureCause: (_cause, context) =>
+							Effect.sync(() => {
+								operations.push(context.operation ?? "");
+								return undefined;
+							}),
+					}),
+					Effect.exit,
+				);
+
+				assert.isTrue(Exit.isFailure(exit));
+				assert.deepEqual(operations, ["projector.release"]);
+				if (Exit.isFailure(exit)) {
+					assert.strictEqual(
+						Option.getOrUndefined(Cause.findErrorOption(exit.cause)),
+						releaseError,
+					);
+				}
+			}),
+	);
+
+	it.effect("preserves a failed claim when lease release also fails", () =>
+		Effect.gen(function* () {
+			const operations: string[] = [];
+			const base = makeRepository([]).service;
+			const claimError = new IndexingRepositoryError({
+				operation: "claim",
+				cause: new Error("claim failed"),
+			});
+			const releaseError = new IndexingRepositoryError({
+				operation: "release",
+				cause: new Error("release failed"),
+			});
+			const failingRepository = IndexingRepository.of({
+				...base,
+				claim: () => Effect.fail(claimError),
+				release: () => Effect.fail(releaseError),
+			});
+
+			const exit = yield* run(failingRepository, makeSearch([])).pipe(
+				Effect.provideService(ErrorCapture, {
+					captureCause: (_cause, context) =>
+						Effect.sync(() => {
+							operations.push(context.operation ?? "");
+							return undefined;
+						}),
+				}),
+				Effect.exit,
+			);
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepEqual(operations, ["projector.poll", "projector.release"]);
+			if (Exit.isFailure(exit)) {
+				assert.strictEqual(
+					Option.getOrUndefined(Cause.findErrorOption(exit.cause)),
+					claimError,
+				);
+			}
+		}),
+	);
+
+	it.effect(
 		"defers a typed SearchIndex failure with bounded retry timing",
 		() =>
 			Effect.gen(function* () {
+				const deferredProjects = counterValue(
+					"velumn_bot_projector_operations_total",
+					"Projector operations by operation and outcome",
+					{ operation: "project", outcome: "deferred" },
+				);
+				const retryableRetries = counterValue(
+					"velumn_bot_retries_total",
+					"Retry decisions by operation and disposition",
+					{
+						operation: "projector",
+						disposition: "retryable",
+					},
+				);
+				const deferredProjectsBefore = yield* deferredProjects;
+				const retryableRetriesBefore = yield* retryableRetries;
 				const row = projection(1, "container_refresh");
 				const laterRow = projection(2, "message_delete");
 				const repository = makeRepository(
@@ -380,16 +483,23 @@ describe("Meili projector", () => {
 					"deferred",
 				);
 				assert.equal(
+					projectionSpan?.attributes.get("projection.operation"),
+					"container_refresh",
+				);
+				assert.isFalse(projectionSpan?.attributes.has("projectionId"));
+				assert.equal(
 					projectionSpan?.attributes.get("error.classification"),
 					"SearchIndexError:updateDocuments",
 				);
 				const batchSpan = spans.find((span) => span.name === "projector.poll");
 				assert.equal(batchSpan?.attributes.get("batch.claimed_count"), 2);
 				assert.equal(batchSpan?.attributes.get("batch.failed_count"), 0);
+				assert.equal(yield* deferredProjects, deferredProjectsBefore + 1);
+				assert.equal(yield* retryableRetries, retryableRetriesBefore + 1);
 			}),
 	);
 
-	it.effect("does not annotate completed when completing loses the lease", () =>
+	it.effect("annotates failed when completing loses the lease", () =>
 		Effect.gen(function* () {
 			const row = projection(1, "message_delete");
 			const repository = makeRepository([row]);
@@ -421,12 +531,15 @@ describe("Meili projector", () => {
 			const projectionSpan = spans.find(
 				(span) => span.name === "projector.projection",
 			);
-			assert.equal(projectionSpan?.attributes.has("operation.outcome"), false);
+			assert.equal(
+				projectionSpan?.attributes.get("operation.outcome"),
+				"failed",
+			);
 			assert.equal(projectionSpan?.status._tag, "Ended");
 		}),
 	);
 
-	it.effect("does not annotate failed when persisting failure fails", () =>
+	it.effect("annotates failed when persisting failure fails", () =>
 		Effect.gen(function* () {
 			const row = projection(1, "message_upsert");
 			const repository = makeRepository(
@@ -461,12 +574,15 @@ describe("Meili projector", () => {
 			const projectionSpan = spans.find(
 				(span) => span.name === "projector.projection",
 			);
-			assert.equal(projectionSpan?.attributes.has("operation.outcome"), false);
+			assert.equal(
+				projectionSpan?.attributes.get("operation.outcome"),
+				"failed",
+			);
 			assert.equal(projectionSpan?.status._tag, "Ended");
 		}),
 	);
 
-	it.effect("does not annotate deferred when deferring loses the lease", () =>
+	it.effect("annotates failed when deferring loses the lease", () =>
 		Effect.gen(function* () {
 			const row = projection(1, "container_refresh");
 			const repository = makeRepository(
@@ -501,7 +617,10 @@ describe("Meili projector", () => {
 			const projectionSpan = spans.find(
 				(span) => span.name === "projector.projection",
 			);
-			assert.equal(projectionSpan?.attributes.has("operation.outcome"), false);
+			assert.equal(
+				projectionSpan?.attributes.get("operation.outcome"),
+				"failed",
+			);
 			assert.equal(projectionSpan?.status._tag, "Ended");
 		}),
 	);

@@ -2,13 +2,10 @@ import { createFileRoute, redirect } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { getTenantForumChannel } from "@/features/tenant-routing/functions"
+import { snowflakeSchema } from "@/features/tenant-routing/contracts"
 
 const searchSchema = z.object({
-  cursor: z
-    .string()
-    .regex(/^[0-9]{1,20}$/)
-    .optional()
-    .catch(undefined),
+  cursor: snowflakeSchema.optional().catch(undefined),
 })
 
 export const Route = createFileRoute(

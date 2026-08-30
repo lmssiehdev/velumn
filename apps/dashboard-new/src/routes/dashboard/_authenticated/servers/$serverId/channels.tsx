@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import { useState, type ReactNode } from "react"
+import { z } from "zod"
 
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -47,18 +48,15 @@ import { filterChannels } from "@/features/channels/selection"
 import { useChannelSelection } from "@/features/channels/use-channel-selection"
 import { cn } from "@/lib/utils"
 
-function parseChannelsSearch(search: Record<string, unknown>): {
-  q?: string
-  type?: "forum" | "text"
-} {
-  const query = typeof search.q === "string" ? search.q : undefined
-  const type =
-    search.type === "forum" || search.type === "text" ? search.type : undefined
+const channelsSearchSchema = z.object({
+  q: z.string().max(100).optional().catch(undefined),
+  type: z.enum(["forum", "text"]).optional().catch(undefined),
+})
 
-  return {
-    ...(query && query.length <= 100 ? { q: query } : {}),
-    ...(type ? { type } : {}),
-  }
+function parseChannelsSearch(
+  search: Parameters<typeof channelsSearchSchema.parse>[0]
+) {
+  return channelsSearchSchema.parse(search)
 }
 
 export const Route = createFileRoute(

@@ -48,6 +48,20 @@ describe("thread search state", () => {
     })
   })
 
+  it("uses shared limits for URL query values", () => {
+    const tooManyChannels = Array.from({ length: 21 }, (_, index) =>
+      String(index + 1)
+    )
+    expect(
+      normalizeThreadsSearch(
+        threadsSearchSchema.parse({
+          channels: tooManyChannels,
+          q: "a".repeat(101),
+        })
+      )
+    ).toMatchObject({ channelIds: [], search: "" })
+  })
+
   it("coerces a valid page from the URL", () => {
     const search = threadsSearchSchema.parse({ page: "3" })
     expect(normalizeThreadsSearch(search).page).toBe(3)

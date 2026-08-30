@@ -1,11 +1,35 @@
-const threadSorts = [
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
+import { z } from "zod"
+
+export const THREAD_CHANNEL_FILTER_LIMIT = 20
+export const THREAD_PAGE_SIZE = 20
+export const THREAD_PAGE_SIZE_LIMIT = 100
+export const THREAD_SEARCH_LENGTH_LIMIT = 100
+
+export const threadSorts = [
   "newest",
   "title",
   "parentChannel",
   "messageCount",
 ] as const
-const threadDirections = ["asc", "desc"] as const
-const threadPinnedFilters = ["pinned", "unpinned"] as const
+export const threadDirections = ["asc", "desc"] as const
+export const threadPinnedFilters = ["pinned", "unpinned"] as const
+export const threadSortSchema = z.enum(threadSorts)
+export const threadDirectionSchema = z.enum(threadDirections)
+export const threadPinnedSchema = z.enum(threadPinnedFilters)
+export const threadChannelIdsSchema = z
+  .array(discordSnowflakeSchema)
+  .max(THREAD_CHANNEL_FILTER_LIMIT)
+export const threadQuerySchema = z.string().max(THREAD_SEARCH_LENGTH_LIMIT)
+
+const rawThreadsSearchSchema = z.object({
+  q: z.string().optional().catch(undefined),
+  channels: threadChannelIdsSchema.optional().catch(undefined),
+  pinned: threadPinnedSchema.optional().catch(undefined),
+  sort: threadSortSchema.optional().catch(undefined),
+  direction: threadDirectionSchema.optional().catch(undefined),
+  page: z.coerce.number().int().positive().optional().catch(undefined),
+})
 
 export type ThreadsSearch = {
   q?: string
@@ -16,41 +40,22 @@ export type ThreadsSearch = {
   page?: number
 }
 
-export function parseThreadsSearch(search: Record<string, unknown>) {
-  const query = typeof search.q === "string" ? search.q.trim() : undefined
-  const channels =
-    Array.isArray(search.channels) &&
-    search.channels.length <= 20 &&
-    search.channels.every(
-      (channel): channel is string =>
-        typeof channel === "string" && /^\d+$/.test(channel)
-    )
-      ? search.channels
-      : undefined
-  const page = Number(search.page)
-
-  return {
-    ...(query && query.length <= 100 ? { q: query } : {}),
-    ...(channels ? { channels } : {}),
-    ...(includes(threadPinnedFilters, search.pinned)
-      ? { pinned: search.pinned }
-      : {}),
-    ...(includes(threadSorts, search.sort) ? { sort: search.sort } : {}),
-    ...(includes(threadDirections, search.direction)
-      ? { direction: search.direction }
-      : {}),
-    ...(Number.isInteger(page) && page > 0 ? { page } : {}),
-  } satisfies ThreadsSearch
+export function parseThreadsSearch(
+  search: Parameters<typeof rawThreadsSearchSchema.parse>[0]
+): ThreadsSearch {
+  const parsed = rawThreadsSearchSchema.parse(search)
+  const result: ThreadsSearch = {}
+  const query = parsed.q?.trim()
+  if (query && threadQuerySchema.safeParse(query).success) result.q = query
+  if (parsed.channels) result.channels = parsed.channels
+  if (parsed.pinned) result.pinned = parsed.pinned
+  if (parsed.sort) result.sort = parsed.sort
+  if (parsed.direction) result.direction = parsed.direction
+  if (parsed.page) result.page = parsed.page
+  return result
 }
 
 export const threadsSearchSchema = { parse: parseThreadsSearch }
-
-function includes<const T extends readonly string[]>(
-  values: T,
-  value: unknown
-): value is T[number] {
-  return typeof value === "string" && values.includes(value)
-}
 
 export function normalizeThreadsSearch(search: ThreadsSearch) {
   const channels = [...new Set(search.channels ?? [])].sort()
@@ -61,7 +66,7 @@ export function normalizeThreadsSearch(search: ThreadsSearch) {
     sort: search.sort ?? ("newest" as const),
     direction: search.direction ?? ("desc" as const),
     page: search.page ?? 1,
-    pageSize: 20,
+    pageSize: THREAD_PAGE_SIZE,
   }
 }
 

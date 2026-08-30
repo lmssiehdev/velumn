@@ -1,4 +1,5 @@
 import type { ComponentType } from "react"
+import { z } from "zod"
 
 import { formatUtcDate } from "@/lib/date"
 
@@ -7,6 +8,8 @@ export interface PostMetadata {
   description: string
   publishedAt: string
   updatedAt?: string
+  category?: string
+  readTime?: string
   thumbnail?: string
   thumbnailAlt?: string
 }
@@ -21,11 +24,64 @@ export interface PostSummary {
   metadata: PostMetadata
 }
 
+const isoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const date = new Date(`${value}T00:00:00Z`)
+    return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value)
+  })
+
+const nonEmptyStringSchema = z.string().trim().min(1)
+
+const postMetadataSchema = z
+  .object({
+    title: nonEmptyStringSchema,
+    description: nonEmptyStringSchema,
+    publishedAt: isoDateSchema,
+    updatedAt: isoDateSchema.optional(),
+    category: nonEmptyStringSchema.optional(),
+    readTime: nonEmptyStringSchema.optional(),
+    thumbnail: nonEmptyStringSchema.optional(),
+    thumbnailAlt: nonEmptyStringSchema.optional(),
+  })
+  .superRefine((metadata, context) => {
+    if (metadata.thumbnail && !metadata.thumbnailAlt) {
+      context.addIssue({
+        code: "custom",
+        message: "thumbnailAlt is required when thumbnail is present",
+        path: ["thumbnailAlt"],
+      })
+    }
+    if (metadata.updatedAt && metadata.updatedAt < metadata.publishedAt) {
+      context.addIssue({
+        code: "custom",
+        message: "updatedAt cannot be earlier than publishedAt",
+        path: ["updatedAt"],
+      })
+    }
+  })
+
+const postExclusionCandidateSchema = z
+  .object({
+    draft: z.literal(true).optional().catch(undefined),
+    placeholder: z.literal(true).optional().catch(undefined),
+    title: z.string().optional().catch(undefined),
+    description: z.string().optional().catch(undefined),
+    publishedAt: isoDateSchema.optional().catch(undefined),
+  })
+  .catch({})
+
+const rawPostSourceSchema = z.union([
+  z.string(),
+  z.object({ default: z.string() }).transform((source) => source.default),
+])
+
 const postModules = import.meta.glob<PostModule>(
   "/src/content/blog/published/*.mdx",
   { eager: true }
 )
-const postSources = import.meta.glob<string>(
+const postSources = import.meta.glob<unknown>(
   "/src/content/blog/published/*.mdx",
   {
     eager: true,
@@ -39,11 +95,11 @@ export const posts = Object.entries(postModules)
     const slug = path.slice(path.lastIndexOf("/") + 1, -4)
     const source = postSources[path]
 
-    if (!source) throw new Error(`Missing MDX source for blog post "${slug}"`)
     if (shouldExcludePost(slug, postModule.metadata)) return []
 
     const metadata = validateMetadata(slug, postModule.metadata)
-    if (!hasContentBody(source)) {
+    const rawSource = getRawSource(source)
+    if (rawSource !== null && !hasContentBody(rawSource)) {
       throw new Error(`Blog post "${slug}" must have a non-empty body`)
     }
 
@@ -75,58 +131,33 @@ export function formatPublishedAt(value: string) {
   return formatUtcDate(`${value}T00:00:00Z`, "long")
 }
 
-function shouldExcludePost(slug: string, value: unknown) {
-  if (!isRecord(value)) return false
-  if (value.draft === true || value.placeholder === true) return true
+function shouldExcludePost(
+  slug: string,
+  value: Parameters<typeof postExclusionCandidateSchema.parse>[0]
+) {
+  const candidate = postExclusionCandidateSchema.parse(value)
+  if (candidate.draft || candidate.placeholder) return true
 
-  const identifyingText = [slug, value.title, value.description]
-    .filter((part): part is string => typeof part === "string")
+  const identifyingText = [slug, candidate.title, candidate.description]
+    .filter((part): part is string => part !== undefined)
     .join(" ")
 
   if (/\b(?:draft|placeholder|todo|coming soon)\b/i.test(identifyingText)) {
     return true
   }
 
-  const publishedAt = value.publishedAt
-  return (
-    typeof publishedAt === "string" &&
-    isIsoDate(publishedAt) &&
-    Date.parse(`${publishedAt}T00:00:00Z`) > Date.now()
-  )
+  return candidate.publishedAt
+    ? Date.parse(`${candidate.publishedAt}T00:00:00Z`) > Date.now()
+    : false
 }
 
-function validateMetadata(slug: string, value: unknown): PostMetadata {
-  if (!isRecord(value)) throw invalidMetadata(slug)
-
-  const {
-    description,
-    publishedAt,
-    thumbnail,
-    thumbnailAlt,
-    title,
-    updatedAt,
-  } = value
-  if (
-    !isNonEmptyString(title) ||
-    !isNonEmptyString(description) ||
-    !isIsoDate(publishedAt) ||
-    (updatedAt !== undefined && !isIsoDate(updatedAt)) ||
-    (thumbnail !== undefined && !isNonEmptyString(thumbnail)) ||
-    (thumbnailAlt !== undefined && !isNonEmptyString(thumbnailAlt)) ||
-    (thumbnail !== undefined && !isNonEmptyString(thumbnailAlt)) ||
-    (typeof updatedAt === "string" && updatedAt < publishedAt)
-  ) {
-    throw invalidMetadata(slug)
-  }
-
-  return {
-    title,
-    description,
-    publishedAt,
-    ...(updatedAt === undefined ? {} : { updatedAt }),
-    ...(thumbnail === undefined ? {} : { thumbnail }),
-    ...(thumbnailAlt === undefined ? {} : { thumbnailAlt }),
-  }
+function validateMetadata(
+  slug: string,
+  value: Parameters<typeof postMetadataSchema.safeParse>[0]
+): PostMetadata {
+  const parsed = postMetadataSchema.safeParse(value)
+  if (!parsed.success) throw invalidMetadata(slug)
+  return parsed.data
 }
 
 function hasContentBody(source: string) {
@@ -148,21 +179,11 @@ function hasContentBody(source: string) {
   return false
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0
-}
-
-function isIsoDate(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false
-  }
-
-  const date = new Date(`${value}T00:00:00Z`)
-  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value)
+function getRawSource(
+  value: Parameters<typeof rawPostSourceSchema.safeParse>[0]
+): string | null {
+  const parsed = rawPostSourceSchema.safeParse(value)
+  return parsed.success ? parsed.data : null
 }
 
 function invalidMetadata(slug: string) {

@@ -59,30 +59,34 @@ export class SearchNotConfiguredError extends Schema.TaggedError<SearchNotConfig
 
 export type SearchError = SearchIndexError | SearchNotConfiguredError;
 
+const searchErrorCauseSchema = Schema.Struct({
+	code: Schema.optional(Schema.String),
+	status: Schema.optional(Schema.Number),
+	response: Schema.optional(
+		Schema.Struct({ status: Schema.optional(Schema.Number) }),
+	),
+	cause: Schema.optional(Schema.Unknown),
+});
+const decodeSearchErrorCause = Schema.decodeUnknownOption(
+	searchErrorCauseSchema,
+);
+
 export const isSearchNotFoundError = (error: {
 	readonly _tag: string;
 }): boolean => {
 	if (error._tag !== "SearchIndexError") return false;
-	let cause: unknown = "cause" in error ? error.cause : undefined;
-	for (
-		let depth = 0;
-		depth < 3 && typeof cause === "object" && cause;
-		depth++
-	) {
+	let cause = "cause" in error ? error.cause : undefined;
+	for (let depth = 0; depth < 3; depth++) {
+		const parsed = Option.getOrUndefined(decodeSearchErrorCause(cause));
+		if (!parsed) break;
 		if (
-			("code" in cause &&
-				typeof cause.code === "string" &&
-				cause.code.endsWith("_not_found")) ||
-			("status" in cause && cause.status === 404) ||
-			("response" in cause &&
-				typeof cause.response === "object" &&
-				cause.response !== null &&
-				"status" in cause.response &&
-				cause.response.status === 404)
+			parsed.code?.endsWith("_not_found") ||
+			parsed.status === 404 ||
+			parsed.response?.status === 404
 		) {
 			return true;
 		}
-		cause = "cause" in cause ? cause.cause : undefined;
+		cause = parsed.cause;
 	}
 	return false;
 };

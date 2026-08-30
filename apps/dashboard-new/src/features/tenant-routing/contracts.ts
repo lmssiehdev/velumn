@@ -1,11 +1,15 @@
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import { z } from "zod"
 
-export const hostnameSchema = z
-  .string()
-  .min(1)
-  .max(253)
-  .regex(/^[a-z0-9.-]+$/)
-export const snowflakeSchema = z.string().regex(/^[0-9]{1,20}$/)
+import { normalizeHostname } from "@/lib/host-routing"
+
+export const hostnameSchema = z.string().transform((value, context) => {
+  const hostname = normalizeHostname(value)
+  if (hostname) return hostname
+  context.addIssue({ code: "custom", message: "Invalid hostname" })
+  return z.NEVER
+})
+export const snowflakeSchema = discordSnowflakeSchema
 export const listInputSchema = z.object({
   hostname: hostnameSchema,
   cursor: snowflakeSchema.optional(),

@@ -3,6 +3,7 @@ import { decodeClaimedIndexingGatewayMutation } from "@repo/db/helpers/indexing-
 import { Effect } from "effect";
 import { vi } from "vitest";
 import {
+	GatewayMutationLeaseLostError,
 	GatewayMutationRepository,
 	GatewayMutationRepositoryError,
 } from "./gateway-mutation-repository";
@@ -25,6 +26,7 @@ vi.mock("@repo/db/helpers/indexing", () => ({
 			updatedAt: "2026-08-09 12:34:56",
 		}),
 	],
+	failIndexingGatewayMutation: async () => false,
 }));
 
 describe("gateway mutation repository", () => {
@@ -43,6 +45,19 @@ describe("gateway mutation repository", () => {
 				assert.instanceOf(error, GatewayMutationRepositoryError);
 				assert.equal(error.operation, "claim");
 				return undefined;
+			}),
+		),
+	);
+
+	it.effect("reports a fenced terminal mutation as a typed lease loss", () =>
+		GatewayMutationRepository.use((repository) =>
+			repository.fail(1, "worker-1", 2, "indexing:defect"),
+		).pipe(
+			Effect.provide(GatewayMutationRepository.layer),
+			Effect.flip,
+			Effect.map((error) => {
+				assert.instanceOf(error, GatewayMutationLeaseLostError);
+				assert.equal(error.operation, "fail");
 			}),
 		),
 	);

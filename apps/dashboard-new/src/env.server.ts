@@ -14,6 +14,10 @@ const optionalOrigin = z.preprocess(
     .transform((value) => new URL(value).origin)
     .optional()
 )
+const optionalPolarServer = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["sandbox", "production"]).optional()
+)
 
 const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).optional(),
@@ -29,6 +33,11 @@ const serverEnvSchema = z.object({
   VERCEL_BEARER_TOKEN: optionalString,
   VERCEL_PROJECT_ID: optionalString,
   VERCEL_TEAM_ID: optionalString,
+  POLAR_ACCESS_TOKEN: optionalString,
+  POLAR_WEBHOOK_SECRET: optionalString,
+  POLAR_PRO_PRODUCT_ID: optionalString,
+  POLAR_SERVER: optionalPolarServer,
+  CRON_SECRET: optionalString,
 })
 
 let cachedEnv: z.infer<typeof serverEnvSchema> | undefined
@@ -110,6 +119,32 @@ export function requireVercelEnv() {
     projectId: config.VERCEL_PROJECT_ID,
     teamId: env.VERCEL_TEAM_ID,
   }
+}
+
+export function getPolarEnv() {
+  const env = getEnv()
+  const config = optionalGroup("Polar billing", {
+    POLAR_ACCESS_TOKEN: env.POLAR_ACCESS_TOKEN,
+    POLAR_WEBHOOK_SECRET: env.POLAR_WEBHOOK_SECRET,
+    POLAR_PRO_PRODUCT_ID: env.POLAR_PRO_PRODUCT_ID,
+    POLAR_SERVER: env.POLAR_SERVER,
+  })
+  if (!config) return null
+
+  const dashboardOrigin = getAuthEnv().dashboardOrigin
+  return {
+    accessToken: config.POLAR_ACCESS_TOKEN,
+    webhookSecret: config.POLAR_WEBHOOK_SECRET,
+    productId: config.POLAR_PRO_PRODUCT_ID,
+    server: config.POLAR_SERVER as "sandbox" | "production",
+    dashboardOrigin,
+  }
+}
+
+export function requireCronSecret() {
+  const secret = getEnv().CRON_SECRET
+  if (!secret) throw new Error("Billing reconciliation cron is not configured")
+  return secret
 }
 
 function optionalGroup<T extends Record<string, string | undefined>>(

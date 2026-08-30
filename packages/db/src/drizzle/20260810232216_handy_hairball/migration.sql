@@ -1,0 +1,1 @@
+ALTER TYPE "indexing_gateway_mutation_status" ADD VALUE 'failed';

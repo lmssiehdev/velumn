@@ -1,15 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { Outlet, createFileRoute } from "@tanstack/react-router"
 
-import forumCss from "@/features/public-forum/public-forum.css?url"
-import { PublicForumRouteLayout } from "@/features/public-forum/forum"
-import searchCss from "@/features/public-search/public-search.css?url"
+import globalsCss from "@/globals.css?url"
 
 export const Route = createFileRoute("/server")({
   head: () => ({
-    links: [
-      { rel: "stylesheet", href: forumCss },
-      { rel: "stylesheet", href: searchCss },
-    ],
+    links: [{ rel: "stylesheet", href: globalsCss }],
   }),
-  component: PublicForumRouteLayout,
+  component: Outlet,
 })

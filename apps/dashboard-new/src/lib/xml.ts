@@ -9,10 +9,9 @@ export type SitemapIndexEntry = {
   lastmod?: string
 }
 
-export function buildUrlSetXml(urls: readonly (string | SitemapUrlEntry)[]) {
+export function buildUrlSetXml(urls: readonly SitemapUrlEntry[]) {
   const entries = urls
-    .map((value) => {
-      const entry = typeof value === "string" ? { loc: value } : value
+    .map((entry) => {
       return `  <url>
     <loc>${escapeXml(entry.loc)}</loc>${xmlElement("lastmod", entry.lastmod)}${xmlElement("changefreq", entry.changefreq)}
   </url>`

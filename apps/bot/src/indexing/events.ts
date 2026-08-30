@@ -13,9 +13,22 @@ import {
 	type Role,
 	type User,
 } from "discord.js";
-import { Clock, Context, Effect, Layer, Ref, type Scope } from "effect";
+import {
+	Cause,
+	Clock,
+	Context,
+	Effect,
+	Layer,
+	Option,
+	Ref,
+	type Scope,
+} from "effect";
 import { DiscordConnection } from "../discord/client";
 import type { DiscordEvents } from "../discord/events";
+import {
+	ErrorCapture,
+	type ErrorCaptureService,
+} from "../observability/error-capture";
 import {
 	IndexingCoordinator,
 	type IndexingCoordinatorService,
@@ -29,12 +42,27 @@ import type {
 	IndexSubmission,
 } from "./model";
 import { contentOrderingKey } from "./reconciliation";
+import { retryDispositionFor } from "./retry-policy";
 
 type Coordinator = IndexingCoordinatorService<IndexingOperationError>;
 type GuildMessage = Message<true> | PartialMessage<true>;
 
 const installationRetryInitialDelay = 1_000;
 const installationRetryMaxDelay = 60_000;
+
+type InstallationFailureDisposition = "retry" | "capture" | "stop";
+
+const installationFailureDisposition = (
+	cause: Cause.Cause<IndexingOperationError>,
+): InstallationFailureDisposition => {
+	if (Cause.hasDies(cause)) return "capture";
+	if (Cause.hasInterrupts(cause)) return "stop";
+	const error = Option.getOrUndefined(Cause.findErrorOption(cause));
+	if (error === undefined) return "capture";
+	return retryDispositionFor(error.classification) === "retryable"
+		? "retry"
+		: "stop";
+};
 
 export const channelOrderingKey = (channelId: DiscordId) =>
 	`channel:${channelId}`;
@@ -213,7 +241,11 @@ const submitGuild = (
 		);
 	});
 
-const submitGuildInstallation = (coordinator: Coordinator, guild: Guild) =>
+const submitGuildInstallation = (
+	coordinator: Coordinator,
+	errorCapture: ErrorCaptureService,
+	guild: Guild,
+) =>
 	Effect.gen(function* () {
 		const observedAt = yield* Clock.currentTimeMillis;
 		const submission: IndexSubmission = {
@@ -233,6 +265,20 @@ const submitGuildInstallation = (coordinator: Coordinator, guild: Guild) =>
 						return result.receipt.await.pipe(
 							Effect.flatMap((outcome) => {
 								if (outcome._tag === "Completed") return Effect.void;
+								const disposition = installationFailureDisposition(
+									outcome.cause,
+								);
+								if (disposition === "stop") return Effect.void;
+								if (disposition === "capture") {
+									return errorCapture
+										.captureCause(outcome.cause, {
+											boundary: "discord_event_handler",
+											operation: "indexing.guild_installation_receipt",
+											guildId: guild.id,
+											submissionId: submission.id,
+										})
+										.pipe(Effect.asVoid);
+								}
 
 								return Effect.logWarning(
 									"Guild installation failed; scheduling another attempt",
@@ -331,6 +377,7 @@ export const makeIndexingEvents = (
 	enqueue?: (submission: IndexSubmission) => Effect.Effect<void>,
 ): Effect.Effect<void, never, Scope.Scope> =>
 	Effect.gen(function* () {
+		const errorCapture = yield* ErrorCapture;
 		const coordinator: Coordinator = enqueue
 			? {
 					...installationCoordinator,
@@ -360,7 +407,11 @@ export const makeIndexingEvents = (
 				});
 				if (!started) return;
 
-				yield* submitGuildInstallation(installationCoordinator, guild).pipe(
+				yield* submitGuildInstallation(
+					installationCoordinator,
+					errorCapture,
+					guild,
+				).pipe(
 					Effect.ensuring(
 						Ref.update(installingGuilds, (guildIds) => {
 							const next = new Set(guildIds);

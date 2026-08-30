@@ -1,7 +1,7 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router"
 import { Suspense, lazy } from "react"
 
-import dashboardCss from "../globals.css?url"
+import dashboardCss from "../dashboard.css?url"
 import { publicEnv } from "@/env.public"
 
 const DashboardDevtools = publicEnv.dev

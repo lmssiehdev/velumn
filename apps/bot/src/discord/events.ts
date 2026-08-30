@@ -1,9 +1,23 @@
 import type { Client, ClientEvents } from "discord.js";
-import { type Duration, Effect, FiberSet, type Scope } from "effect";
+import {
+	Cause,
+	Clock,
+	Duration,
+	Effect,
+	Exit,
+	FiberSet,
+	Option,
+	Schema,
+	type Scope,
+} from "effect";
 import {
 	ErrorCapture,
 	type ErrorCaptureContext,
 } from "../observability/error-capture";
+import {
+	BotMetrics,
+	type DiscordEventCategory,
+} from "../observability/metrics";
 
 export interface DiscordEvents {
 	readonly on: <Event extends DiscordEvent>(
@@ -26,42 +40,49 @@ interface DiscordEventsOptions {
 	readonly handlerDrainTimeout?: Duration.Input;
 }
 
-const explicitString = (value: unknown, key: string): string | undefined => {
-	if (typeof value !== "object" || value === null) return undefined;
-	try {
-		const field = Reflect.get(value, key);
-		return typeof field === "string" && field.length > 0 ? field : undefined;
-	} catch {
-		return undefined;
-	}
+const discordEventCategory = (event: string): DiscordEventCategory => {
+	const name = event.toLowerCase();
+	if (name.includes("message")) return "message";
+	if (name.includes("channel")) return "channel";
+	if (name.includes("thread")) return "thread";
+	if (name.includes("member")) return "member";
+	if (name.includes("role")) return "role";
+	if (name.includes("guild")) return "guild";
+	if (name.includes("interaction")) return "interaction";
+	return "other";
 };
 
-const explicitField = (value: unknown, key: string): unknown => {
-	if (typeof value !== "object" || value === null) return undefined;
-	try {
-		return Reflect.get(value, key);
-	} catch {
-		return undefined;
-	}
-};
+const discordEventIdCandidateSchema = Schema.Struct({
+	id: Schema.optional(Schema.String),
+	guildId: Schema.optional(Schema.String),
+	channelId: Schema.optional(Schema.String),
+	parentId: Schema.optional(Schema.String),
+	threadId: Schema.optional(Schema.String),
+	messageId: Schema.optional(Schema.String),
+	guild: Schema.optional(Schema.Struct({ id: Schema.String })),
+});
+const decodeDiscordEventIdCandidate = Schema.decodeUnknownOption(
+	discordEventIdCandidateSchema,
+);
 
 const discordEventIds = (
 	event: string,
 	args: readonly unknown[],
 ): Omit<ErrorCaptureContext, "boundary" | "operation"> => {
-	const candidate = [...args]
-		.reverse()
-		.find((value) => typeof value === "object" && value !== null);
+	let candidate: typeof discordEventIdCandidateSchema.Type | undefined;
+	for (const value of [...args].reverse()) {
+		const parsed = decodeDiscordEventIdCandidate(value);
+		if (Option.isSome(parsed)) {
+			candidate = parsed.value;
+			break;
+		}
+	}
 	if (!candidate) return {};
-	const guildId =
-		explicitString(candidate, "guildId") ??
-		explicitString(explicitField(candidate, "guild"), "id");
-	const channelId =
-		explicitString(candidate, "channelId") ??
-		explicitString(candidate, "parentId");
-	const explicitThreadId = explicitString(candidate, "threadId");
-	const explicitMessageId = explicitString(candidate, "messageId");
-	const id = explicitString(candidate, "id");
+	const guildId = candidate.guildId ?? candidate.guild?.id;
+	const channelId = candidate.channelId ?? candidate.parentId;
+	const explicitThreadId = candidate.threadId;
+	const explicitMessageId = candidate.messageId;
+	const id = candidate.id;
 	const messageId = event.startsWith("message")
 		? (explicitMessageId ?? id)
 		: explicitMessageId;
@@ -73,10 +94,10 @@ const discordEventIds = (
 		: channelId;
 	const resolvedGuildId = event.startsWith("guild") ? (guildId ?? id) : guildId;
 	return {
-		...(resolvedGuildId ? { guildId: resolvedGuildId } : {}),
-		...(resolvedChannelId ? { channelId: resolvedChannelId } : {}),
-		...(threadId ? { threadId } : {}),
-		...(messageId ? { messageId } : {}),
+		guildId: resolvedGuildId,
+		channelId: resolvedChannelId,
+		threadId,
+		messageId,
 	};
 };
 
@@ -120,22 +141,48 @@ export const makeDiscordEvents = (
 
 				const wrappedListener = (...args: ClientEvents[Event]) => {
 					const operation = String(event);
+					const category = discordEventCategory(operation);
 					const ids = discordEventIds(operation, args);
 					runFork(
-						Effect.suspend(() => listener(...args)).pipe(
-							Effect.tapCause((cause) =>
-								errorCapture
-									.captureCause(cause, {
-										boundary: "discord_event_handler",
-										operation,
-										...ids,
-									})
-									.pipe(Effect.asVoid),
+						Clock.currentTimeNanos.pipe(
+							Effect.flatMap((startedAt) =>
+								Effect.suspend(() => listener(...args)).pipe(
+									Effect.tapCause((cause) =>
+										errorCapture
+											.captureCause(cause, {
+												boundary: "discord_event_handler",
+												operation,
+												...ids,
+											})
+											.pipe(Effect.asVoid),
+									),
+									Effect.withSpan(`discord.${operation}`, {
+										root: true,
+										attributes: {
+											"operation.name": operation,
+											"discord.event.category": category,
+											...ids,
+										},
+									}),
+									Effect.onExit((exit) =>
+										Clock.currentTimeNanos.pipe(
+											Effect.flatMap((finishedAt) =>
+												BotMetrics.recordDiscordEvent({
+													category,
+													outcome: Exit.isSuccess(exit)
+														? "succeeded"
+														: Cause.hasInterruptsOnly(exit.cause)
+															? "cancelled"
+															: "failed",
+													durationMs: Duration.toMillis(
+														Duration.nanos(finishedAt - startedAt),
+													),
+												}),
+											),
+										),
+									),
+								),
 							),
-							Effect.withSpan(`discord.${operation}`, {
-								root: true,
-								attributes: { "operation.name": operation, ...ids },
-							}),
 							Effect.catchCause(() => Effect.void),
 						),
 					);

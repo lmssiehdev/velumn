@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Exit, Option, Redacted, Scope } from "effect";
+import { Effect, Exit, Fiber, Option, Redacted, Scope } from "effect";
+import { TestClock } from "effect/testing";
 import { SearchIndex } from "../adapters/search";
 import { BotConfig } from "../config/bot-config";
 import { ReconciliationJobs } from "../indexing/jobs";
@@ -20,7 +21,7 @@ const config = BotConfig.of({
 
 describe("Bot HTTP server", () => {
 	it.effect(
-		"tracks readiness and stops accepting requests on scope close",
+		"tracks readiness and gracefully stops accepting requests on scope close",
 		() =>
 			Effect.gen(function* () {
 				const readiness = yield* Readiness;
@@ -87,5 +88,56 @@ describe("Bot HTTP server", () => {
 				assert.isFalse(closedActiveConnections);
 				assert.isFalse((yield* readiness.get).http);
 			}).pipe(Effect.provide(Readiness.layer)),
+	);
+
+	it.effect("force stops when graceful shutdown times out", () =>
+		Effect.gen(function* () {
+			const readiness = yield* Readiness;
+			const scope = yield* Scope.make();
+			const stopCalls: boolean[] = [];
+
+			yield* makeBotHttpServer({
+				makeFetch: () => () => new Response("OK"),
+				serve: () => ({
+					stop: (force = false) => {
+						stopCalls.push(force);
+						return force ? Promise.resolve() : new Promise(() => {});
+					},
+				}),
+			}).pipe(
+				Effect.provideService(BotConfig, config),
+				Effect.provideService(
+					SearchIndex,
+					SearchIndex.of({
+						addDocuments: () => Effect.void,
+						updateDocuments: () => Effect.void,
+						deleteMessages: () => Effect.void,
+						deleteThread: () => Effect.void,
+						updateThreadTitle: () => Effect.void,
+						search: () => Effect.die("not used"),
+						health: Effect.die("not used"),
+					}),
+				),
+				Effect.provideService(
+					ReconciliationJobs,
+					ReconciliationJobs.of({
+						repairStartup: Effect.die("not used"),
+						startGuild: () => Effect.die("not used"),
+						startThread: () => Effect.die("not used"),
+						startScheduled: () => Effect.die("not used"),
+						get: () => Effect.die("not used"),
+						cancel: () => Effect.die("not used"),
+					}),
+				),
+				Scope.provide(scope),
+			);
+
+			const closeFiber = yield* Effect.forkChild(Scope.close(scope, Exit.void));
+			yield* TestClock.adjust("2 seconds");
+			yield* Fiber.join(closeFiber);
+
+			assert.deepStrictEqual(stopCalls, [false, true]);
+			assert.isFalse((yield* readiness.get).http);
+		}).pipe(Effect.provide(Readiness.layer)),
 	);
 });

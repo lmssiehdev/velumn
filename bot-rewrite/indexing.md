@@ -114,7 +114,7 @@ AnswerOverflow is available locally at `../AnswerOverflow`. It is research mater
 
 The accepted behavioral snapshot is vendored in [`answeroverflow-indexing-reference.md`](./answeroverflow-indexing-reference.md) so later implementation does not depend on the upstream workspace remaining unchanged.
 
-The Discord HTTP API preview used as an additional pinned reference is recorded in [`discord-api-spec-source.md`](./discord-api-spec-source.md); its 1.18 MB JSON is intentionally not vendored.
+The Discord HTTP API preview used as an additional pinned reference is vendored with provenance and usage guidance recorded in [`discord-api-spec-source.md`](./discord-api-spec-source.md).
 
 Primary files:
 

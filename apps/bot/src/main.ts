@@ -1,5 +1,5 @@
 import { BunRuntime } from "@effect/platform-bun";
-import { Effect, Layer } from "effect";
+import { ConfigProvider, Effect, Layer } from "effect";
 import { ObservabilityLayer } from "./observability";
 import { launchObserved } from "./observability/runtime";
 import { AppLayer } from "./runtime/app-layer";
@@ -9,6 +9,14 @@ const main = Effect.scoped(
 		const observability = yield* Layer.build(ObservabilityLayer);
 		yield* launchObserved(AppLayer).pipe(Effect.provide(observability));
 	}),
+).pipe(
+	Effect.provide(
+		ConfigProvider.layer(
+			ConfigProvider.fromEnv({
+				preserveEmptyStrings: true,
+			}),
+		),
+	),
 );
 
 BunRuntime.runMain(main);

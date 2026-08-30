@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { NewLandingPage, faqItems } from "@/features/marketing/new-landing-page"
-import newLandingCss from "@/features/marketing/new-landing.css?url"
+import globalsCss from "@/globals.css?url"
 
 const title = "Help More People Find Your Discord Community"
 const description =
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
     ],
     links: [
       { rel: "canonical", href: canonicalUrl },
-      { rel: "stylesheet", href: newLandingCss },
+      { rel: "stylesheet", href: globalsCss },
     ],
     scripts: [
       {

@@ -18,9 +18,9 @@ import type {
 	DBAttachments,
 	DBSnapshotSchema,
 	EmbedSchema,
+	MessageComponentsSchema,
 	MessageMetadataSchema,
 	PollSchema,
-	RowsSchema,
 	StickerSchema,
 } from "../helpers/validation";
 
@@ -207,7 +207,9 @@ export const dbMessage = pgTable(
 		metadata: json("metadata")
 			.$type<MessageMetadataSchema | null>()
 			.default(null),
-		components: json("components").$type<RowsSchema[] | null>().default(null),
+		components: json("components")
+			.$type<MessageComponentsSchema | null>()
+			.default(null),
 		snapshot: json("snapshot").$type<DBSnapshotSchema | null>().default(null),
 		starterMessage: boolean("starter_message").notNull().default(false),
 		stickers: json("stickers").$type<StickerSchema | null>().default(null),

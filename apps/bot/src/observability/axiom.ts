@@ -1,6 +1,6 @@
 import { Config, Effect, Layer, Option, Schema } from "effect";
 import { FetchHttpClient, type HttpClient } from "effect/unstable/http";
-import { OtlpSerialization } from "effect/unstable/observability";
+import { OtlpMetrics, OtlpSerialization } from "effect/unstable/observability";
 import { safeOtlpTracerLayer } from "./safe-tracer";
 
 const requiredTrimmed = (name: string) =>
@@ -15,6 +15,9 @@ const optionalTrimmed = (name: string) =>
 const tracesUrl = (endpoint: string) =>
 	`${endpoint.replace(/\/+$/, "")}/v1/traces`;
 
+const metricsUrl = (endpoint: string) =>
+	`${endpoint.replace(/\/+$/, "")}/v1/metrics`;
+
 export const makeAxiomTelemetryLayer = (options?: {
 	readonly httpClientLayer?: Layer.Layer<HttpClient.HttpClient>;
 }) =>
@@ -27,6 +30,7 @@ export const makeAxiomTelemetryLayer = (options?: {
 			if (!token) return Layer.empty;
 
 			const tracesDataset = yield* requiredTrimmed("AXIOM_TRACES_DATASET");
+			const metricsDataset = yield* optionalTrimmed("AXIOM_METRICS_DATASET");
 			const endpoint = yield* requiredTrimmed("AXIOM_OTLP_ENDPOINT").pipe(
 				Config.withDefault("https://api.axiom.co"),
 			);
@@ -36,24 +40,41 @@ export const makeAxiomTelemetryLayer = (options?: {
 			);
 			const version = yield* optionalTrimmed("OTEL_SERVICE_VERSION");
 			const hostname = yield* optionalTrimmed("HOSTNAME");
+			const resourceAttributes = Option.match(hostname, {
+				onNone: () => ({
+					"service.namespace": "velumn",
+					"deployment.environment.name": environment,
+				}),
+				onSome: (value) => ({
+					"service.namespace": "velumn",
+					"deployment.environment.name": environment,
+					"host.name": value,
+				}),
+			});
 			const resource = {
 				serviceName: "velumn-bot",
 				serviceVersion: Option.getOrUndefined(version),
-				attributes: {
-					"service.namespace": "velumn",
-					"deployment.environment.name": environment,
-					...(Option.isSome(hostname) ? { "host.name": hostname.value } : {}),
-				},
+				attributes: resourceAttributes,
 			};
 			const headers = (dataset: string) => ({
 				Authorization: `Bearer ${token}`,
 				"X-Axiom-Dataset": dataset,
 			});
-			return safeOtlpTracerLayer({
+			const traces = safeOtlpTracerLayer({
 				url: tracesUrl(endpoint),
 				headers: headers(tracesDataset),
 				resource,
-			}).pipe(
+			});
+			const metrics = Option.match(metricsDataset, {
+				onNone: () => Layer.empty,
+				onSome: (dataset) =>
+					OtlpMetrics.layer({
+						url: metricsUrl(endpoint),
+						headers: headers(dataset),
+						resource,
+					}),
+			});
+			return Layer.merge(traces, metrics).pipe(
 				Layer.provide(OtlpSerialization.layerJson),
 				Layer.provideMerge(options?.httpClientLayer ?? FetchHttpClient.layer),
 			);

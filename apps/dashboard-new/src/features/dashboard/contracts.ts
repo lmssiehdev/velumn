@@ -1,10 +1,10 @@
 export type ServerLifecycle = "setup_required" | "ready" | "bot_disconnected"
 
-export const serverLifecycleLabels: Record<ServerLifecycle, string> = {
+export const serverLifecycleLabels = {
   ready: "Live",
   setup_required: "Setup required",
   bot_disconnected: "Bot disconnected",
-}
+} satisfies Record<ServerLifecycle, string>
 
 export type ServerIdentity = {
   id: string

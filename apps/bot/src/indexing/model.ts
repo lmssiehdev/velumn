@@ -5,8 +5,8 @@ import type {
 	MessageType,
 	WebhookType,
 } from "discord.js";
-import type { Cause, Effect } from "effect";
-import { Schema } from "effect";
+import type { Cause } from "effect";
+import { Effect, Schema } from "effect";
 
 export type DiscordId = string;
 
@@ -65,83 +65,79 @@ export interface SafeMessageMetadata {
 	readonly interaction: InteractionMetadata | null;
 }
 
-export type IndexMutation =
-	| {
-			readonly _tag: "UpsertMessage";
-			readonly messageId: DiscordId;
-			readonly channelId: DiscordId;
-			readonly threadId: DiscordId | null;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "DeleteMessage";
-			readonly messageId: DiscordId;
-			readonly channelId: DiscordId;
-			readonly threadId: DiscordId | null;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "DeleteThread";
-			readonly threadId: DiscordId;
-			readonly parentChannelId: DiscordId;
-			readonly guildId: DiscordId;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "ReconcileThread";
-			readonly threadId: DiscordId;
-			readonly parentChannelId: DiscordId;
-			readonly guildId: DiscordId;
-			readonly requestedAt: number;
-			readonly reconcileStarter?: boolean;
-	  }
-	| {
-			readonly _tag: "UpsertChannel";
-			readonly channelId: DiscordId;
-			readonly guildId: DiscordId;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "DeleteChannel";
-			readonly channelId: DiscordId;
-			readonly guildId: DiscordId;
-			readonly scope: "self" | "tree";
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "InstallGuild";
-			readonly guildId: DiscordId;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "UpsertGuild";
-			readonly guildId: DiscordId;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "DeleteGuild";
-			readonly guildId: DiscordId;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "UpsertUser";
-			readonly userId: DiscordId;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "ReconcileBotMemberPermissions";
-			readonly guildId: DiscordId;
-			readonly userId: DiscordId;
-			readonly deleted: boolean;
-			readonly observedAt: number;
-	  }
-	| {
-			readonly _tag: "ReconcileRolePermissions";
-			readonly guildId: DiscordId;
-			readonly roleId: DiscordId;
-			readonly deleted: boolean;
-			readonly observedAt: number;
-	  };
+const messageMutationFields = {
+	messageId: Schema.String,
+	channelId: Schema.String,
+	threadId: Schema.NullOr(Schema.String),
+	observedAt: Schema.Number,
+};
+
+const guildMutationFields = {
+	guildId: Schema.String,
+	observedAt: Schema.Number,
+};
+
+export const IndexMutation = Schema.TaggedUnion({
+	UpsertMessage: messageMutationFields,
+	DeleteMessage: messageMutationFields,
+	DeleteThread: {
+		threadId: Schema.String,
+		parentChannelId: Schema.String,
+		...guildMutationFields,
+	},
+	ReconcileThread: {
+		threadId: Schema.String,
+		parentChannelId: Schema.String,
+		guildId: Schema.String,
+		requestedAt: Schema.Number,
+		reconcileStarter: Schema.optional(Schema.Boolean),
+	},
+	UpsertChannel: {
+		channelId: Schema.String,
+		...guildMutationFields,
+	},
+	DeleteChannel: {
+		channelId: Schema.String,
+		guildId: Schema.String,
+		scope: Schema.Literals(["self", "tree"]),
+		observedAt: Schema.Number,
+	},
+	InstallGuild: guildMutationFields,
+	UpsertGuild: guildMutationFields,
+	DeleteGuild: guildMutationFields,
+	UpsertUser: {
+		userId: Schema.String,
+		observedAt: Schema.Number,
+	},
+	ReconcileBotMemberPermissions: {
+		guildId: Schema.String,
+		userId: Schema.String,
+		deleted: Schema.Boolean,
+		observedAt: Schema.Number,
+	},
+	ReconcileRolePermissions: {
+		guildId: Schema.String,
+		roleId: Schema.String,
+		deleted: Schema.Boolean,
+		observedAt: Schema.Number,
+	},
+});
+
+export type IndexMutation = typeof IndexMutation.Type;
+
+export class InvalidIndexMutationPayloadError extends Schema.TaggedError<InvalidIndexMutationPayloadError>()(
+	"InvalidIndexMutationPayloadError",
+	{ cause: Schema.Defect() },
+) {}
+
+const decodeIndexMutationPayload = Schema.decodeUnknownEffect(IndexMutation);
+
+export const decodeIndexMutation = (
+	input: Parameters<typeof decodeIndexMutationPayload>[0],
+) =>
+	decodeIndexMutationPayload(input).pipe(
+		Effect.mapError((cause) => new InvalidIndexMutationPayloadError({ cause })),
+	);
 
 export type SubmissionSource =
 	| "gateway"
@@ -247,6 +243,7 @@ export type IndexOutcome =
 export type IndexErrorClassification =
 	| "discord-transient"
 	| "discord-permission"
+	| "discord-unknown"
 	| "missing-entity"
 	| "unsupported-entity"
 	| "partial-fetch"
@@ -284,6 +281,7 @@ export class IndexingOperationError extends Schema.TaggedError<IndexingOperation
 		classification: Schema.Literals([
 			"discord-transient",
 			"discord-permission",
+			"discord-unknown",
 			"missing-entity",
 			"unsupported-entity",
 			"partial-fetch",

@@ -3,7 +3,7 @@ import { ArrowRight, ArrowUpRight, Check, GitFork } from "lucide-react"
 import type { ReactNode } from "react"
 
 import questrialUrl from "../assets/Questrial-Regular.ttf?url"
-import marketingCss from "@/features/marketing/new-landing.css?url"
+import globalsCss from "@/globals.css?url"
 
 const title = "Velumn for Open-Source Communities"
 const description =
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/oss-program")({
       { property: "og:url", content: "https://velumn.com/oss-program" },
     ],
     links: [
-      { rel: "stylesheet", href: marketingCss },
+      { rel: "stylesheet", href: globalsCss },
       { rel: "canonical", href: "https://velumn.com/oss-program" },
     ],
   }),

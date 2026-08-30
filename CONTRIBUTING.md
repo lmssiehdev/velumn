@@ -4,6 +4,7 @@ Thank you for your interest in contributing! Any contributions you make are grea
 If you need help, please reach out on Discord.
 
 ## Introduction
+
 ```
 apps
 ├── bot
@@ -17,15 +18,15 @@ packages
 
 The `apps` directory contains the code for:
 
-* `web` – The marketing pages hosted at https://velumn.com, plus the forum communities
-* `dashboard` – The dashboard to manage your forum community
-* `bot` – The indexing bot
+- `web` – The marketing pages hosted at https://velumn.com, plus the forum communities
+- `dashboard` – The dashboard to manage your forum community
+- `bot` – The indexing bot
 
 The `packages` directory contains the code for:
 
-* `db` – The Drizzle ORM code (used directly by all apps)
-* `utils` – A collection of shared helper functions
-* Others are self-explanatory
+- `db` – The Drizzle ORM code (used directly by all apps)
+- `utils` – A collection of shared helper functions
+- Others are self-explanatory
 
 ### Step 1: Setting Up the Bot
 

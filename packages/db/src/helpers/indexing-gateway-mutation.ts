@@ -2,6 +2,7 @@ import {
 	type DBIndexingGatewayMutation,
 	dbIndexingGatewayMutation,
 } from "../schema";
+import { z } from "zod";
 
 export class IndexingGatewayMutationRowDecodeError extends Error {
 	readonly name = "IndexingGatewayMutationRowDecodeError";
@@ -11,26 +12,53 @@ export class IndexingGatewayMutationRowDecodeError extends Error {
 	}
 }
 
-export type RawIndexingGatewayMutation = Record<string, unknown>;
-
-const gatewayMutationStatuses = new Set<DBIndexingGatewayMutation["status"]>([
-	"pending",
-	"processing",
+const gatewayMutationStatusSchema = z.enum(["pending", "processing"]);
+const integerDriverValueSchema = z.union([
+	z.number(),
+	z.string().regex(/^-?\d+$/),
 ]);
+const gatewayTimestampPattern =
+	/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?$/;
+const gatewayTimestampSchema = z.union([
+	z.date(),
+	z.string().regex(gatewayTimestampPattern),
+]);
+const nullableGatewayTimestampSchema = gatewayTimestampSchema.nullable();
+const stringValueSchema = z.string();
+const nullableStringValueSchema = stringValueSchema.nullable();
+const jsonValueSchema = z.json();
+const claimedGatewayMutationRowSchema = z.object({
+	id: z.unknown(),
+	submissionId: z.unknown(),
+	orderingKey: z.unknown(),
+	mutation: z.unknown(),
+	submittedAt: z.unknown(),
+	status: z.unknown(),
+	attemptCount: z.unknown(),
+	nextAttemptAt: z.unknown(),
+	leaseOwner: z.unknown(),
+	leaseExpiresAt: z.unknown(),
+	lastErrorCode: z.unknown(),
+	createdAt: z.unknown(),
+	updatedAt: z.unknown(),
+});
+
+export type RawIndexingGatewayMutation = z.input<
+	typeof claimedGatewayMutationRowSchema
+>;
 
 export function decodeClaimedIndexingGatewayMutation(
-	value: unknown,
+	value: Parameters<typeof claimedGatewayMutationRowSchema.safeParse>[0],
 ): DBIndexingGatewayMutation {
-	if (typeof value !== "object" || value === null || Array.isArray(value)) {
+	const parsedRow = claimedGatewayMutationRowSchema.safeParse(value);
+	if (!parsedRow.success) {
 		throw new IndexingGatewayMutationRowDecodeError("row");
 	}
-	const row = value as RawIndexingGatewayMutation;
+	const row = parsedRow.data;
 	const id = decodeSafeInteger(row.id, "id", 1);
 	const attemptCount = decodeSafeInteger(row.attemptCount, "attemptCount", 0);
-	const status = decodeString(row.status, "status");
-	if (
-		!gatewayMutationStatuses.has(status as DBIndexingGatewayMutation["status"])
-	) {
+	const status = gatewayMutationStatusSchema.safeParse(row.status);
+	if (!status.success) {
 		throw new IndexingGatewayMutationRowDecodeError("status");
 	}
 
@@ -40,7 +68,7 @@ export function decodeClaimedIndexingGatewayMutation(
 		orderingKey: decodeString(row.orderingKey, "orderingKey"),
 		mutation: decodeJson(row.mutation),
 		submittedAt: decodeDate(row.submittedAt, "submittedAt"),
-		status: status as DBIndexingGatewayMutation["status"],
+		status: status.data,
 		attemptCount,
 		nextAttemptAt: decodeDate(row.nextAttemptAt, "nextAttemptAt"),
 		leaseOwner: decodeNullableString(row.leaseOwner, "leaseOwner"),
@@ -52,20 +80,20 @@ export function decodeClaimedIndexingGatewayMutation(
 }
 
 function decodeSafeInteger(
-	value: unknown,
+	value: Parameters<typeof integerDriverValueSchema.safeParse>[0],
 	field: "attemptCount" | "id",
 	minimum: number,
 ): number {
-	if (typeof value !== "number" && typeof value !== "string") {
-		throw new IndexingGatewayMutationRowDecodeError(field);
-	}
-	if (typeof value === "string" && !/^-?\d+$/.test(value)) {
+	const parsed = integerDriverValueSchema.safeParse(value);
+	if (!parsed.success) {
 		throw new IndexingGatewayMutationRowDecodeError(field);
 	}
 	const decoded =
 		field === "id"
-			? (dbIndexingGatewayMutation.id.mapFromDriverValue(value) as number)
-			: Number(value);
+			? z
+					.number()
+					.parse(dbIndexingGatewayMutation.id.mapFromDriverValue(parsed.data))
+			: Number(parsed.data);
 	if (!Number.isSafeInteger(decoded) || decoded < minimum) {
 		throw new IndexingGatewayMutationRowDecodeError(field);
 	}
@@ -73,7 +101,7 @@ function decodeSafeInteger(
 }
 
 function decodeDate(
-	value: unknown,
+	value: Parameters<typeof gatewayTimestampSchema.safeParse>[0],
 	field:
 		| "createdAt"
 		| "leaseExpiresAt"
@@ -81,21 +109,16 @@ function decodeDate(
 		| "submittedAt"
 		| "updatedAt",
 ): Date {
-	if (!(value instanceof Date) && typeof value !== "string") {
+	const parsed = gatewayTimestampSchema.safeParse(value);
+	if (!parsed.success) {
 		throw new IndexingGatewayMutationRowDecodeError(field);
 	}
+	const input = parsed.data;
 	const parts =
-		typeof value === "string"
-			? /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?$/.exec(
-					value,
-				)
-			: null;
-	if (typeof value === "string" && !parts) {
-		throw new IndexingGatewayMutationRowDecodeError(field);
-	}
-	const decoded = dbIndexingGatewayMutation.submittedAt.mapFromDriverValue(
-		value,
-	) as Date;
+		input instanceof Date ? null : gatewayTimestampPattern.exec(input);
+	const decoded = z
+		.date()
+		.parse(dbIndexingGatewayMutation.submittedAt.mapFromDriverValue(input));
 	if (!Number.isFinite(decoded.getTime())) {
 		throw new IndexingGatewayMutationRowDecodeError(field);
 	}
@@ -116,37 +139,45 @@ function decodeDate(
 }
 
 function decodeNullableDate(
-	value: unknown,
+	value: Parameters<typeof nullableGatewayTimestampSchema.safeParse>[0],
 	field: "leaseExpiresAt",
 ): Date | null {
 	return value === null ? null : decodeDate(value, field);
 }
 
 function decodeString(
-	value: unknown,
+	value: Parameters<typeof stringValueSchema.safeParse>[0],
 	field: "orderingKey" | "status" | "submissionId",
 ): string {
-	if (typeof value !== "string") {
+	const parsed = stringValueSchema.safeParse(value);
+	if (!parsed.success) {
 		throw new IndexingGatewayMutationRowDecodeError(field);
 	}
-	return value;
+	return parsed.data;
 }
 
 function decodeNullableString(
-	value: unknown,
+	value: Parameters<typeof nullableStringValueSchema.safeParse>[0],
 	field: "lastErrorCode" | "leaseOwner",
 ): string | null {
-	if (value === null) return null;
-	if (typeof value !== "string") {
+	const parsed = nullableStringValueSchema.safeParse(value);
+	if (!parsed.success) {
 		throw new IndexingGatewayMutationRowDecodeError(field);
 	}
-	return value;
+	return parsed.data;
 }
 
-function decodeJson(value: unknown): unknown {
-	if (typeof value !== "string") return value;
+function decodeJson(
+	value: Parameters<typeof jsonValueSchema.safeParse>[0],
+): DBIndexingGatewayMutation["mutation"] {
+	const serialized = z.string().safeParse(value);
+	if (!serialized.success) {
+		const parsed = jsonValueSchema.safeParse(value);
+		if (parsed.success) return parsed.data;
+		throw new IndexingGatewayMutationRowDecodeError("mutation");
+	}
 	try {
-		return JSON.parse(value);
+		return jsonValueSchema.parse(JSON.parse(serialized.data));
 	} catch {
 		throw new IndexingGatewayMutationRowDecodeError("mutation");
 	}

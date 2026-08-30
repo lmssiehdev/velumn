@@ -34,6 +34,8 @@ const scope = {
 	channelId: "parent",
 };
 
+const as = <A>(value: Parameters<typeof structuredClone>[0]): A => value as A;
+
 const thread = (
 	id: string,
 	active = true,
@@ -74,28 +76,26 @@ const planner = (
 });
 
 const messagePage = (ids: readonly string[]) =>
-	new Map(ids.map((id) => [id, { id }])) as unknown as Collection<
-		Snowflake,
-		Message<true>
-	>;
+	as<Collection<Snowflake, Message<true>>>(
+		new Map(ids.map((id) => [id, { id }])),
+	);
 
 const historyFromIds = (
 	idsByThread: Readonly<Record<string, readonly string[]>>,
 	requests: Array<{ threadId: string; after?: string; limit: number }>,
-) =>
-	({
-		fetchMessagePage: ({
-			channel,
-			after,
-			limit,
-		}: Parameters<DiscordHistory["Service"]["fetchMessagePage"]>[0]) =>
-			Effect.sync(() => {
-				requests.push({ threadId: channel.id, after, limit });
-				const ids = idsByThread[channel.id] ?? [];
-				const start = after === undefined ? 0 : ids.indexOf(after) + 1;
-				return messagePage(ids.slice(start, start + limit));
-			}),
-	}) as unknown as Pick<DiscordHistory["Service"], "fetchMessagePage">;
+) => ({
+	fetchMessagePage: ({
+		channel,
+		after,
+		limit,
+	}: Parameters<DiscordHistory["Service"]["fetchMessagePage"]>[0]) =>
+		Effect.sync(() => {
+			requests.push({ threadId: channel.id, after, limit });
+			const ids = idsByThread[channel.id] ?? [];
+			const start = after === undefined ? 0 : ids.indexOf(after) + 1;
+			return messagePage(ids.slice(start, start + limit));
+		}),
+});
 
 const runPaginationCase = (count: number) =>
 	Effect.scoped(
@@ -171,13 +171,15 @@ describe("Discord reconciliation", () => {
 								return [thread("thread")];
 							}),
 					};
-					const history = {
+					const history = as<
+						Pick<DiscordHistory["Service"], "fetchMessagePage">
+					>({
 						fetchMessagePage: () =>
 							Effect.sync(() => {
 								historyCalls += 1;
 								return messagePage([]);
 							}),
-					} as unknown as Pick<DiscordHistory["Service"], "fetchMessagePage">;
+					});
 
 					const missing = yield* reconcileDiscordHistory(
 						scope,
@@ -477,18 +479,20 @@ describe("Discord reconciliation", () => {
 				const twoStarted = yield* Deferred.make<void>();
 				const release = yield* Deferred.make<void>();
 				const started = yield* Ref.make(0);
-				const history = {
-					fetchMessagePage: () =>
-						Effect.gen(function* () {
-							const count = yield* Ref.updateAndGet(
-								started,
-								(value) => value + 1,
-							);
-							if (count === 2) yield* Deferred.succeed(twoStarted, undefined);
-							yield* Deferred.await(release);
-							return messagePage([]);
-						}),
-				} as unknown as Pick<DiscordHistory["Service"], "fetchMessagePage">;
+				const history = as<Pick<DiscordHistory["Service"], "fetchMessagePage">>(
+					{
+						fetchMessagePage: () =>
+							Effect.gen(function* () {
+								const count = yield* Ref.updateAndGet(
+									started,
+									(value) => value + 1,
+								);
+								if (count === 2) yield* Deferred.succeed(twoStarted, undefined);
+								yield* Deferred.await(release);
+								return messagePage([]);
+							}),
+					},
+				);
 				const fiber = yield* Effect.forkChild(
 					reconcileDiscordHistory(
 						scope,
@@ -588,12 +592,14 @@ describe("Discord reconciliation", () => {
 					(mutation) =>
 						Effect.sync(() => processed.push(mutation)).pipe(Effect.asVoid),
 				);
-				const history = {
-					fetchMessagePage: ({ channel }: { channel: { id: string } }) =>
-						channel.id === "bad"
-							? Effect.fail("history failed")
-							: Effect.succeed(messagePage(["1"])),
-				} as unknown as Pick<DiscordHistory["Service"], "fetchMessagePage">;
+				const history = as<Pick<DiscordHistory["Service"], "fetchMessagePage">>(
+					{
+						fetchMessagePage: ({ channel }: { channel: { id: string } }) =>
+							channel.id === "bad"
+								? Effect.fail("history failed")
+								: Effect.succeed(messagePage(["1"])),
+					},
+				);
 
 				const summary = yield* reconcileDiscordHistory(
 					scope,
@@ -709,18 +715,20 @@ describe("Discord reconciliation", () => {
 				const fetchStarted = yield* Deferred.make<void>();
 				const fetchCancelled = yield* Deferred.make<void>();
 				let fetches = 0;
-				const history = {
-					fetchMessagePage: () =>
-						Effect.gen(function* () {
-							fetches += 1;
-							yield* Deferred.succeed(fetchStarted, undefined);
-							return yield* Effect.never;
-						}).pipe(
-							Effect.onInterrupt(() =>
-								Deferred.succeed(fetchCancelled, undefined),
+				const history = as<Pick<DiscordHistory["Service"], "fetchMessagePage">>(
+					{
+						fetchMessagePage: () =>
+							Effect.gen(function* () {
+								fetches += 1;
+								yield* Deferred.succeed(fetchStarted, undefined);
+								return yield* Effect.never;
+							}).pipe(
+								Effect.onInterrupt(() =>
+									Deferred.succeed(fetchCancelled, undefined),
+								),
 							),
-						),
-				} as unknown as Pick<DiscordHistory["Service"], "fetchMessagePage">;
+					},
+				);
 				const fiber = yield* Effect.forkChild(
 					reconcileDiscordHistory(
 						scope,

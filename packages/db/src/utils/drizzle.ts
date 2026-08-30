@@ -9,12 +9,10 @@ export const buildConflictUpdateColumns = <
 	columns: Q[],
 ) => {
 	const cls = getTableColumns(table);
-	return columns.reduce(
-		(acc, column) => {
-			const colName = cls[column]?.name;
-			acc[column] = sql.raw(`excluded.${colName}`);
-			return acc;
-		},
-		{} as Record<Q, SQL>,
-	);
+	const updateColumns: Partial<Record<Q, SQL>> = {};
+	for (const column of columns) {
+		const columnName = cls[column]?.name;
+		updateColumns[column] = sql.raw(`excluded.${columnName}`);
+	}
+	return updateColumns;
 };

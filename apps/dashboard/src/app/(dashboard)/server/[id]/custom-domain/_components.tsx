@@ -22,8 +22,8 @@ export function CustomDomainSettings({
 				<div className="mb-4">
 					<h2 className="font-semibold text-lg">Custom domain</h2>
 					<p className="text-muted-foreground text-sm">
-						Custom domains let Velumn serve this server&apos;s forum content from a
-						dedicated hostname.
+						Custom domains let Velumn serve this server&apos;s forum content
+						from a dedicated hostname.
 					</p>
 				</div>
 
@@ -55,29 +55,17 @@ export function CustomDomainSettings({
 					</div>
 					{hasLinkedDomain ? (
 						<div className="flex items-end gap-2">
-							<Button
-								disabled
-								type="button"
-								variant="outline"
-							>
+							<Button disabled type="button" variant="outline">
 								<ArrowsClockwiseIcon />
 								Refresh
 							</Button>
-							<Button
-								disabled
-								type="button"
-								variant="destructive"
-							>
+							<Button disabled type="button" variant="destructive">
 								<TrashIcon />
 								Remove
 							</Button>
 						</div>
 					) : (
-						<Button
-							className="sm:self-end"
-							disabled
-							type="button"
-						>
+						<Button className="sm:self-end" disabled type="button">
 							<GlobeIcon />
 							Add domain
 						</Button>

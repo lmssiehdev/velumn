@@ -8,7 +8,9 @@ import {
   releaseDomainProvisioning,
   reserveDomainForServer,
 } from "@repo/db/helpers/domains"
+import { isServerProEntitled } from "@repo/db/helpers/dashboard-billing"
 import { buildHostUrl, normalizeDomain } from "@repo/utils/helpers/domains"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
@@ -41,8 +43,7 @@ const orchestrationDependencies: PublishingOrchestrationDependencies = {
   reserveDomainForServer,
 }
 
-const serverIdSchema = z.string().regex(/^\d+$/)
-const serverInputSchema = z.object({ serverId: serverIdSchema })
+const serverInputSchema = z.object({ serverId: discordSnowflakeSchema })
 
 export const getPublishingPage = createServerFn({ method: "GET" })
   .validator(serverInputSchema)
@@ -54,7 +55,10 @@ export const getPublishingPage = createServerFn({ method: "GET" })
     if (authorization.status === "error") return authorization
 
     const { server } = authorization
-    const lifecycle = await getDomainLifecycle(server.id)
+    const [lifecycle, canAddCustomDomain] = await Promise.all([
+      getDomainLifecycle(server.id),
+      isServerProEntitled(server.id),
+    ])
     const defaultUrl = buildHostUrl("velumn.com", `/server/${server.id}`)
     const customDomain = server.customDomain
     return {
@@ -68,6 +72,7 @@ export const getPublishingPage = createServerFn({ method: "GET" })
             ? buildHostUrl(customDomain, "/")
             : defaultUrl,
         customDomain,
+        canAddCustomDomain,
         domainLifecycle: {
           status:
             lifecycle?.status ??
@@ -103,7 +108,10 @@ export const getPublishingPage = createServerFn({ method: "GET" })
 
 export const addPublishingDomain = createServerFn({ method: "POST" })
   .validator(
-    z.object({ serverId: serverIdSchema, domain: z.string().min(1).max(253) })
+    z.object({
+      serverId: discordSnowflakeSchema,
+      domain: z.string().min(1).max(253),
+    })
   )
   .handler(async ({ data }) => {
     const authorization = await authorizeManagementServer(
@@ -113,6 +121,12 @@ export const addPublishingDomain = createServerFn({ method: "POST" })
     if (authorization.status === "error") return authorization
     if (authorization.server.customDomain) {
       return domainError("domain_exists", "A custom domain is already linked.")
+    }
+    if (!(await isServerProEntitled(data.serverId))) {
+      return domainError(
+        "upgrade_required",
+        "Upgrade to Pro to add a custom domain."
+      )
     }
 
     let domain: string

@@ -7,6 +7,15 @@ type StructuredDataThread = PublicThreadPage & {
   canonical: { origin: string; url: string }
 }
 
+type JsonLdValue =
+  | boolean
+  | number
+  | string
+  | null
+  | undefined
+  | readonly JsonLdValue[]
+  | { readonly [key: string]: JsonLdValue }
+
 export function buildDiscussionForumPostingJsonLd(
   thread: StructuredDataThread
 ) {
@@ -27,8 +36,8 @@ export function buildDiscussionForumPostingJsonLd(
           "@type": "Person",
           name: reply.author.name,
         },
-        ...(reply.content ? { text: reply.content } : {}),
-        ...(replyImage ? { image: replyImage } : {}),
+        text: reply.content || undefined,
+        image: replyImage,
       },
     ]
   })
@@ -59,9 +68,9 @@ export function buildDiscussionForumPostingJsonLd(
       interactionType: "https://schema.org/CommentAction",
       userInteractionCount: thread.replyCount,
     },
-    ...(thread.starter.content ? { text: thread.starter.content } : {}),
-    ...(image ? { image } : {}),
-    ...(comments.length > 0 ? { comment: comments } : {}),
+    text: thread.starter.content || undefined,
+    image,
+    comment: comments.length > 0 ? comments : undefined,
   }
 }
 
@@ -79,7 +88,7 @@ export function buildDiscussionForumPostingScripts(
     : []
 }
 
-export function serializeJsonLd(value: unknown) {
+export function serializeJsonLd(value: JsonLdValue) {
   return JSON.stringify(value).replaceAll("<", "\\u003c")
 }
 

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 import { captureOnboardingEvent } from "@repo/utils/onboarding-analytics"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import { z } from "zod"
 
 import { requireServerAuth } from "@/lib/server-auth"
@@ -12,7 +13,7 @@ const onboardingEventSchema = z.object({
     "channel_selection_submitted",
     "indexing_successfully_started",
   ]),
-  serverId: z.string().regex(/^\d+$/),
+  serverId: discordSnowflakeSchema,
   properties: z.record(z.string(), z.string().or(z.number())).optional(),
 })
 

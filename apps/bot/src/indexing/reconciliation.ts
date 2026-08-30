@@ -317,7 +317,7 @@ export const reconcileDiscordHistory = <E>(
 						guildId: thread.guildId,
 						requestedAt,
 					});
-					if (typeof reconciled === "string") {
+					if (reconciled === "Overloaded" || reconciled === "Closing") {
 						return failedResult(threadId, "reconcile-thread", reconciled);
 					}
 					const reconcileFailure = receiptFailure(reconciled);
@@ -385,7 +385,7 @@ export const reconcileDiscordHistory = <E>(
 							threadId: isThread ? threadId : null,
 							observedAt,
 						});
-						if (typeof outcome === "string") {
+						if (outcome === "Overloaded" || outcome === "Closing") {
 							yield* Ref.update(remainingMessages, (current) => current + 1);
 							return failedResult(
 								threadId,

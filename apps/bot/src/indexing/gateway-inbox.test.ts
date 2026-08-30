@@ -8,6 +8,7 @@ import {
 	Exit,
 	Fiber,
 	Layer,
+	Metric,
 	Option,
 	Tracer,
 } from "effect";
@@ -47,6 +48,7 @@ const options: GatewayMutationInboxOptions = {
 	leaseDurationMs: 1_000,
 	initialRetryDelayMs: 10,
 	maximumRetryDelayMs: 100,
+	maximumAttemptCount: 10,
 	pollingIntervalMs: 10,
 };
 
@@ -88,6 +90,8 @@ const repository = (
 		completed: number[];
 		deferred: number[];
 		deferredCodes: string[];
+		failed: number[];
+		failedCodes: string[];
 		order: string[];
 		released: number;
 		releaseClaims: Array<{ id: number; generation: number }>;
@@ -107,6 +111,12 @@ const repository = (
 				calls.deferred.push(id);
 				calls.deferredCodes.push(errorCode);
 				calls.order.push(`defer:${id}`);
+			}),
+		fail: (id, _leaseOwner, _generation, errorCode) =>
+			Effect.sync(() => {
+				calls.failed.push(id);
+				calls.failedCodes.push(errorCode);
+				calls.order.push(`fail:${id}`);
 			}),
 		renew: (id) =>
 			Effect.sync(() => {
@@ -136,6 +146,8 @@ const run = (
 		completed: number[];
 		deferred: number[];
 		deferredCodes: string[];
+		failed: number[];
+		failedCodes: string[];
 		order: string[];
 		released: number;
 		releaseClaims: Array<{ id: number; generation: number }>;
@@ -159,6 +171,8 @@ const calls = () => ({
 	completed: [] as number[],
 	deferred: [] as number[],
 	deferredCodes: [] as string[],
+	failed: [] as number[],
+	failedCodes: [] as string[],
 	order: [] as string[],
 	released: 0,
 	releaseClaims: [] as Array<{ id: number; generation: number }>,
@@ -221,6 +235,9 @@ describe("durable gateway mutation inbox", () => {
 				root?.spanId,
 			);
 			assert.equal(claimed?.traceId, root?.traceId);
+			assert.equal(claimed?.attributes.get("mutation.type"), "delete_message");
+			assert.equal(claimed?.attributes.get("submission.source"), "gateway");
+			assert.equal(claimed?.attributes.get("operation.outcome"), "succeeded");
 			const exportedIds = new Set(spans.map((span) => span.spanId));
 			assert.isTrue(
 				spans.every((span) => {
@@ -368,10 +385,7 @@ describe("durable gateway mutation inbox", () => {
 				"indexing:commit-mutation:database",
 			]);
 			assert.deepEqual(observed.completed, []);
-			assert.deepEqual(
-				observed.releaseClaims.map(({ id }) => id).sort(),
-				[2, 3],
-			);
+			assert.deepEqual(observed.releaseClaims, []);
 		}),
 	);
 
@@ -404,8 +418,167 @@ describe("durable gateway mutation inbox", () => {
 				),
 			);
 
-			assert.deepEqual(observed.completed, [20]);
+			assert.deepEqual(observed.failed, [20]);
+			assert.deepEqual(observed.failedCodes, [
+				"indexing:commit-mutation:missing-entity",
+			]);
 			assert.deepEqual(observed.deferred, []);
+		}),
+	);
+
+	it.effect("quarantines an invalid persisted payload before admission", () =>
+		Effect.gen(function* () {
+			const invalidPayloadCount = Metric.snapshot.pipe(
+				Effect.map((snapshots) => {
+					const snapshot = snapshots.find(
+						(metric) =>
+							metric.id === "velumn_bot_gateway_mutations_total" &&
+							metric.attributes?.kind === "invalid_payload" &&
+							metric.attributes.outcome === "failed",
+					);
+					return snapshot?.type === "Counter"
+						? Number(snapshot.state.count)
+						: 0;
+				}),
+			);
+			const invalidPayloadCountBefore = yield* invalidPayloadCount;
+			const observed = calls();
+			const contexts: ErrorCaptureContext[] = [];
+			const spans: Tracer.NativeSpan[] = [];
+			const tracer = Tracer.make({
+				span: (spanOptions) => {
+					const span = new Tracer.NativeSpan(spanOptions);
+					spans.push(span);
+					return span;
+				},
+			});
+			let admissions = 0;
+			const invalid = {
+				...row(27, "content:thread-1", {
+					_tag: "DeleteMessage",
+					messageId: "message-1",
+					channelId: "thread-1",
+					threadId: "thread-1",
+					observedAt: 1_000,
+				}),
+				mutation: { _tag: "DeleteMessage", messageId: "missing-fields" },
+			};
+
+			const result = yield* run(
+				[invalid],
+				observed,
+				coordinator(() =>
+					Effect.sync(() => {
+						admissions += 1;
+						return { _tag: "Closing" as const };
+					}),
+				),
+			).pipe(
+				Effect.provideService(ErrorCapture, {
+					captureCause: (_cause, context) =>
+						Effect.sync(() => {
+							contexts.push(context);
+							return undefined;
+						}),
+				}),
+				Effect.provideService(Tracer.Tracer, tracer),
+			);
+
+			assert.equal(result, 1);
+			assert.equal(admissions, 0);
+			assert.deepEqual(observed.failed, [27]);
+			assert.deepEqual(observed.failedCodes, ["indexing:invalid-payload"]);
+			assert.deepEqual(contexts, [
+				{
+					boundary: "gateway_receipt_recovery",
+					operation: "gateway.claimed_process",
+					mutationId: "27",
+					submissionId: "gateway:test:27",
+				},
+			]);
+			const poll = spans.find((span) => span.name === "gateway.poll");
+			assert.equal(poll?.attributes.get("batch.failed_count"), 0);
+			assert.equal(poll?.attributes.get("operation.outcome"), "completed");
+			assert.equal(yield* invalidPayloadCount, invalidPayloadCountBefore + 1);
+		}),
+	);
+
+	it.effect("defers a defect before the durable attempt limit", () =>
+		Effect.gen(function* () {
+			const observed = calls();
+			yield* run(
+				[
+					row(
+						28,
+						"content:thread-1",
+						{
+							_tag: "DeleteMessage",
+							messageId: "message-1",
+							channelId: "thread-1",
+							threadId: "thread-1",
+							observedAt: 1_000,
+						},
+						options.maximumAttemptCount - 1,
+					),
+				],
+				observed,
+				coordinator((submission) =>
+					Effect.succeed({
+						_tag: "Accepted",
+						receipt: {
+							await: Effect.succeed({
+								_tag: "Failed",
+								submissionId: submission.id,
+								failedAt: 2_000,
+								cause: Cause.die(new Error("unexpected defect")),
+							}),
+						},
+					}),
+				),
+			);
+
+			assert.deepEqual(observed.deferred, [28]);
+			assert.deepEqual(observed.failed, []);
+		}),
+	);
+
+	it.effect("quarantines a defect at the durable attempt limit", () =>
+		Effect.gen(function* () {
+			const observed = calls();
+			yield* run(
+				[
+					row(
+						28,
+						"content:thread-1",
+						{
+							_tag: "DeleteMessage",
+							messageId: "message-1",
+							channelId: "thread-1",
+							threadId: "thread-1",
+							observedAt: 1_000,
+						},
+						options.maximumAttemptCount,
+					),
+				],
+				observed,
+				coordinator((submission) =>
+					Effect.succeed({
+						_tag: "Accepted",
+						receipt: {
+							await: Effect.succeed({
+								_tag: "Failed",
+								submissionId: submission.id,
+								failedAt: 2_000,
+								cause: Cause.die(new Error("unexpected defect")),
+							}),
+						},
+					}),
+				),
+			);
+
+			assert.deepEqual(observed.deferred, []);
+			assert.deepEqual(observed.failed, [28]);
+			assert.deepEqual(observed.failedCodes, ["indexing:attempts-exhausted"]);
 		}),
 	);
 
@@ -553,6 +726,14 @@ describe("durable gateway mutation inbox", () => {
 					"deferred",
 				);
 				assert.equal(
+					defectSpan?.attributes.get("mutation.type"),
+					"delete_message",
+				);
+				assert.equal(
+					defectSpan?.attributes.get("submission.source"),
+					"gateway",
+				);
+				assert.equal(
 					defectSpan?.attributes.get("error.classification"),
 					"defect",
 				);
@@ -611,7 +792,7 @@ describe("durable gateway mutation inbox", () => {
 				),
 			);
 			assert.deepEqual(afterRestart.completed, [4]);
-			assert.equal(afterRestart.released, 1);
+			assert.equal(afterRestart.released, 0);
 		}),
 	);
 
@@ -727,52 +908,191 @@ describe("durable gateway mutation inbox", () => {
 		}),
 	);
 
-	it.effect("does not release an admitted claim during shutdown", () =>
+	it.effect(
+		"does not release an admitted claim when receipt wait is interrupted",
+		() =>
+			Effect.gen(function* () {
+				const observed = calls();
+				const admitted = yield* Deferred.make<void>();
+				const receipt =
+					yield* Deferred.make<IndexTerminalOutcome<IndexingOperationError>>();
+				const fiber = yield* Effect.forkChild(
+					run(
+						[
+							row(21, "content:thread-1", {
+								_tag: "DeleteMessage",
+								messageId: "message-1",
+								channelId: "thread-1",
+								threadId: "thread-1",
+								observedAt: 1_000,
+							}),
+						],
+						observed,
+						coordinator((_submission) =>
+							Deferred.succeed(admitted, undefined).pipe(
+								Effect.as({
+									_tag: "Accepted" as const,
+									receipt: { await: Deferred.await(receipt) },
+								}),
+							),
+						),
+					),
+				);
+
+				yield* Deferred.await(admitted);
+				yield* Fiber.interrupt(fiber);
+
+				assert.deepEqual(observed.completed, []);
+				assert.equal(observed.released, 0);
+			}),
+	);
+
+	it.effect("releases a settled claim when its terminal write fails", () =>
 		Effect.gen(function* () {
 			const observed = calls();
-			const admitted = yield* Deferred.make<void>();
-			const receipt =
-				yield* Deferred.make<IndexTerminalOutcome<IndexingOperationError>>();
-			const fiber = yield* Effect.forkChild(
-				run(
-					[
-						row(21, "content:thread-1", {
-							_tag: "DeleteMessage",
-							messageId: "message-1",
-							channelId: "thread-1",
-							threadId: "thread-1",
-							observedAt: 1_000,
+			const claimed = row(30, "content:thread-1", {
+				_tag: "DeleteMessage",
+				messageId: "message-1",
+				channelId: "thread-1",
+				threadId: "thread-1",
+				observedAt: 1_000,
+			});
+			const base = repository([claimed], observed);
+			const failingRepository = GatewayMutationRepository.of({
+				...base,
+				complete: () =>
+					Effect.fail(
+						new GatewayMutationRepositoryError({
+							operation: "complete",
+							cause: new Error("terminal write failed"),
 						}),
-					],
-					observed,
-					coordinator((_submission) =>
-						Deferred.succeed(admitted, undefined).pipe(
-							Effect.as({
-								_tag: "Accepted" as const,
-								receipt: { await: Deferred.await(receipt) },
-							}),
-						),
+					),
+			});
+
+			const result = yield* drainGatewayMutationBatch(options).pipe(
+				Effect.provideService(GatewayMutationRepository, failingRepository),
+				Effect.provideService(
+					IndexingCoordinator,
+					coordinator((submission) =>
+						Effect.succeed({
+							_tag: "Accepted",
+							receipt: {
+								await: Effect.succeed({
+									_tag: "Completed",
+									submissionId: submission.id,
+									completedAt: 2_000,
+								}),
+							},
+						}),
 					),
 				),
 			);
 
-			yield* Deferred.await(admitted);
-			const interrupt = yield* Effect.forkChild(Fiber.interrupt(fiber));
-			yield* Effect.yieldNow;
-			assert.equal(observed.released, 0);
+			assert.equal(result, 1);
+			assert.deepEqual(observed.releaseClaims, [{ id: 30, generation: 1 }]);
+		}),
+	);
 
-			yield* Deferred.succeed(receipt, {
-				_tag: "Completed",
-				submissionId: "gateway:test:21",
-				completedAt: 2_000,
-			});
-			yield* Fiber.join(interrupt);
-			assert.deepEqual(observed.completed, [21]);
-			assert.equal(observed.released, 1);
-			assert.isBelow(
-				observed.order.indexOf("complete:21"),
-				observed.order.indexOf("release:21"),
+	it.effect(
+		"bounds claim release after a settled terminal write times out",
+		() =>
+			Effect.gen(function* () {
+				const observed = calls();
+				const completeStarted = yield* Deferred.make<void>();
+				const releaseStarted = yield* Deferred.make<void>();
+				const claimed = row(31, "content:thread-1", {
+					_tag: "DeleteMessage",
+					messageId: "message-1",
+					channelId: "thread-1",
+					threadId: "thread-1",
+					observedAt: 1_000,
+				});
+				const base = repository([claimed], observed);
+				const blockingRepository = GatewayMutationRepository.of({
+					...base,
+					complete: () =>
+						Deferred.succeed(completeStarted, undefined).pipe(
+							Effect.andThen(Effect.never),
+						),
+					release: () =>
+						Deferred.succeed(releaseStarted, undefined).pipe(
+							Effect.andThen(Effect.never),
+						),
+				});
+				const fiber = yield* Effect.forkChild(
+					drainGatewayMutationBatch(options).pipe(
+						Effect.provideService(
+							GatewayMutationRepository,
+							blockingRepository,
+						),
+						Effect.provideService(
+							IndexingCoordinator,
+							coordinator((submission) =>
+								Effect.succeed({
+									_tag: "Accepted",
+									receipt: {
+										await: Effect.succeed({
+											_tag: "Completed",
+											submissionId: submission.id,
+											completedAt: 2_000,
+										}),
+									},
+								}),
+							),
+						),
+					),
+				);
+
+				yield* Deferred.await(completeStarted);
+				yield* TestClock.adjust("5 seconds");
+				yield* Deferred.await(releaseStarted);
+				yield* TestClock.adjust("5 seconds");
+				assert.equal(yield* Fiber.join(fiber), 1);
+			}),
+	);
+
+	it.effect("bounds best-effort claim release during interruption", () =>
+		Effect.gen(function* () {
+			const observed = calls();
+			const admissionStarted = yield* Deferred.make<void>();
+			const releaseStarted = yield* Deferred.make<void>();
+			const base = repository(
+				[
+					row(29, "content:thread-1", {
+						_tag: "DeleteMessage",
+						messageId: "message-1",
+						channelId: "thread-1",
+						threadId: "thread-1",
+						observedAt: 1_000,
+					}),
+				],
+				observed,
 			);
+			const blockingRelease = GatewayMutationRepository.of({
+				...base,
+				release: () =>
+					Deferred.succeed(releaseStarted, undefined).pipe(
+						Effect.andThen(Effect.never),
+					),
+			});
+			const fiber = yield* Effect.forkChild(
+				drainGatewayMutationBatch(options).pipe(
+					Effect.provideService(GatewayMutationRepository, blockingRelease),
+					Effect.provideService(
+						IndexingCoordinator,
+						coordinator(() =>
+							Deferred.succeed(admissionStarted, undefined).pipe(
+								Effect.andThen(Effect.never),
+							),
+						),
+					),
+				),
+			);
+			yield* Deferred.await(admissionStarted);
+			const interrupt = yield* Effect.forkChild(Fiber.interrupt(fiber));
+			yield* Deferred.await(releaseStarted);
+			yield* TestClock.adjust("5 seconds");
+			yield* Fiber.join(interrupt);
 		}),
 	);
 

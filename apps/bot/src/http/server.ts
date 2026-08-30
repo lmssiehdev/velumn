@@ -23,6 +23,9 @@ interface BotHttpServerOptions {
 	}) => ServerHandle;
 }
 
+const gracefulStopTimeout = "2 seconds" as const;
+const forcedStopTimeout = "1 second" as const;
+
 export class BotHttpServerError extends Schema.TaggedError<BotHttpServerError>()(
 	"BotHttpServerError",
 	{
@@ -67,19 +70,33 @@ export const makeBotHttpServer = (
 				catch: (cause) =>
 					new BotHttpServerError({ operation: "listen", cause }),
 			}),
-			(server) =>
-				readiness.setHttpReady(false).pipe(
-					Effect.andThen(
-						Effect.tryPromise({
-							try: () => Promise.resolve(server.stop(false)),
-							catch: (cause) =>
-								new BotHttpServerError({ operation: "close", cause }),
-						}),
-					),
+			(server) => {
+				const stop = (
+					force: boolean,
+					timeout: typeof gracefulStopTimeout | typeof forcedStopTimeout,
+				) =>
+					Effect.tryPromise({
+						try: () => Promise.resolve(server.stop(force)),
+						catch: (cause) =>
+							new BotHttpServerError({ operation: "close", cause }),
+					}).pipe(Effect.timeout(timeout));
+
+				return readiness.setHttpReady(false).pipe(
+					Effect.andThen(stop(false, gracefulStopTimeout)),
 					Effect.catch((error) =>
-						Effect.logWarning("Failed to close bot HTTP server", { error }),
+						Effect.logWarning("Graceful bot HTTP server shutdown failed", {
+							error,
+						}).pipe(
+							Effect.andThen(stop(true, forcedStopTimeout)),
+							Effect.catch((forceError) =>
+								Effect.logWarning("Forced bot HTTP server shutdown failed", {
+									error: forceError,
+								}),
+							),
+						),
 					),
-				),
+				);
+			},
 		);
 
 		yield* readiness.setHttpReady(true);

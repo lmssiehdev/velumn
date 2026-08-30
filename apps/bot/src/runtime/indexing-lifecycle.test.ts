@@ -97,6 +97,7 @@ describe("indexing layer lifecycle", () => {
 						Effect.sync(() => {
 							deferred += 1;
 						}),
+					fail: () => Effect.die("unused"),
 					renew: () => Effect.void,
 					release: () =>
 						Effect.sync(() => {
@@ -123,6 +124,7 @@ describe("indexing layer lifecycle", () => {
 					leaseDurationMs: 100_000,
 					initialRetryDelayMs: 10,
 					maximumRetryDelayMs: 100,
+					maximumAttemptCount: 10,
 					pollingIntervalMs: 10,
 				}).pipe(
 					Layer.provideMerge(
@@ -145,7 +147,7 @@ describe("indexing layer lifecycle", () => {
 				yield* Fiber.join(closeFiber);
 
 				assert.equal(deferred, 1);
-				assert.equal(released, 1);
+				assert.equal(released, 0);
 			}),
 	);
 
@@ -200,6 +202,7 @@ describe("indexing layer lifecycle", () => {
 							completedCount += 1;
 						}),
 					defer: () => Effect.void,
+					fail: () => Effect.die("unused"),
 					renew: () => Effect.void,
 					release: () => Effect.void,
 				});
@@ -244,6 +247,7 @@ describe("indexing layer lifecycle", () => {
 					leaseDurationMs: 1_000,
 					initialRetryDelayMs: 10,
 					maximumRetryDelayMs: 100,
+					maximumAttemptCount: 10,
 					pollingIntervalMs: 10,
 				}).pipe(
 					Layer.provideMerge(
@@ -299,6 +303,7 @@ describe("indexing layer lifecycle", () => {
 				claim: () => Effect.die("poll defect"),
 				complete: () => Effect.void,
 				defer: () => Effect.void,
+				fail: () => Effect.die("unused"),
 				renew: () => Effect.void,
 				release: () => Effect.void,
 			});
@@ -314,6 +319,7 @@ describe("indexing layer lifecycle", () => {
 				leaseDurationMs: 1_000,
 				initialRetryDelayMs: 10,
 				maximumRetryDelayMs: 100,
+				maximumAttemptCount: 10,
 				pollingIntervalMs: 10,
 			}).pipe(
 				Layer.provideMerge(

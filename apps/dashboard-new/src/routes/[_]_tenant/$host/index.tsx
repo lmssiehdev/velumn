@@ -7,14 +7,11 @@ import {
   TenantRouteNotFound,
   TenantRoutePending,
 } from "@/features/tenant-routing/components"
+import { snowflakeSchema } from "@/features/tenant-routing/contracts"
 import { getTenantForumHome } from "@/features/tenant-routing/functions"
 
 const searchSchema = z.object({
-  cursor: z
-    .string()
-    .regex(/^[0-9]{1,20}$/)
-    .optional()
-    .catch(undefined),
+  cursor: snowflakeSchema.optional().catch(undefined),
 })
 
 export const Route = createFileRoute("/__tenant/$host/")({

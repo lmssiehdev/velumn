@@ -1,4 +1,10 @@
 {
 	"bunVersion": "1.x",
+	"crons": [
+		{
+			"path": "/api/internal/billing/reconcile",
+			"schedule": "*/10 * * * *"
+		}
+	],
 	"ignoreCommand": "npx turbo-ignore"
 }

@@ -2,12 +2,23 @@ import { Vercel } from "@vercel/sdk"
 import type { GetDomainConfigResponseBody } from "@vercel/sdk/models/getdomainconfigop"
 import type { GetProjectDomainResponseBody } from "@vercel/sdk/models/getprojectdomainop"
 import { Result, TaggedError, type Result as ResultType } from "better-result"
+import { z } from "zod"
 
 import { requireVercelEnv } from "@/env.server"
 
 const REQUEST_TIMEOUT_MS = 15_000
 
 const requestOptions = { timeoutMs: REQUEST_TIMEOUT_MS }
+
+const vercelProviderErrorSchema = z.object({
+  body: z.string().optional(),
+  statusCode: z.number().optional(),
+})
+
+const vercelErrorBodySchema = z.object({
+  error: z.object({ code: z.string().optional() }).optional(),
+  code: z.string().optional(),
+})
 
 export type DomainCheckResult = {
   domain: string
@@ -222,32 +233,30 @@ export async function getDomainStatus(
   })
 }
 
-export function getVercelErrorCode(error: unknown) {
-  if (!error || typeof error !== "object") return null
-  const body = "body" in error ? error.body : null
-  if (typeof body !== "string") return null
+export function getVercelErrorCode(
+  cause: Parameters<typeof vercelProviderErrorSchema.safeParse>[0]
+) {
+  const providerError = vercelProviderErrorSchema.safeParse(cause)
+  const body = providerError.data?.body
+  if (!body) return null
 
   try {
-    const parsed = JSON.parse(body) as {
-      error?: { code?: unknown }
-      code?: unknown
-    }
-    const code = parsed.error?.code ?? parsed.code
-    return typeof code === "string" ? code : null
+    const parsed = vercelErrorBodySchema.safeParse(JSON.parse(body))
+    return parsed.data?.error?.code ?? parsed.data?.code ?? null
   } catch {
     return null
   }
 }
 
-function getVercelStatusCode(error: unknown) {
-  if (!error || typeof error !== "object" || !("statusCode" in error))
-    return null
-  return typeof error.statusCode === "number" ? error.statusCode : null
+function getVercelStatusCode(
+  cause: Parameters<typeof vercelProviderErrorSchema.safeParse>[0]
+) {
+  return vercelProviderErrorSchema.safeParse(cause).data?.statusCode ?? null
 }
 
-function toDomainProviderError(error: unknown, action: DomainProviderAction) {
-  const providerCode = getVercelErrorCode(error)
-  const statusCode = getVercelStatusCode(error)
+function toDomainProviderError(cause: unknown, action: DomainProviderAction) {
+  const providerCode = getVercelErrorCode(cause)
+  const statusCode = getVercelStatusCode(cause)
 
   if (
     providerCode === "domain_already_in_use" ||

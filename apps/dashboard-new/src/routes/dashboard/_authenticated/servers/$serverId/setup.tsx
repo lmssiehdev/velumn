@@ -14,6 +14,7 @@ import {
   Search,
 } from "lucide-react"
 import { useDeferredValue, useState } from "react"
+import { z } from "zod"
 
 import { ServerAvatar } from "@/components/server-avatar"
 import { Badge } from "@/components/ui/badge"
@@ -44,8 +45,14 @@ import {
 import { formatLocalTime } from "@/lib/date"
 import { cn } from "@/lib/utils"
 
-function parseSetupSearch(search: Record<string, unknown>) {
-  return typeof search.q === "string" ? { q: search.q } : {}
+const setupSearchSchema = z.object({
+  q: z.string().optional().catch(undefined),
+})
+
+function parseSetupSearch(
+  search: Parameters<typeof setupSearchSchema.parse>[0]
+) {
+  return setupSearchSchema.parse(search)
 }
 
 export const Route = createFileRoute(

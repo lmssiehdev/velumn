@@ -3,11 +3,11 @@ import { createFileRoute, redirect } from "@tanstack/react-router"
 import { parsePublicForumSearch } from "@/features/public-forum/contracts"
 import { getPublicForum } from "@/features/public-forum/functions"
 import {
-  PublicForumError,
-  PublicForumNotFound,
-  PublicForumPending,
-  PublicForumView,
-} from "@/features/public-forum/forum"
+  ForumRedesign,
+  ForumRedesignError,
+  ForumRedesignNotFound,
+  ForumRedesignPending,
+} from "@/features/forum-redesign/forum-redesign"
 
 export const Route = createFileRoute("/server/$serverId/")({
   validateSearch: parsePublicForumSearch,
@@ -31,13 +31,13 @@ export const Route = createFileRoute("/server/$serverId/")({
   headers: () => ({ "Cache-Control": "no-store" }),
   head: ({ loaderData }) => forumHead(loaderData),
   component: ServerForumPage,
-  pendingComponent: PublicForumPending,
-  errorComponent: PublicForumError,
-  notFoundComponent: PublicForumNotFound,
+  pendingComponent: ForumRedesignPending,
+  errorComponent: ForumRedesignError,
+  notFoundComponent: ForumRedesignNotFound,
 })
 
 function ServerForumPage() {
-  return <PublicForumView forum={Route.useLoaderData()} />
+  return <ForumRedesign forum={Route.useLoaderData()} />
 }
 
 function forumHead(

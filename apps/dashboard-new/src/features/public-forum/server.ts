@@ -48,6 +48,7 @@ export async function loadPublicForum(
   return {
     ...forumShell,
     activeChannelId,
+    pinnedThreads: threadPage.pinnedItems,
     threads: threadPage.items,
     cursor: input.cursor ?? null,
     nextCursor: threadPage.nextCursor,

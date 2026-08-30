@@ -19,13 +19,11 @@ export const collectionToRecord = <T extends z.ZodObject>(schema: T) =>
 				return;
 			}
 
-			return parsed.data.reduce(
-				(acc, { id, ...rest }) => {
-					acc[id] = rest as z.infer<T>;
-					return acc;
-				},
-				{} as Record<string, z.infer<T>>,
-			);
+			const records: Partial<Record<string, z.infer<T>>> = {};
+			for (const { id, ...rest } of parsed.data) {
+				records[id] = schema.parse(rest);
+			}
+			return records;
 		});
 
 export const collectionToArray = <T extends z.ZodObject>(schema: T) =>
@@ -61,7 +59,7 @@ export const collectionToArray = <T extends z.ZodObject>(schema: T) =>
 			return parsed.data;
 		});
 
-export function removeUndefinedValues<T extends Record<string, unknown>>(
+export function removeUndefinedValues<T extends object>(
 	data: T,
 ): Partial<T> | null {
 	const entries = Object.entries(data).filter(([_, v]) => v !== undefined);

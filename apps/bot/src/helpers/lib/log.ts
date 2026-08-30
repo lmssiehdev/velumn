@@ -1,4 +1,4 @@
-export function safeStringify(obj: unknown) {
+export function safeStringify(obj: Parameters<typeof JSON.stringify>[0]) {
 	try {
 		if (obj instanceof Error) {
 			// Errors don't serialize well, so we extract what we want

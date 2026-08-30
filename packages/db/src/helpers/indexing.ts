@@ -1,4 +1,4 @@
-import { ChannelType } from "discord-api-types/v10";
+import { ChannelType, MessageType } from "discord-api-types/v10";
 import {
 	and,
 	asc,
@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "..";
+import { isThreadStarterMessage } from "../publication";
 import {
 	type DBChannel,
 	type DBForumTag,
@@ -45,6 +46,7 @@ import {
 	type RawIndexingGatewayMutation,
 } from "./indexing-gateway-mutation";
 import type {
+	EmbedSchema,
 	MessageComponentsSchema,
 	MessageMetadataSchema,
 } from "./validation";
@@ -120,6 +122,7 @@ export async function claimIndexingGatewayMutationBatch(
 				from ${dbIndexingGatewayMutation} as earlier
 				where earlier.ordering_key = ${dbIndexingGatewayMutation.orderingKey}
 					and earlier.id < ${dbIndexingGatewayMutation.id}
+					and earlier.status in ('pending', 'processing')
 			)
 			order by ${dbIndexingGatewayMutation.nextAttemptAt}, ${dbIndexingGatewayMutation.id}
 			limit ${limit}
@@ -193,6 +196,29 @@ export async function deferIndexingGatewayMutation(
 	return result.rows.length > 0;
 }
 
+export async function failIndexingGatewayMutation(
+	id: number,
+	leaseOwner: string,
+	generation: number,
+	errorCode: string,
+	database: IndexingDatabase = db,
+): Promise<boolean> {
+	const result = await database.execute<{ id: number }>(sql`
+		update ${dbIndexingGatewayMutation}
+		set status = 'failed',
+			lease_owner = null,
+			lease_expires_at = null,
+			last_error_code = ${errorCode},
+			updated_at = clock_timestamp()
+		where ${dbIndexingGatewayMutation.id} = ${id}
+			and ${dbIndexingGatewayMutation.status} = 'processing'
+			and ${dbIndexingGatewayMutation.leaseOwner} = ${leaseOwner}
+			and ${dbIndexingGatewayMutation.attemptCount} = ${generation}
+		returning ${dbIndexingGatewayMutation.id}
+	`);
+	return result.rows.length > 0;
+}
+
 export async function renewIndexingGatewayMutationLease(
 	id: number,
 	leaseOwner: string,
@@ -244,7 +270,7 @@ export type StoredReconciliationCandidate = {
 export type StoredSupportedContainer = {
 	readonly id: string;
 	readonly parentId: string | null;
-	readonly type: number;
+	readonly type: ChannelType;
 };
 
 const maximumConvertedMessageBatchSize = 100;
@@ -289,7 +315,7 @@ export type ConvertedIndexingMessageInput = {
 	readonly authorId: string;
 	readonly content: string;
 	readonly cleanContent: string | null;
-	readonly type: number;
+	readonly type: MessageType;
 	readonly sourceVersion: number;
 	readonly pinned: boolean;
 	readonly applicationId: string | null;
@@ -299,6 +325,7 @@ export type ConvertedIndexingMessageInput = {
 	readonly attachments: IndexingReplacement<IndexingAttachmentInput>;
 	readonly reactions: IndexingReplacement<IndexingReactionInput>;
 	readonly components: IndexingReplacement<MessageComponentsSchema[number]>;
+	readonly embeds: IndexingReplacement<EmbedSchema>;
 	readonly backlinks: IndexingReplacement<IndexingBacklinkInput>;
 };
 
@@ -505,22 +532,24 @@ export async function upsertIndexingChannelMetadata(
 						channelName: input.channelName,
 						position: input.position,
 						nsfw: input.nsfw,
-						...(input.botPermissionsCheckedAt !== null
-							? {
-									botPermissions: sql`case
+						botPermissions:
+							input.botPermissionsCheckedAt !== null
+								? sql`case
 									when ${dbChannel.botPermissionsCheckedAt} is null
 										or ${input.botPermissionsCheckedAt} >= ${dbChannel.botPermissionsCheckedAt}
 									then ${input.botPermissions}
 									else ${dbChannel.botPermissions}
-								end`,
-									botPermissionsCheckedAt: sql`case
+								end`
+								: undefined,
+						botPermissionsCheckedAt:
+							input.botPermissionsCheckedAt !== null
+								? sql`case
 									when ${dbChannel.botPermissionsCheckedAt} is null
 										or ${input.botPermissionsCheckedAt} >= ${dbChannel.botPermissionsCheckedAt}
 									then ${input.botPermissionsCheckedAt}
 									else ${dbChannel.botPermissionsCheckedAt}
-								end`,
-								}
-							: {}),
+								end`
+								: undefined,
 						archived: input.archived,
 						locked: input.locked,
 						archivedTimestamp: input.archivedTimestamp,
@@ -1873,7 +1902,8 @@ function toDatabaseMessage(message: ConvertedIndexingMessageInput): DBMessage {
 						isServerEmoji: reaction.emojiId !== null,
 					}))
 				: null,
-		embeds: null,
+		embeds:
+			message.embeds._tag === "Replace" ? [...message.embeds.items] : null,
 		poll: null,
 		metadata: message.metadata,
 		components:
@@ -1881,8 +1911,12 @@ function toDatabaseMessage(message: ConvertedIndexingMessageInput): DBMessage {
 				? ([...message.components.items] as DBMessage["components"])
 				: null,
 		snapshot: null,
-		starterMessage:
-			message.type === 21 || message.channelId !== message.publicationChannelId,
+		starterMessage: isThreadStarterMessage({
+			messageId: message.id,
+			messageType: message.type,
+			sourceChannelId: message.channelId,
+			publicationChannelId: message.publicationChannelId,
+		}),
 		stickers: null,
 		primaryChannelId: message.publicationChannelId,
 		isIgnored: false,
@@ -1908,12 +1942,11 @@ function messageConflictUpdate(message: ConvertedIndexingMessageInput) {
 		starterMessage: stored.starterMessage,
 		primaryChannelId: stored.primaryChannelId,
 		isIgnored: false,
-		...(message.reactions._tag === "Replace"
-			? { reactions: stored.reactions }
-			: {}),
-		...(message.components._tag === "Replace"
-			? { components: stored.components }
-			: {}),
+		reactions:
+			message.reactions._tag === "Replace" ? stored.reactions : undefined,
+		components:
+			message.components._tag === "Replace" ? stored.components : undefined,
+		embeds: message.embeds._tag === "Replace" ? stored.embeds : undefined,
 	};
 }
 

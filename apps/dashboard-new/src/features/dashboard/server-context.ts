@@ -4,7 +4,7 @@ import { requireServerAuth } from "@/lib/server-auth"
 
 import { getManagementAccess } from "./management-access"
 
-type ManagementSurface = "channels" | "publishing" | "threads"
+type ManagementSurface = "billing" | "channels" | "publishing" | "threads"
 
 export async function authorizeManagementServer(
   serverId: string,

@@ -2,6 +2,7 @@ import { Link, Outlet, useMatchRoute } from "@tanstack/react-router"
 import {
   BookOpen,
   CircleHelp,
+  CreditCard,
   FileText,
   Globe2,
   LayoutDashboard,
@@ -40,6 +41,7 @@ const navigation = [
   { label: "Threads", icon: FileText, path: "/threads" },
   { label: "Channels", icon: RadioTower, path: "/channels" },
   { label: "Publishing", icon: Globe2, path: "/publishing" },
+  { label: "Billing", icon: CreditCard, path: "/billing" },
 ] as const
 
 export function DashboardShell({ shell }: { shell: DashboardShellData }) {

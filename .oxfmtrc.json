@@ -9,8 +9,11 @@
 		"**/.next/**",
 		"**/.output/**",
 		"**/.vercel/**",
+		".agents/**",
 		"**/dist/**",
 		"**/drizzle/**",
+		"vendor/**",
+		"skills-lock.json",
 		"dump/**"
 	]
 }

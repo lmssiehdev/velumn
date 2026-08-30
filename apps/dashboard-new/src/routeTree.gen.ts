@@ -43,6 +43,7 @@ import { Route as ThreadThreadIdChar123slugChar125DotmdRouteImport } from './rou
 import { Route as _tenantHostApiSearchRouteImport } from './routes/[_]_tenant/$host/api/search'
 import { Route as _tenantHostChannelIndexRouteImport } from './routes/[_]_tenant/$host/channel/index'
 import { Route as _tenantHostSitemapDotxmlIdRouteImport } from './routes/[_]_tenant/$host/sitemap[.]xml/$id'
+import { Route as ApiInternalBillingReconcileRouteImport } from './routes/api/internal/billing/reconcile'
 import { Route as DashboardAuthenticatedServersIndexRouteImport } from './routes/dashboard/_authenticated/servers/index'
 import { Route as DashboardAuthenticatedServersNewRouteImport } from './routes/dashboard/_authenticated/servers/new'
 import { Route as _tenantHostChannelChannelIdIndexRouteImport } from './routes/[_]_tenant/$host/channel/$channelId/index'
@@ -51,6 +52,7 @@ import { Route as _tenantHostThreadThreadIdIndexRouteImport } from './routes/[_]
 import { Route as _tenantHostThreadThreadIdSlugRouteImport } from './routes/[_]_tenant/$host/thread/$threadId/$slug'
 import { Route as _tenantHostThreadThreadIdChar123slugChar125DotmdRouteImport } from './routes/[_]_tenant/$host/thread/$threadId/{$slug}[.]md'
 import { Route as DashboardAuthenticatedServersServerIdIndexRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/index'
+import { Route as DashboardAuthenticatedServersServerIdBillingRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/billing'
 import { Route as DashboardAuthenticatedServersServerIdChannelsRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/channels'
 import { Route as DashboardAuthenticatedServersServerIdPublishingRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/publishing'
 import { Route as DashboardAuthenticatedServersServerIdSetupRouteImport } from './routes/dashboard/_authenticated/servers/$serverId/setup'
@@ -229,6 +231,12 @@ const _tenantHostSitemapDotxmlIdRoute =
     path: '/$id',
     getParentRoute: () => _tenantHostSitemapDotxmlRoute,
   } as any)
+const ApiInternalBillingReconcileRoute =
+  ApiInternalBillingReconcileRouteImport.update({
+    id: '/api/internal/billing/reconcile',
+    path: '/api/internal/billing/reconcile',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DashboardAuthenticatedServersIndexRoute =
   DashboardAuthenticatedServersIndexRouteImport.update({
     id: '/servers/',
@@ -275,6 +283,12 @@ const DashboardAuthenticatedServersServerIdIndexRoute =
   DashboardAuthenticatedServersServerIdIndexRouteImport.update({
     id: '/servers/$serverId/',
     path: '/servers/$serverId/',
+    getParentRoute: () => DashboardAuthenticatedRoute,
+  } as any)
+const DashboardAuthenticatedServersServerIdBillingRoute =
+  DashboardAuthenticatedServersServerIdBillingRouteImport.update({
+    id: '/servers/$serverId/billing',
+    path: '/servers/$serverId/billing',
     getParentRoute: () => DashboardAuthenticatedRoute,
   } as any)
 const DashboardAuthenticatedServersServerIdChannelsRoute =
@@ -335,12 +349,14 @@ export interface FileRoutesByFullPath {
   '/server/$serverId/': typeof ServerServerIdIndexRoute
   '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
   '/__tenant/$host/sitemap.xml/$id': typeof _tenantHostSitemapDotxmlIdRoute
+  '/api/internal/billing/reconcile': typeof ApiInternalBillingReconcileRoute
   '/dashboard/servers/new': typeof DashboardAuthenticatedServersNewRoute
   '/__tenant/$host/channel/': typeof _tenantHostChannelIndexRoute
   '/dashboard/servers/': typeof DashboardAuthenticatedServersIndexRoute
   '/__tenant/$host/channel/$channelId/$slug': typeof _tenantHostChannelChannelIdSlugRoute
   '/__tenant/$host/thread/$threadId/$slug': typeof _tenantHostThreadThreadIdSlugRoute
   '/__tenant/$host/thread/$threadId/{$slug}.md': typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRoute
+  '/dashboard/servers/$serverId/billing': typeof DashboardAuthenticatedServersServerIdBillingRoute
   '/dashboard/servers/$serverId/channels': typeof DashboardAuthenticatedServersServerIdChannelsRoute
   '/dashboard/servers/$serverId/publishing': typeof DashboardAuthenticatedServersServerIdPublishingRoute
   '/dashboard/servers/$serverId/setup': typeof DashboardAuthenticatedServersServerIdSetupRoute
@@ -376,12 +392,14 @@ export interface FileRoutesByTo {
   '/server/$serverId': typeof ServerServerIdIndexRoute
   '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
   '/__tenant/$host/sitemap.xml/$id': typeof _tenantHostSitemapDotxmlIdRoute
+  '/api/internal/billing/reconcile': typeof ApiInternalBillingReconcileRoute
   '/dashboard/servers/new': typeof DashboardAuthenticatedServersNewRoute
   '/__tenant/$host/channel': typeof _tenantHostChannelIndexRoute
   '/dashboard/servers': typeof DashboardAuthenticatedServersIndexRoute
   '/__tenant/$host/channel/$channelId/$slug': typeof _tenantHostChannelChannelIdSlugRoute
   '/__tenant/$host/thread/$threadId/$slug': typeof _tenantHostThreadThreadIdSlugRoute
   '/__tenant/$host/thread/$threadId/{$slug}.md': typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRoute
+  '/dashboard/servers/$serverId/billing': typeof DashboardAuthenticatedServersServerIdBillingRoute
   '/dashboard/servers/$serverId/channels': typeof DashboardAuthenticatedServersServerIdChannelsRoute
   '/dashboard/servers/$serverId/publishing': typeof DashboardAuthenticatedServersServerIdPublishingRoute
   '/dashboard/servers/$serverId/setup': typeof DashboardAuthenticatedServersServerIdSetupRoute
@@ -425,12 +443,14 @@ export interface FileRoutesById {
   '/server/$serverId/': typeof ServerServerIdIndexRoute
   '/__tenant/$host/api/search': typeof _tenantHostApiSearchRoute
   '/__tenant/$host/sitemap.xml/$id': typeof _tenantHostSitemapDotxmlIdRoute
+  '/api/internal/billing/reconcile': typeof ApiInternalBillingReconcileRoute
   '/dashboard/_authenticated/servers/new': typeof DashboardAuthenticatedServersNewRoute
   '/__tenant/$host/channel/': typeof _tenantHostChannelIndexRoute
   '/dashboard/_authenticated/servers/': typeof DashboardAuthenticatedServersIndexRoute
   '/__tenant/$host/channel/$channelId/$slug': typeof _tenantHostChannelChannelIdSlugRoute
   '/__tenant/$host/thread/$threadId/$slug': typeof _tenantHostThreadThreadIdSlugRoute
   '/__tenant/$host/thread/$threadId/{$slug}.md': typeof _tenantHostThreadThreadIdChar123slugChar125DotmdRoute
+  '/dashboard/_authenticated/servers/$serverId/billing': typeof DashboardAuthenticatedServersServerIdBillingRoute
   '/dashboard/_authenticated/servers/$serverId/channels': typeof DashboardAuthenticatedServersServerIdChannelsRoute
   '/dashboard/_authenticated/servers/$serverId/publishing': typeof DashboardAuthenticatedServersServerIdPublishingRoute
   '/dashboard/_authenticated/servers/$serverId/setup': typeof DashboardAuthenticatedServersServerIdSetupRoute
@@ -474,12 +494,14 @@ export interface FileRouteTypes {
     | '/server/$serverId/'
     | '/__tenant/$host/api/search'
     | '/__tenant/$host/sitemap.xml/$id'
+    | '/api/internal/billing/reconcile'
     | '/dashboard/servers/new'
     | '/__tenant/$host/channel/'
     | '/dashboard/servers/'
     | '/__tenant/$host/channel/$channelId/$slug'
     | '/__tenant/$host/thread/$threadId/$slug'
     | '/__tenant/$host/thread/$threadId/{$slug}.md'
+    | '/dashboard/servers/$serverId/billing'
     | '/dashboard/servers/$serverId/channels'
     | '/dashboard/servers/$serverId/publishing'
     | '/dashboard/servers/$serverId/setup'
@@ -515,12 +537,14 @@ export interface FileRouteTypes {
     | '/server/$serverId'
     | '/__tenant/$host/api/search'
     | '/__tenant/$host/sitemap.xml/$id'
+    | '/api/internal/billing/reconcile'
     | '/dashboard/servers/new'
     | '/__tenant/$host/channel'
     | '/dashboard/servers'
     | '/__tenant/$host/channel/$channelId/$slug'
     | '/__tenant/$host/thread/$threadId/$slug'
     | '/__tenant/$host/thread/$threadId/{$slug}.md'
+    | '/dashboard/servers/$serverId/billing'
     | '/dashboard/servers/$serverId/channels'
     | '/dashboard/servers/$serverId/publishing'
     | '/dashboard/servers/$serverId/setup'
@@ -563,12 +587,14 @@ export interface FileRouteTypes {
     | '/server/$serverId/'
     | '/__tenant/$host/api/search'
     | '/__tenant/$host/sitemap.xml/$id'
+    | '/api/internal/billing/reconcile'
     | '/dashboard/_authenticated/servers/new'
     | '/__tenant/$host/channel/'
     | '/dashboard/_authenticated/servers/'
     | '/__tenant/$host/channel/$channelId/$slug'
     | '/__tenant/$host/thread/$threadId/$slug'
     | '/__tenant/$host/thread/$threadId/{$slug}.md'
+    | '/dashboard/_authenticated/servers/$serverId/billing'
     | '/dashboard/_authenticated/servers/$serverId/channels'
     | '/dashboard/_authenticated/servers/$serverId/publishing'
     | '/dashboard/_authenticated/servers/$serverId/setup'
@@ -594,6 +620,7 @@ export interface RootRouteChildren {
   _tenantHostRoute: typeof _tenantHostRouteWithChildren
   ApiSearchRoute: typeof ApiSearchRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiInternalBillingReconcileRoute: typeof ApiInternalBillingReconcileRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -836,6 +863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof _tenantHostSitemapDotxmlIdRouteImport
       parentRoute: typeof _tenantHostSitemapDotxmlRoute
     }
+    '/api/internal/billing/reconcile': {
+      id: '/api/internal/billing/reconcile'
+      path: '/api/internal/billing/reconcile'
+      fullPath: '/api/internal/billing/reconcile'
+      preLoaderRoute: typeof ApiInternalBillingReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/_authenticated/servers/': {
       id: '/dashboard/_authenticated/servers/'
       path: '/servers'
@@ -890,6 +924,13 @@ declare module '@tanstack/react-router' {
       path: '/servers/$serverId'
       fullPath: '/dashboard/servers/$serverId/'
       preLoaderRoute: typeof DashboardAuthenticatedServersServerIdIndexRouteImport
+      parentRoute: typeof DashboardAuthenticatedRoute
+    }
+    '/dashboard/_authenticated/servers/$serverId/billing': {
+      id: '/dashboard/_authenticated/servers/$serverId/billing'
+      path: '/servers/$serverId/billing'
+      fullPath: '/dashboard/servers/$serverId/billing'
+      preLoaderRoute: typeof DashboardAuthenticatedServersServerIdBillingRouteImport
       parentRoute: typeof DashboardAuthenticatedRoute
     }
     '/dashboard/_authenticated/servers/$serverId/channels': {
@@ -952,6 +993,7 @@ interface DashboardAuthenticatedRouteChildren {
   DashboardAuthenticatedIndexRoute: typeof DashboardAuthenticatedIndexRoute
   DashboardAuthenticatedServersNewRoute: typeof DashboardAuthenticatedServersNewRoute
   DashboardAuthenticatedServersIndexRoute: typeof DashboardAuthenticatedServersIndexRoute
+  DashboardAuthenticatedServersServerIdBillingRoute: typeof DashboardAuthenticatedServersServerIdBillingRoute
   DashboardAuthenticatedServersServerIdChannelsRoute: typeof DashboardAuthenticatedServersServerIdChannelsRoute
   DashboardAuthenticatedServersServerIdPublishingRoute: typeof DashboardAuthenticatedServersServerIdPublishingRoute
   DashboardAuthenticatedServersServerIdSetupRoute: typeof DashboardAuthenticatedServersServerIdSetupRoute
@@ -966,6 +1008,8 @@ const DashboardAuthenticatedRouteChildren: DashboardAuthenticatedRouteChildren =
       DashboardAuthenticatedServersNewRoute,
     DashboardAuthenticatedServersIndexRoute:
       DashboardAuthenticatedServersIndexRoute,
+    DashboardAuthenticatedServersServerIdBillingRoute:
+      DashboardAuthenticatedServersServerIdBillingRoute,
     DashboardAuthenticatedServersServerIdChannelsRoute:
       DashboardAuthenticatedServersServerIdChannelsRoute,
     DashboardAuthenticatedServersServerIdPublishingRoute:
@@ -1099,6 +1143,7 @@ const rootRouteChildren: RootRouteChildren = {
   _tenantHostRoute: _tenantHostRouteWithChildren,
   ApiSearchRoute: ApiSearchRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiInternalBillingReconcileRoute: ApiInternalBillingReconcileRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

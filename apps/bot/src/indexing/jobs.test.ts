@@ -6,9 +6,13 @@ import {
 	type GuildBasedChannel,
 	type Message,
 } from "discord.js";
-import { Deferred, Effect } from "effect";
-import { IndexingRepository } from "../adapters/indexing-repository";
+import { Deferred, Effect, Metric, Tracer } from "effect";
+import {
+	IndexingRepository,
+	IndexingRepositoryError,
+} from "../adapters/indexing-repository";
 import { DiscordClient } from "../discord/client";
+import { ErrorCapture } from "../observability/error-capture";
 import { IndexingCoordinator } from "./coordinator";
 import {
 	DiscordHistory,
@@ -22,7 +26,7 @@ import {
 	makeThreadPlanner,
 } from "./jobs";
 
-const as = <A>(value: unknown) => value as A;
+const as = <A>(value: Parameters<typeof structuredClone>[0]): A => value as A;
 
 const parent = as<
 	Parameters<DiscordHistory["Service"]["fetchActiveThreads"]>[0]
@@ -186,6 +190,17 @@ const provide = <A, E, R>(
 		Effect.provideService(DiscordClient, discordService),
 		Effect.provideService(DiscordHistory, historyService),
 	);
+
+const counterValue = (
+	name: string,
+	description: string,
+	attributes: Record<string, string>,
+) =>
+	Metric.value(
+		Metric.counter(name, { description, incremental: true }).pipe(
+			Metric.withAttributes(attributes),
+		),
+	).pipe(Effect.map(({ count }) => count));
 
 describe("reconciliation jobs", () => {
 	it.effect("plans active, archived, then stored supported threads", () => {
@@ -457,10 +472,32 @@ describe("reconciliation jobs", () => {
 		() =>
 			Effect.scoped(
 				Effect.gen(function* () {
+					const successfulGuildJobs = counterValue(
+						"velumn_bot_reconciliation_jobs_total",
+						"Reconciliation jobs by kind and outcome",
+						{ kind: "guild", trigger: "other", outcome: "succeeded" },
+					);
+					const successfulGuildJobsBefore = yield* successfulGuildJobs;
+					const spans: Tracer.NativeSpan[] = [];
+					const tracer = Tracer.make({
+						span: (spanOptions) => {
+							const span = new Tracer.NativeSpan(spanOptions);
+							spans.push(span);
+							return span;
+						},
+					});
 					const completed = yield* Deferred.make<DBIndexingJob>();
 					let stored = job("job", "queued");
 					const repository = makeRepository({
-						createJob: () => Effect.succeed(stored),
+						createJob: (input) =>
+							Effect.sync(() => {
+								stored = {
+									...stored,
+									kind: input.kind,
+									trigger: input.trigger,
+								};
+								return stored;
+							}),
 						startJob: () =>
 							Effect.sync(() => {
 								stored = { ...stored, status: "running" };
@@ -501,10 +538,18 @@ describe("reconciliation jobs", () => {
 						repository,
 						discord(new Map([["parent", parent]])),
 						history(),
-					).pipe(Effect.provideService(IndexingCoordinator, coordinator));
-					const started = yield* service.startGuild("guild");
+					).pipe(
+						Effect.provideService(IndexingCoordinator, coordinator),
+						Effect.provideService(Tracer.Tracer, tracer),
+					);
+					const started = yield* service
+						.startGuild("guild", {
+							trigger: "customer-supplied-trigger",
+						})
+						.pipe(Effect.provideService(Tracer.Tracer, tracer));
 					assert.equal(started.id, "job");
 					const terminal = yield* Deferred.await(completed);
+					yield* Effect.yieldNow;
 					assert.equal(terminal.status, "succeeded");
 					assert.deepEqual(terminal.summary, {
 						planned: 0,
@@ -514,6 +559,23 @@ describe("reconciliation jobs", () => {
 						failed: 0,
 						projectionsPending: 0,
 					});
+					assert.equal(
+						yield* successfulGuildJobs,
+						successfulGuildJobsBefore + 1,
+					);
+					const jobSpan = spans.find(
+						(span) =>
+							span.name === "reconciliation.job" &&
+							span.attributes.get("operation.name") === "reconciliation.job",
+					);
+					assert.equal(jobSpan?.attributes.get("job.kind"), "guild");
+					assert.equal(jobSpan?.attributes.get("job.trigger"), "other");
+					assert.equal(
+						jobSpan?.attributes.get("operation.outcome"),
+						"succeeded",
+					);
+					assert.equal(jobSpan?.attributes.get("job.planned_count"), 0);
+					assert.isFalse(jobSpan?.attributes.has("jobId"));
 				}),
 			),
 	);
@@ -523,6 +585,7 @@ describe("reconciliation jobs", () => {
 			Effect.gen(function* () {
 				const fetchStarted = yield* Deferred.make<void>();
 				const cancelled = yield* Deferred.make<void>();
+				const terminalWrites: string[] = [];
 				let stored = job("cancel-job", "queued");
 				const repository = makeRepository({
 					createJob: () => Effect.succeed(stored),
@@ -538,6 +601,7 @@ describe("reconciliation jobs", () => {
 						}),
 					completeJob: (_id, result) =>
 						Effect.gen(function* () {
+							terminalWrites.push(result.status);
 							stored = { ...stored, status: result.status };
 							if (result.status === "cancelled") {
 								yield* Deferred.succeed(cancelled, undefined);
@@ -585,8 +649,107 @@ describe("reconciliation jobs", () => {
 				yield* Deferred.await(cancelled);
 				assert.equal(terminal?.status, "cancelled");
 				assert.isNotNull(terminal?.cancellationRequestedAt);
+				assert.deepEqual(terminalWrites, ["cancelled"]);
 			}),
 		),
+	);
+
+	it.effect("persists an ordinary job failure exactly once", () =>
+		Effect.scoped(
+			Effect.gen(function* () {
+				const completed = yield* Deferred.make<void>();
+				const terminalWrites: string[] = [];
+				const stored = job("failed-job", "queued");
+				const repository = makeRepository({
+					createJob: () => Effect.succeed(stored),
+					startJob: () =>
+						Effect.fail(
+							new IndexingRepositoryError({
+								operation: "start-job",
+								cause: new Error("start failed"),
+							}),
+						),
+					completeJob: (_id, result) =>
+						Effect.gen(function* () {
+							terminalWrites.push(result.status);
+							yield* Deferred.succeed(completed, undefined);
+							return { ...stored, status: result.status };
+						}),
+				});
+				const coordinator = IndexingCoordinator.of({
+					submit: () => Effect.die("unused"),
+					state: Effect.succeed({ accepting: true, outstanding: 0 }),
+					close: Effect.void,
+				});
+				const service = yield* provide(
+					makeReconciliationJobs(conservativeReconciliationJobOptions),
+					repository,
+					discord(new Map([["parent", parent]])),
+					history(),
+				).pipe(Effect.provideService(IndexingCoordinator, coordinator));
+
+				yield* service.startGuild("guild");
+				yield* Deferred.await(completed);
+				assert.deepEqual(terminalWrites, ["failed"]);
+			}),
+		),
+	);
+
+	it.effect(
+		"captures successful terminal persistence failure without a second write",
+		() =>
+			Effect.scoped(
+				Effect.gen(function* () {
+					const captured = yield* Deferred.make<void>();
+					const operations: string[] = [];
+					let terminalWrites = 0;
+					const stored = job("persistence-failure", "queued");
+					const repository = makeRepository({
+						createJob: () => Effect.succeed(stored),
+						startJob: () =>
+							Effect.succeed({ ...stored, status: "running" as const }),
+						completeJob: () => {
+							terminalWrites += 1;
+							return Effect.fail(
+								new IndexingRepositoryError({
+									operation: "complete-job",
+									cause: new Error("complete failed"),
+								}),
+							);
+						},
+					});
+					const coordinator = IndexingCoordinator.of({
+						submit: () => Effect.die("unused"),
+						state: Effect.succeed({ accepting: true, outstanding: 0 }),
+						close: Effect.void,
+					});
+					const service = yield* provide(
+						makeReconciliationJobs({
+							...conservativeReconciliationJobOptions,
+							maxArchivedPagesPerParent: 0,
+						}),
+						repository,
+						discord(new Map([["parent", parent]])),
+						history(),
+					).pipe(
+						Effect.provideService(IndexingCoordinator, coordinator),
+						Effect.provideService(ErrorCapture, {
+							captureCause: (_cause, context) =>
+								Effect.sync(() => {
+									operations.push(context.operation ?? "");
+								}).pipe(
+									Effect.andThen(Deferred.succeed(captured, undefined)),
+									Effect.as(undefined),
+								),
+						}),
+					);
+
+					yield* service.startGuild("guild");
+					yield* Deferred.await(captured);
+					assert.equal(terminalWrites, 1);
+					assert.deepEqual(operations, ["reconciliation.job.complete"]);
+				}),
+			),
 	);
 
 	it.effect("persists cancellation while a job waits for the semaphore", () =>
@@ -594,6 +757,7 @@ describe("reconciliation jobs", () => {
 			Effect.gen(function* () {
 				const firstStarted = yield* Deferred.make<void>();
 				const secondCancelled = yield* Deferred.make<void>();
+				const terminalWrites = new Map<string, string[]>();
 				const jobs = new Map([
 					["first", job("first", "queued")],
 					["second", job("second", "queued")],
@@ -623,6 +787,10 @@ describe("reconciliation jobs", () => {
 						}),
 					completeJob: (id, result) =>
 						Effect.gen(function* () {
+							terminalWrites.set(id, [
+								...(terminalWrites.get(id) ?? []),
+								result.status,
+							]);
 							const completed = { ...jobs.get(id)!, status: result.status };
 							jobs.set(id, completed);
 							if (id === "second" && result.status === "cancelled") {
@@ -672,6 +840,7 @@ describe("reconciliation jobs", () => {
 				yield* Deferred.await(secondCancelled);
 				assert.equal(terminal?.status, "cancelled");
 				assert.isNull(jobs.get("second")?.startedAt);
+				assert.deepEqual(terminalWrites.get("second"), ["cancelled"]);
 			}),
 		),
 	);

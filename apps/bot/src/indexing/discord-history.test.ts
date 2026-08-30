@@ -27,7 +27,7 @@ import {
 	makeDiscordHistory,
 } from "./discord-history";
 
-const as = <A>(value: unknown): A => value as A;
+const as = <A>(value: Parameters<typeof structuredClone>[0]): A => value as A;
 
 const makeDiscord = (guilds: Collection<string, Guild> = new Collection()) =>
 	DiscordClient.of({
@@ -232,9 +232,10 @@ describe("DiscordHistory", () => {
 			const channel = as<GuildBasedChannel>({
 				permissionsFor: () => permissions,
 			});
-			const facts = yield* makeDiscordHistory(
-				makeDiscord(),
-			).calculateBotPermissionFacts(channel);
+			const facts =
+				yield* makeDiscordHistory(makeDiscord()).calculateBotPermissionFacts(
+					channel,
+				);
 
 			assert.equal(facts.effectivePermissions, permissions.bitfield);
 			assert.isTrue(facts.hasViewChannel);

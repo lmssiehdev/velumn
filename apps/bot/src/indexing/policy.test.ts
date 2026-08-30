@@ -1,20 +1,12 @@
 import { assert, describe, it } from "@effect/vitest";
-import {
-	ChannelType,
-	InteractionType,
-	MessageFlags,
-	MessageReferenceType,
-	MessageType,
-	WebhookType,
-} from "discord.js";
-import { IndexingOperationError, type ReplacementState } from "./model";
+import { ChannelType, MessageFlags, MessageType } from "discord.js";
+import { Option, Schema } from "effect";
 import {
 	classifyMessageType,
 	decideMessageEligibility,
 	decideSourceEligibility,
-	retryDispositionFor,
+	type SourceEligibility,
 	type SourceEligibilityFacts,
-	type SourceRejectionReason,
 } from "./policy";
 
 const eligiblePublicThread: SourceEligibilityFacts = {
@@ -28,173 +20,211 @@ const eligiblePublicThread: SourceEligibilityFacts = {
 	privacyAllowed: true,
 };
 
-describe("indexing policy", () => {
-	it("uses the discord.js 14.27 enum values represented by the contracts", () => {
-		assert.deepEqual(
-			[
-				ChannelType.GuildAnnouncement,
-				ChannelType.AnnouncementThread,
-				ChannelType.PublicThread,
-				ChannelType.PrivateThread,
-				ChannelType.GuildMedia,
-			],
-			[5, 10, 11, 12, 16],
-		);
-		assert.deepEqual(
-			[
-				MessageType.Default,
-				MessageType.Reply,
-				MessageType.ChatInputCommand,
-				MessageType.ThreadStarterMessage,
-				MessageType.ContextMenuCommand,
-				MessageType.PollResult,
-			],
-			[0, 19, 20, 21, 23, 46],
-		);
-		assert.equal(MessageFlags.IsVoiceMessage, 8192);
-		assert.deepEqual(
-			[MessageReferenceType.Default, MessageReferenceType.Forward],
-			[0, 1],
-		);
-		assert.deepEqual(
-			[
-				WebhookType.Incoming,
-				WebhookType.ChannelFollower,
-				WebhookType.Application,
-			],
-			[1, 2, 3],
-		);
-		assert.deepEqual(
-			[
-				InteractionType.Ping,
-				InteractionType.ApplicationCommand,
-				InteractionType.MessageComponent,
-				InteractionType.ApplicationCommandAutocomplete,
-				InteractionType.ModalSubmit,
-			],
-			[1, 2, 3, 4, 5],
-		);
-	});
+const decodeChannelType = Schema.decodeUnknownOption(Schema.Number);
 
-	it("accepts only the supported publication sources", () => {
-		assert.deepEqual(decideSourceEligibility(eligiblePublicThread), {
-			_tag: "Eligible",
-			kind: "thread",
-		});
-		assert.deepEqual(
-			decideSourceEligibility({
-				...eligiblePublicThread,
-				channelType: ChannelType.AnnouncementThread,
-				parentChannelType: ChannelType.GuildAnnouncement,
-			}),
-			{ _tag: "Eligible", kind: "thread" },
-		);
-		assert.deepEqual(
-			decideSourceEligibility({
-				...eligiblePublicThread,
-				channelType: ChannelType.GuildAnnouncement,
-				parentChannelType: null,
-			}),
-			{ _tag: "Eligible", kind: "root-announcement" },
-		);
-	});
+const uniqueChannelTypes = [
+	...new Set(
+		Object.values(ChannelType).flatMap((channelType) => {
+			const parsed = Option.getOrUndefined(decodeChannelType(channelType));
+			return parsed === undefined ? [] : [parsed as ChannelType];
+		}),
+	),
+];
 
-	it("rejects root text, private, DM, voice, and media sources", () => {
-		for (const channelType of [
-			ChannelType.GuildText,
-			ChannelType.PrivateThread,
-			ChannelType.DM,
-			ChannelType.GroupDM,
-			ChannelType.GuildVoice,
-			ChannelType.GuildStageVoice,
-			ChannelType.GuildMedia,
-		]) {
-			assert.deepEqual(
-				decideSourceEligibility({ ...eligiblePublicThread, channelType }),
-				{ _tag: "Ineligible", reason: "unsupported-source" },
-			);
-		}
-	});
+const parentChannelTypes = [null, ...uniqueChannelTypes] as const;
 
-	it("returns a stable reason for each supplied policy failure", () => {
-		const cases: ReadonlyArray<
-			readonly [Partial<SourceEligibilityFacts>, SourceRejectionReason]
-		> = [
-			[{ indexingEnabled: false }, "indexing-disabled"],
-			[{ nsfw: true }, "nsfw"],
-			[{ viewable: false }, "not-viewable"],
-			[{ hasViewChannel: false }, "missing-view-channel"],
-			[{ hasReadMessageHistory: false }, "missing-read-message-history"],
-			[{ privacyAllowed: false }, "privacy-rejected"],
-		];
+const expectedSourceEligibility = (
+	channelType: ChannelType,
+	parentChannelType: ChannelType | null,
+): SourceEligibility => {
+	if (channelType === ChannelType.PublicThread) {
+		return parentChannelType === ChannelType.GuildText ||
+			parentChannelType === ChannelType.GuildForum
+			? { _tag: "Eligible", kind: "thread" }
+			: { _tag: "Ineligible", reason: "unsupported-parent" };
+	}
+	if (channelType === ChannelType.AnnouncementThread) {
+		return parentChannelType === ChannelType.GuildAnnouncement
+			? { _tag: "Eligible", kind: "thread" }
+			: { _tag: "Ineligible", reason: "unsupported-parent" };
+	}
+	return channelType === ChannelType.GuildAnnouncement
+		? { _tag: "Eligible", kind: "root-announcement" }
+		: { _tag: "Ineligible", reason: "unsupported-source" };
+};
 
-		for (const [change, reason] of cases) {
-			assert.deepEqual(
-				decideSourceEligibility({ ...eligiblePublicThread, ...change }),
-				{ _tag: "Ineligible", reason },
-			);
-		}
-	});
+const messageTypeDispositions = {
+	[MessageType.Default]: "Publishable",
+	[MessageType.RecipientAdd]: "TerminallySkipped",
+	[MessageType.RecipientRemove]: "TerminallySkipped",
+	[MessageType.Call]: "TerminallySkipped",
+	[MessageType.ChannelNameChange]: "TerminallySkipped",
+	[MessageType.ChannelIconChange]: "TerminallySkipped",
+	[MessageType.ChannelPinnedMessage]: "TerminallySkipped",
+	[MessageType.UserJoin]: "TerminallySkipped",
+	[MessageType.GuildBoost]: "TerminallySkipped",
+	[MessageType.GuildBoostTier1]: "TerminallySkipped",
+	[MessageType.GuildBoostTier2]: "TerminallySkipped",
+	[MessageType.GuildBoostTier3]: "TerminallySkipped",
+	[MessageType.ChannelFollowAdd]: "TerminallySkipped",
+	[MessageType.GuildDiscoveryDisqualified]: "TerminallySkipped",
+	[MessageType.GuildDiscoveryRequalified]: "TerminallySkipped",
+	[MessageType.GuildDiscoveryGracePeriodInitialWarning]: "TerminallySkipped",
+	[MessageType.GuildDiscoveryGracePeriodFinalWarning]: "TerminallySkipped",
+	[MessageType.ThreadCreated]: "TerminallySkipped",
+	[MessageType.Reply]: "Publishable",
+	[MessageType.ChatInputCommand]: "Publishable",
+	[MessageType.ThreadStarterMessage]: "Publishable",
+	[MessageType.GuildInviteReminder]: "TerminallySkipped",
+	[MessageType.ContextMenuCommand]: "Publishable",
+	[MessageType.AutoModerationAction]: "TerminallySkipped",
+	[MessageType.RoleSubscriptionPurchase]: "TerminallySkipped",
+	[MessageType.InteractionPremiumUpsell]: "TerminallySkipped",
+	[MessageType.StageStart]: "TerminallySkipped",
+	[MessageType.StageEnd]: "TerminallySkipped",
+	[MessageType.StageSpeaker]: "TerminallySkipped",
+	[MessageType.StageRaiseHand]: "TerminallySkipped",
+	[MessageType.StageTopic]: "TerminallySkipped",
+	[MessageType.GuildApplicationPremiumSubscription]: "TerminallySkipped",
+	[MessageType.GuildIncidentAlertModeEnabled]: "TerminallySkipped",
+	[MessageType.GuildIncidentAlertModeDisabled]: "TerminallySkipped",
+	[MessageType.GuildIncidentReportRaid]: "TerminallySkipped",
+	[MessageType.GuildIncidentReportFalseAlarm]: "TerminallySkipped",
+	[MessageType.PurchaseNotification]: "TerminallySkipped",
+	[MessageType.PollResult]: "TerminallySkipped",
+} as const satisfies Readonly<
+	Record<MessageType, "Publishable" | "TerminallySkipped">
+>;
 
-	it("separates publishable, known skipped, and future message types", () => {
-		for (const type of [
-			MessageType.Default,
-			MessageType.Reply,
-			MessageType.ChatInputCommand,
-			MessageType.ThreadStarterMessage,
-			MessageType.ContextMenuCommand,
-		]) {
-			assert.equal(classifyMessageType(type)._tag, "Publishable");
-		}
-
-		assert.deepEqual(classifyMessageType(MessageType.ChannelPinnedMessage), {
-			_tag: "TerminallySkipped",
-			type: MessageType.ChannelPinnedMessage,
-		});
-		assert.deepEqual(classifyMessageType(47), {
-			_tag: "UnsupportedFuture",
-			type: 47,
-		});
-		for (const type of Object.values(MessageType)) {
-			if (typeof type === "number") {
-				assert.notEqual(classifyMessageType(type)._tag, "UnsupportedFuture");
+describe("indexing publication policy", () => {
+	it("classifies every unique channel and parent combination", () => {
+		for (const channelType of uniqueChannelTypes) {
+			for (const parentChannelType of parentChannelTypes) {
+				assert.deepEqual(
+					decideSourceEligibility({
+						...eligiblePublicThread,
+						channelType,
+						parentChannelType,
+					}),
+					expectedSourceEligibility(channelType, parentChannelType),
+				);
 			}
 		}
 	});
 
-	it("rejects voice messages even when their type and source are publishable", () => {
+	it("preserves source rejection precedence", () => {
+		const rejectedFacts = {
+			indexingEnabled: false,
+			nsfw: true,
+			viewable: false,
+			hasViewChannel: false,
+			hasReadMessageHistory: false,
+			privacyAllowed: false,
+		};
+		const cases: ReadonlyArray<
+			readonly [Partial<SourceEligibilityFacts>, SourceEligibility]
+		> = [
+			[
+				{ ...rejectedFacts, channelType: ChannelType.GuildText },
+				{ _tag: "Ineligible", reason: "unsupported-source" },
+			],
+			[
+				{ ...rejectedFacts, parentChannelType: ChannelType.GuildVoice },
+				{ _tag: "Ineligible", reason: "unsupported-parent" },
+			],
+			[rejectedFacts, { _tag: "Ineligible", reason: "indexing-disabled" }],
+			[
+				{ ...rejectedFacts, indexingEnabled: true },
+				{ _tag: "Ineligible", reason: "nsfw" },
+			],
+			[
+				{ ...rejectedFacts, indexingEnabled: true, nsfw: false },
+				{ _tag: "Ineligible", reason: "not-viewable" },
+			],
+			[
+				{
+					...rejectedFacts,
+					indexingEnabled: true,
+					nsfw: false,
+					viewable: true,
+				},
+				{ _tag: "Ineligible", reason: "missing-view-channel" },
+			],
+			[
+				{
+					...rejectedFacts,
+					indexingEnabled: true,
+					nsfw: false,
+					viewable: true,
+					hasViewChannel: true,
+				},
+				{ _tag: "Ineligible", reason: "missing-read-message-history" },
+			],
+			[
+				{
+					...rejectedFacts,
+					indexingEnabled: true,
+					nsfw: false,
+					viewable: true,
+					hasViewChannel: true,
+					hasReadMessageHistory: true,
+				},
+				{ _tag: "Ineligible", reason: "privacy-rejected" },
+			],
+		];
+
+		for (const [change, expected] of cases) {
+			assert.deepEqual(
+				decideSourceEligibility({ ...eligiblePublicThread, ...change }),
+				expected,
+			);
+		}
+	});
+
+	it("returns the exact disposition for every current message type", () => {
+		for (const [type, disposition] of Object.entries(messageTypeDispositions)) {
+			const messageType = Number(type) as MessageType;
+			assert.deepEqual(
+				classifyMessageType(messageType),
+				disposition === "Publishable"
+					? { _tag: "Publishable", type: messageType }
+					: { _tag: "TerminallySkipped", type: messageType },
+			);
+		}
+	});
+
+	it("keeps unknown numeric message types unsupported", () => {
+		assert.deepEqual(classifyMessageType(47), {
+			_tag: "UnsupportedFuture",
+			type: 47,
+		});
+	});
+
+	it("preserves source and voice rejection precedence", () => {
 		assert.deepEqual(
 			decideMessageEligibility({
 				...eligiblePublicThread,
-				messageType: MessageType.Default,
+				indexingEnabled: false,
+				messageType: 47,
+				messageFlags: MessageFlags.IsVoiceMessage,
+			}),
+			{ _tag: "TerminallySkipped", reason: "indexing-disabled" },
+		);
+		assert.deepEqual(
+			decideMessageEligibility({
+				...eligiblePublicThread,
+				messageType: 47,
 				messageFlags: MessageFlags.IsVoiceMessage,
 			}),
 			{ _tag: "TerminallySkipped", reason: "voice-message" },
 		);
-	});
-
-	it("keeps fetched-empty replacement state distinct from not fetched", () => {
-		const notFetched: ReplacementState<string> = { _tag: "NotFetched" };
-		const removeAll: ReplacementState<string> = { _tag: "Replace", items: [] };
-
-		assert.notEqual(notFetched._tag, removeAll._tag);
-	});
-
-	it("classifies retry policy without inspecting defects", () => {
-		assert.equal(retryDispositionFor("discord-transient"), "retryable");
-		assert.equal(retryDispositionFor("projection-completion"), "retryable");
-		assert.equal(retryDispositionFor("discord-permission"), "terminal");
-		assert.equal(retryDispositionFor("privacy-rejection"), "terminal");
-	});
-
-	it("constructs the typed Effect 4 operation error contract", () => {
-		const error = new IndexingOperationError({
-			operation: "fetch-message-page",
-			classification: "discord-transient",
-			cause: new Error("transport unavailable"),
-		});
-
-		assert.equal(error._tag, "IndexingOperationError");
-		assert.equal(retryDispositionFor(error.classification), "retryable");
+		assert.deepEqual(
+			decideMessageEligibility({
+				...eligiblePublicThread,
+				messageType: 47,
+				messageFlags: 0,
+			}),
+			{ _tag: "UnsupportedFuture", messageType: 47 },
+		);
 	});
 });

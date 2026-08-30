@@ -2,6 +2,8 @@ import type {
   PublicThreadMessage as DbPublicThreadMessage,
   PublicThreadPage as DbPublicThreadPage,
 } from "@repo/db/helpers/public-content"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
+import { z } from "zod"
 
 export type PublicThreadParams = {
   threadId: string
@@ -12,47 +14,41 @@ export type PublicThreadMessage = DbPublicThreadMessage
 export type PublicThreadPage = DbPublicThreadPage
 export type ThreadVote = "upvote" | "downvote"
 
-export function validatePublicThreadInput(value: unknown) {
-  if (!isRecord(value) || !isThreadId(value.threadId)) {
-    throw new Error("Invalid public thread input")
-  }
-  return { threadId: value.threadId }
+const publicThreadInputSchema = z.object({
+  threadId: discordSnowflakeSchema,
+})
+
+const threadVoteInputSchema = publicThreadInputSchema.extend({
+  type: z.enum(["upvote", "downvote"]),
+})
+
+const publicThreadParamsSchema = publicThreadInputSchema.extend({
+  slug: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-z0-9_]+$/),
+})
+
+export function validatePublicThreadInput(
+  value: Parameters<typeof publicThreadInputSchema.safeParse>[0]
+) {
+  const parsed = publicThreadInputSchema.safeParse(value)
+  if (!parsed.success) throw new Error("Invalid public thread input")
+  return parsed.data
 }
 
-export function validateThreadVoteInput(value: unknown): {
-  threadId: string
-  type: ThreadVote
-} {
-  if (
-    !isRecord(value) ||
-    !isThreadId(value.threadId) ||
-    (value.type !== "upvote" && value.type !== "downvote")
-  ) {
-    throw new Error("Invalid thread vote input")
-  }
-  return { threadId: value.threadId, type: value.type }
+export function validateThreadVoteInput(
+  value: Parameters<typeof threadVoteInputSchema.safeParse>[0]
+) {
+  const parsed = threadVoteInputSchema.safeParse(value)
+  if (!parsed.success) throw new Error("Invalid thread vote input")
+  return parsed.data
 }
 
 export function parsePublicThreadParams(
-  value: unknown
+  value: Parameters<typeof publicThreadParamsSchema.safeParse>[0]
 ): PublicThreadParams | null {
-  if (
-    !isRecord(value) ||
-    !isThreadId(value.threadId) ||
-    typeof value.slug !== "string" ||
-    value.slug.length < 1 ||
-    value.slug.length > 200 ||
-    !/^[a-z0-9_]+$/.test(value.slug)
-  ) {
-    return null
-  }
-  return { threadId: value.threadId, slug: value.slug }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function isThreadId(value: unknown): value is string {
-  return typeof value === "string" && /^[0-9]{1,20}$/.test(value)
+  const parsed = publicThreadParamsSchema.safeParse(value)
+  return parsed.success ? parsed.data : null
 }

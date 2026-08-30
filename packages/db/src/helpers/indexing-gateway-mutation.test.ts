@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { RawIndexingGatewayMutation } from "./indexing-gateway-mutation";
 import { PgDialect } from "drizzle-orm/pg-core";
 
 process.env.DATABASE_URL ??= "postgres://localhost/velumn_test";
@@ -100,7 +101,7 @@ describe("indexing gateway mutation persistence", () => {
 		);
 		assert.match(
 			statement,
-			/not exists \( select 1 from "db_indexing_gateway_mutation" as earlier where earlier\.ordering_key = "db_indexing_gateway_mutation"\."ordering_key" and earlier\.id < "db_indexing_gateway_mutation"\."id" \)/,
+			/not exists \( select 1 from "db_indexing_gateway_mutation" as earlier where earlier\.ordering_key = "db_indexing_gateway_mutation"\."ordering_key" and earlier\.id < "db_indexing_gateway_mutation"\."id" and earlier\.status in \('pending', 'processing'\) \)/,
 		);
 		assert.match(statement, /for update skip locked/);
 		assert.match(statement, /attempt_count = mutation\.attempt_count \+ 1/);
@@ -178,7 +179,7 @@ describe("indexing gateway mutation persistence", () => {
 			createdAt: "2026-08-09 12:30:00",
 			updatedAt: "2026-08-09 12:34:56",
 		};
-		const claim = (row: Record<string, unknown>) =>
+		const claim = (row: RawIndexingGatewayMutation) =>
 			claimIndexingGatewayMutationBatch(
 				{
 					leaseOwner: "worker-1",
@@ -191,15 +192,15 @@ describe("indexing gateway mutation persistence", () => {
 
 		await assert.rejects(
 			claim({ ...validRow, id: "9007199254740992" }),
-			(error: unknown) =>
-				error instanceof IndexingGatewayMutationRowDecodeError &&
-				error.field === "id",
+			(cause: unknown) =>
+				cause instanceof IndexingGatewayMutationRowDecodeError &&
+				cause.field === "id",
 		);
 		await assert.rejects(
 			claim({ ...validRow, submittedAt: "not-a-timestamp" }),
-			(error: unknown) =>
-				error instanceof IndexingGatewayMutationRowDecodeError &&
-				error.field === "submittedAt",
+			(cause: unknown) =>
+				cause instanceof IndexingGatewayMutationRowDecodeError &&
+				cause.field === "submittedAt",
 		);
 	});
 
@@ -207,6 +208,7 @@ describe("indexing gateway mutation persistence", () => {
 		const {
 			completeIndexingGatewayMutation,
 			deferIndexingGatewayMutation,
+			failIndexingGatewayMutation,
 			releaseIndexingGatewayMutationClaim,
 			renewIndexingGatewayMutationLease,
 		} = await import("./indexing");
@@ -236,6 +238,16 @@ describe("indexing gateway mutation persistence", () => {
 			false,
 		);
 		assert.equal(
+			await failIndexingGatewayMutation(
+				7,
+				"owner-a",
+				3,
+				"indexing:attempts-exhausted",
+				database as never,
+			),
+			false,
+		);
+		assert.equal(
 			await renewIndexingGatewayMutationLease(
 				7,
 				"owner-a",
@@ -255,14 +267,14 @@ describe("indexing gateway mutation persistence", () => {
 			false,
 		);
 
-		assert.equal(statements.length, 4);
+		assert.equal(statements.length, 5);
 		for (const statement of statements) {
 			assert.match(statement, /"id" = \$\d+/);
 			assert.match(statement, /"lease_owner" = \$\d+/);
 			assert.match(statement, /"attempt_count" = \$\d+/);
 		}
 		assert.match(
-			statements[2] ?? "",
+			statements[3] ?? "",
 			/"lease_expires_at" > clock_timestamp\(\)/,
 		);
 	});

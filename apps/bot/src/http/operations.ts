@@ -19,23 +19,23 @@ import {
 import { ReconciliationJobs } from "../indexing/jobs";
 import { Readiness } from "../runtime/readiness";
 
-const toIndexingFailure = (error: unknown): IndexingFailure | undefined => {
-	if (error instanceof IndexingRepositoryError) {
+const toIndexingFailure = (cause: unknown): IndexingFailure | undefined => {
+	if (cause instanceof IndexingRepositoryError) {
 		apiLogger.error("indexing_repository_failed", {
-			operation: error.operation,
+			operation: cause.operation,
 		});
 		return { code: "repository_unavailable" };
 	}
 };
 
-const toSearchFailure = (error: unknown): SearchFailure | undefined => {
-	if (error instanceof SearchNotConfiguredError) {
+const toSearchFailure = (cause: unknown): SearchFailure | undefined => {
+	if (cause instanceof SearchNotConfiguredError) {
 		return { code: "search_not_configured" };
 	}
-	if (error instanceof SearchIndexError) {
+	if (cause instanceof SearchIndexError) {
 		apiLogger.error("search_operation_failed", {
-			operation: error.operation,
-			error: error.cause,
+			operation: cause.operation,
+			error: cause.cause,
 		});
 		return { code: "search_unavailable" };
 	}
@@ -43,7 +43,7 @@ const toSearchFailure = (error: unknown): SearchFailure | undefined => {
 
 const toApiResult = async <Value, Failure>(
 	promise: Promise<Value>,
-	mapFailure: (error: unknown) => Failure | undefined,
+	mapFailure: (cause: unknown) => Failure | undefined,
 ): Promise<ApiResult<Value, Failure>> => {
 	try {
 		return apiSuccess(await promise);

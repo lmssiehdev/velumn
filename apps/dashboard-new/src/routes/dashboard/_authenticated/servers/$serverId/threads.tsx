@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { z } from "zod"
 import {
   createFileRoute,
   Link,
@@ -175,11 +176,9 @@ function ThreadsPage() {
             onSubmit={(event) => {
               event.preventDefault()
               const value = new FormData(event.currentTarget).get("q")
+              const query = z.string().safeParse(value).data?.trim()
               updateSearch({
-                q:
-                  typeof value === "string"
-                    ? value.trim() || undefined
-                    : undefined,
+                q: query || undefined,
               })
             }}
           >

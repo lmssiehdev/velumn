@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowRight, Search, ShieldCheck } from "lucide-react"
 import { useDeferredValue, useState } from "react"
+import { z } from "zod"
 
 import { ServerAvatar } from "@/components/server-avatar"
 import { Badge } from "@/components/ui/badge"
@@ -23,8 +24,14 @@ import { eligibleDiscordServersQueryOptions } from "@/features/onboarding/querie
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 
-function parseServerSearch(search: Record<string, unknown>) {
-  return typeof search.q === "string" ? { q: search.q } : {}
+const serverSearchSchema = z.object({
+  q: z.string().optional().catch(undefined),
+})
+
+function parseServerSearch(
+  search: Parameters<typeof serverSearchSchema.parse>[0]
+) {
+  return serverSearchSchema.parse(search)
 }
 
 export const Route = createFileRoute("/dashboard/_authenticated/servers/new")({

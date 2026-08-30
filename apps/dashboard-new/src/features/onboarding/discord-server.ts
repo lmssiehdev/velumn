@@ -1,16 +1,20 @@
-import {
-  discordGuildsSchema,
-  sortDiscordGuilds as shapeDiscordGuilds,
-} from "./discord"
+import { DISCORD_GUILD_PAGE_LIMIT } from "@repo/utils/helpers/discord"
+import { RouteBases, Routes } from "discord-api-types/v10"
+
+import { discordGuildsSchema, sortDiscordGuilds } from "./discord"
 import { getDiscordAccessToken } from "@/lib/server-auth"
 import type { requireServerAuth } from "@/lib/server-auth"
 
 type AuthContext = Awaited<ReturnType<typeof requireServerAuth>>
 
+const discordGuildsUrl = `${RouteBases.api}${Routes.userGuilds()}?${new URLSearchParams(
+  { limit: String(DISCORD_GUILD_PAGE_LIMIT) }
+)}`
+
 export type DiscordGuildsResult =
   | {
       status: "ok"
-      guilds: ReturnType<typeof shapeDiscordGuilds>
+      guilds: ReturnType<typeof sortDiscordGuilds>
     }
   | {
       status: "error"
@@ -23,7 +27,7 @@ async function requestDiscordGuilds(
   accessToken: string
 ): Promise<DiscordGuildsResult> {
   const requestGuilds = (token: string) =>
-    fetch("https://discord.com/api/v10/users/@me/guilds?limit=200", {
+    fetch(discordGuildsUrl, {
       headers: { Authorization: `Bearer ${token}` },
     })
 
@@ -59,7 +63,7 @@ async function requestDiscordGuilds(
 
   try {
     const guilds = discordGuildsSchema.parse(await response.json())
-    return { status: "ok", guilds: shapeDiscordGuilds(guilds) }
+    return { status: "ok", guilds: sortDiscordGuilds(guilds) }
   } catch {
     return {
       status: "error",

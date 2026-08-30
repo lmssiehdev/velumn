@@ -17,7 +17,7 @@ import {
 	type User,
 } from "discord.js";
 import { RESTJSONErrorCodes } from "discord-api-types/v10";
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema } from "effect";
 import {
 	type DiscordClient,
 	DiscordConnection,
@@ -138,12 +138,23 @@ interface ErrorContext {
 	readonly entityId?: string;
 }
 
-interface DiscordErrorShape {
+interface DiscordErrorDetails {
 	readonly code?: unknown;
 	readonly status?: unknown;
 	readonly name?: unknown;
 	readonly cause?: unknown;
 }
+
+const discordErrorDetailsSchema = Schema.Struct({
+	code: Schema.optional(Schema.Unknown),
+	status: Schema.optional(Schema.Unknown),
+	name: Schema.optional(Schema.Unknown),
+	cause: Schema.optional(Schema.Unknown),
+});
+const decodeDiscordErrorDetails = Schema.decodeUnknownOption(
+	discordErrorDetailsSchema,
+);
+const decodeDiscordStatus = Schema.decodeUnknownOption(Schema.Number);
 
 const missingCodes = new Set<unknown>([
 	RESTJSONErrorCodes.UnknownGuild,
@@ -165,16 +176,17 @@ const transientCodes = new Set<unknown>([
 	"UND_ERR_SOCKET",
 ]);
 
-const errorShape = (cause: unknown): DiscordErrorShape =>
-	typeof cause === "object" && cause !== null
-		? (cause as DiscordErrorShape)
-		: {};
+const errorDetails = (cause: unknown): DiscordErrorDetails =>
+	Option.getOrElse(decodeDiscordErrorDetails(cause), () => ({}));
 
 export const classifyDiscordHistoryError = (
 	cause: unknown,
 	context: ErrorContext,
 ): DiscordHistoryError => {
-	const error = errorShape(cause);
+	const error = errorDetails(cause);
+	const numericStatus = Option.getOrUndefined(
+		decodeDiscordStatus(error.status),
+	);
 	if (
 		(missingCodes.has(error.code) || error.status === 404) &&
 		context.entity &&
@@ -194,11 +206,11 @@ export const classifyDiscordHistoryError = (
 		});
 	}
 	if (
-		error.status === 408 ||
-		error.status === 429 ||
-		(typeof error.status === "number" && error.status >= 500) ||
+		numericStatus === 408 ||
+		numericStatus === 429 ||
+		(numericStatus !== undefined && numericStatus >= 500) ||
 		transientCodes.has(error.code) ||
-		transientCodes.has(errorShape(error.cause).code)
+		transientCodes.has(errorDetails(error.cause).code)
 	) {
 		return new DiscordHistoryTransientError({
 			operation: context.operation,

@@ -4,6 +4,7 @@ import {
   getDashboardServersForUser,
 } from "@repo/db/helpers/dashboard-servers"
 import { getDashboardThreadPage } from "@repo/db/helpers/dashboard-threads"
+import { discordSnowflakeSchema } from "@repo/utils/helpers/discord"
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
@@ -92,7 +93,7 @@ export const getServers = createServerFn({ method: "GET" }).handler(
 )
 
 export const getServerOverview = createServerFn({ method: "GET" })
-  .validator(z.object({ serverId: z.string().regex(/^\d+$/) }))
+  .validator(z.object({ serverId: discordSnowflakeSchema }))
   .handler(
     async ({
       data,

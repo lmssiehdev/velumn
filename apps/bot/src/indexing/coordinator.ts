@@ -10,11 +10,13 @@ import {
 	Layer,
 	Pull,
 	RcMap,
+	Semaphore,
 	Scope,
 	TxQueue,
 	TxRef,
 } from "effect";
 import * as Duration from "effect/Duration";
+import { BotMetrics } from "../observability/metrics";
 import type {
 	IndexCoordinatorState,
 	IndexingOperationError,
@@ -111,7 +113,9 @@ export const makeIndexingCoordinator = <E, R>(
 			accepting: true,
 			outstanding: 0,
 		});
+		const outstandingUpdates = yield* Semaphore.make(1);
 		const drained = yield* Deferred.make<void>();
+		yield* BotMetrics.setQueueDepth("indexing_outstanding", 0);
 
 		const settleItem = Effect.fn("IndexingCoordinator.settleItem")(function* (
 			item: AcceptedItem<E>,
@@ -132,10 +136,25 @@ export const makeIndexingCoordinator = <E, R>(
 							cause: exit.cause,
 						};
 
-				const isDrained = yield* TxRef.modify(coordinatorState, (state) => {
-					const next = { ...state, outstanding: state.outstanding - 1 };
-					return [!next.accepting && next.outstanding === 0, next];
-				});
+				const isDrained = yield* outstandingUpdates.withPermits(1)(
+					TxRef.modify(coordinatorState, (state) => {
+						const next = { ...state, outstanding: state.outstanding - 1 };
+						return [
+							{
+								isDrained: !next.accepting && next.outstanding === 0,
+								outstanding: next.outstanding,
+							},
+							next,
+						];
+					}).pipe(
+						Effect.flatMap(({ isDrained, outstanding }) =>
+							BotMetrics.setQueueDepth(
+								"indexing_outstanding",
+								outstanding,
+							).pipe(Effect.as(isDrained)),
+						),
+					),
+				);
 				yield* Deferred.succeed(item.deferred, outcome);
 				if (isDrained) yield* Deferred.succeed(drained, undefined);
 			}).pipe(
@@ -218,50 +237,81 @@ export const makeIndexingCoordinator = <E, R>(
 			submission: IndexSubmission,
 		) {
 			const accepting = yield* TxRef.get(coordinatorState);
-			if (!accepting.accepting) return { _tag: "Closing" } as const;
+			if (!accepting.accepting) {
+				return { _tag: "Closing" } as const;
+			}
 
-			const lease = yield* Scope.make();
-			const worker = yield* RcMap.get(workers, submission.orderingKey).pipe(
-				Scope.provide(lease),
-				Effect.catch((error) =>
-					Cause.isExceededCapacityError(error)
-						? Effect.succeed(undefined)
-						: Effect.fail(error),
-				),
+			return yield* Effect.uninterruptibleMask((restore) =>
+				Effect.gen(function* () {
+					const lease = yield* Scope.make();
+					let transferred = false;
+					return yield* Effect.gen(function* () {
+						const worker = yield* restore(
+							RcMap.get(workers, submission.orderingKey).pipe(
+								Scope.provide(lease),
+								Effect.catch((error) =>
+									Cause.isExceededCapacityError(error)
+										? Effect.succeed(undefined)
+										: Effect.fail(error),
+								),
+							),
+						);
+						if (worker === undefined) {
+							return { _tag: "Overloaded" } as const;
+						}
+
+						const deferred = yield* Deferred.make<IndexTerminalOutcome<E>>();
+						const item: AcceptedItem<E> = { submission, deferred, lease };
+						const result = yield* outstandingUpdates.withPermits(1)(
+							Effect.gen(function* () {
+								const result = yield* Effect.gen(function* () {
+									const state = yield* TxRef.get(coordinatorState);
+									if (
+										!state.accepting ||
+										!(yield* TxQueue.isOpen(worker.queue))
+									) {
+										return { _tag: "Closing" } as const;
+									}
+									if (yield* TxQueue.isFull(worker.queue)) {
+										return { _tag: "Overloaded" } as const;
+									}
+									if (!(yield* TxQueue.offer(worker.queue, item))) {
+										return { _tag: "Closing" } as const;
+									}
+									const outstanding = state.outstanding + 1;
+									yield* TxRef.set(coordinatorState, {
+										...state,
+										outstanding,
+									});
+									return { _tag: "Accepted", outstanding } as const;
+								}).pipe(Effect.tx);
+								if (result._tag === "Accepted") {
+									yield* BotMetrics.setQueueDepth(
+										"indexing_outstanding",
+										result.outstanding,
+									);
+								}
+								return result._tag;
+							}),
+						);
+
+						if (result !== "Accepted") {
+							return { _tag: result } as const;
+						}
+						transferred = true;
+						const receipt: SubmissionReceipt<E> = {
+							await: Deferred.await(deferred),
+						};
+						return { _tag: "Accepted", receipt } as const;
+					}).pipe(
+						Effect.ensuring(
+							Effect.suspend(() =>
+								transferred ? Effect.void : Scope.close(lease, Exit.void),
+							),
+						),
+					);
+				}),
 			);
-			if (worker === undefined) {
-				yield* Scope.close(lease, Exit.void);
-				return { _tag: "Overloaded" } as const;
-			}
-
-			const deferred = yield* Deferred.make<IndexTerminalOutcome<E>>();
-			const item: AcceptedItem<E> = { submission, deferred, lease };
-			const result = yield* Effect.gen(function* () {
-				const state = yield* TxRef.get(coordinatorState);
-				if (!state.accepting || !(yield* TxQueue.isOpen(worker.queue))) {
-					return "Closing" as const;
-				}
-				if (yield* TxQueue.isFull(worker.queue)) {
-					return "Overloaded" as const;
-				}
-				if (!(yield* TxQueue.offer(worker.queue, item))) {
-					return "Closing" as const;
-				}
-				yield* TxRef.set(coordinatorState, {
-					...state,
-					outstanding: state.outstanding + 1,
-				});
-				return "Accepted" as const;
-			}).pipe(Effect.tx);
-
-			if (result !== "Accepted") {
-				yield* Scope.close(lease, Exit.void);
-				return { _tag: result } as const;
-			}
-			const receipt: SubmissionReceipt<E> = {
-				await: Deferred.await(deferred),
-			};
-			return { _tag: "Accepted", receipt } as const;
 		});
 
 		return {

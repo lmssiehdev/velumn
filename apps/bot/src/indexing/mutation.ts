@@ -1,5 +1,4 @@
 import type {
-	IndexingChannelMetadataInput,
 	IndexingGuildMetadataInput,
 	IndexingSourceFacts,
 } from "@repo/db/helpers/indexing";
@@ -10,7 +9,17 @@ import {
 	type GuildTextBasedChannel,
 	type Message,
 } from "discord.js";
-import { type Duration, Effect, Layer, Schedule } from "effect";
+import type { APIMessageTopLevelComponent } from "discord-api-types/v10";
+import {
+	Clock,
+	type Duration,
+	Effect,
+	Exit,
+	Layer,
+	Option,
+	Schedule,
+	Schema,
+} from "effect";
 import {
 	type IndexingMessageInput,
 	IndexingRepository,
@@ -21,7 +30,9 @@ import {
 	type GuildInstallationRepositoryError,
 } from "../adapters/repository";
 import { BotConfig, type BotEnvironment } from "../config/bot-config";
-import { convertResolvedMessage, type JsonValue } from "./conversion";
+import { BotMetrics } from "../observability/metrics";
+import { toIndexingChannelMetadata } from "./channel-metadata";
+import { convertResolvedMessage } from "./conversion";
 import {
 	IndexMutationProcessor,
 	layerIndexMutationProcessor,
@@ -32,13 +43,16 @@ import {
 	DiscordHistoryMissingError,
 	DiscordHistoryPermissionError,
 	DiscordHistoryTransientError,
+	DiscordHistoryUnknownError,
 } from "./discord-history";
 import {
 	type IndexErrorClassification,
 	IndexingOperationError,
 	type IndexMutation,
 } from "./model";
-import { decideMessageEligibility, retryDispositionFor } from "./policy";
+import { indexMutationKind } from "./mutation-metadata";
+import { decideMessageEligibility } from "./policy";
+import { retryDispositionFor } from "./retry-policy";
 
 export interface IndexMutationProcessorOptions {
 	readonly maximumRetries: number;
@@ -172,15 +186,86 @@ export const makeIndexMutationProcessor = (
 		);
 
 		return IndexMutationProcessor.of({
-			process: (mutation) =>
-				processOnce(mutation).pipe(
-					Effect.retry({
-						times: options.maximumRetries,
-						schedule: Schedule.exponential(options.initialRetryDelay),
-						while: (error) =>
-							retryDispositionFor(error.classification) === "retryable",
+			process: (mutation) => {
+				const kind = indexMutationKind(mutation);
+				return Clock.currentTimeMillis.pipe(
+					Effect.flatMap((startedAt) =>
+						processOnce(mutation).pipe(
+							Effect.retry({
+								times: options.maximumRetries,
+								schedule: Schedule.exponential(options.initialRetryDelay).pipe(
+									Schedule.tap(({ attempt }) =>
+										attempt > options.maximumRetries
+											? Effect.void
+											: Effect.all(
+													[
+														BotMetrics.recordRetry(
+															"indexing_mutation",
+															"retryable",
+														),
+														Effect.annotateCurrentSpan({
+															"retry.attempt": attempt,
+															"retry.disposition": "retryable",
+														}),
+													],
+													{ discard: true },
+												),
+									),
+								),
+								while: (error) =>
+									retryDispositionFor(error.classification) === "retryable",
+							}),
+							Effect.tapError((error) =>
+								Effect.annotateCurrentSpan({
+									"error.classification": error.classification,
+								}),
+							),
+							Effect.onExit((exit) =>
+								Clock.currentTimeMillis.pipe(
+									Effect.flatMap((finishedAt) => {
+										const outcome = Exit.isSuccess(exit)
+											? "succeeded"
+											: Exit.hasInterrupts(exit)
+												? "cancelled"
+												: "failed";
+										const error = Option.getOrUndefined(
+											Exit.findErrorOption(exit),
+										);
+										return Effect.all(
+											[
+												BotMetrics.recordIndexingMutation({
+													kind,
+													outcome,
+													durationMs: finishedAt - startedAt,
+												}),
+												Effect.annotateCurrentSpan({
+													"operation.outcome": outcome,
+													"error.classification": error?.classification,
+													"retry.disposition":
+														outcome === "failed" ? "terminal" : undefined,
+												}),
+												outcome === "failed"
+													? BotMetrics.recordRetry(
+															"indexing_mutation",
+															"terminal",
+														)
+													: Effect.void,
+											],
+											{ discard: true },
+										);
+									}),
+								),
+							),
+						),
+					),
+					Effect.withSpan("IndexMutationProcessor.process", {
+						attributes: {
+							"mutation.type": kind,
+							"operation.name": "indexing.mutation",
+						},
 					}),
-				),
+				);
+			},
 		});
 	});
 
@@ -222,7 +307,12 @@ const processGuildInstallation = Effect.fn(
 	for (const channel of supported) {
 		const permissions = yield* history.calculateBotPermissionFacts(channel);
 		metadata.push(
-			toChannelMetadata(channel, permissions.effectivePermissions, observedAt),
+			toIndexingChannelMetadata(channel, {
+				observedAt: new Date(observedAt),
+				position: "rawPosition" in channel ? channel.rawPosition : 0,
+				botPermissions: permissions.effectivePermissions,
+				botPermissionsCheckedAt: new Date(observedAt),
+			}),
 		);
 	}
 
@@ -529,11 +619,12 @@ const upsertChannelHierarchy = Effect.fn(
 		const permissions = yield* history.calculateBotPermissionFacts(current);
 		const result = yield* repository
 			.upsertChannelMetadata(
-				toChannelMetadata(
-					current,
-					permissions.effectivePermissions,
-					observedAt,
-				),
+				toIndexingChannelMetadata(current, {
+					observedAt: new Date(observedAt),
+					position: "rawPosition" in current ? current.rawPosition : 0,
+					botPermissions: permissions.effectivePermissions,
+					botPermissionsCheckedAt: new Date(observedAt),
+				}),
 			)
 			.pipe(Effect.mapError(repositoryFailure));
 		if (result._tag !== "Applied") return null;
@@ -571,11 +662,12 @@ const reconcileGuildPermissions = Effect.fn(
 		const checkedAt = new Date(observedAt);
 		const upserted = yield* repository
 			.upsertChannelMetadata(
-				toChannelMetadata(
-					channel,
-					permissions.effectivePermissions,
-					observedAt,
-				),
+				toIndexingChannelMetadata(channel, {
+					observedAt: checkedAt,
+					position: "rawPosition" in channel ? channel.rawPosition : 0,
+					botPermissions: permissions.effectivePermissions,
+					botPermissionsCheckedAt: checkedAt,
+				}),
 			)
 			.pipe(Effect.mapError(repositoryFailure));
 		if (upserted._tag === "MissingInstallation") return;
@@ -609,6 +701,11 @@ const installationMetadataTypes = new Set<ChannelType>([
 	ChannelType.GuildForum,
 	ChannelType.GuildAnnouncement,
 ]);
+const METADATA_DEPTH = {
+	category: 0,
+	channel: 1,
+	thread: 2,
+} as const;
 
 const isSupportedMetadataChannel = (
 	channel: GuildBasedChannel,
@@ -624,7 +721,11 @@ const channelHierarchyOrder = (
 ) => metadataDepth(left) - metadataDepth(right);
 
 const metadataDepth = (channel: GuildBasedChannel) =>
-	channel.type === ChannelType.GuildCategory ? 0 : channel.isThread() ? 2 : 1;
+	channel.type === ChannelType.GuildCategory
+		? METADATA_DEPTH.category
+		: channel.isThread()
+			? METADATA_DEPTH.thread
+			: METADATA_DEPTH.channel;
 
 const toGuildMetadata = (guild: Guild): IndexingGuildMetadataInput => ({
 	id: guild.id,
@@ -632,43 +733,6 @@ const toGuildMetadata = (guild: Guild): IndexingGuildMetadataInput => ({
 	description: guild.description,
 	memberCount: guild.memberCount,
 	icon: guild.icon,
-});
-
-const toChannelMetadata = (
-	channel: GuildBasedChannel,
-	effectivePermissions: bigint | null,
-	observedAt: number,
-): IndexingChannelMetadataInput => ({
-	id: channel.id,
-	serverId: channel.guildId,
-	parentId: channel.parentId,
-	authorId: channel.isThread() ? channel.ownerId : null,
-	channelName: "name" in channel ? channel.name : null,
-	position: "rawPosition" in channel ? channel.rawPosition : 0,
-	nsfw: "nsfw" in channel ? channel.nsfw : false,
-	botPermissions: effectivePermissions?.toString() ?? null,
-	botPermissionsCheckedAt: new Date(observedAt),
-	observedAt: new Date(observedAt),
-	archived: channel.isThread() ? (channel.archived ?? false) : false,
-	locked: channel.isThread() ? (channel.locked ?? false) : false,
-	archivedTimestamp: channel.isThread() ? channel.archiveTimestamp : null,
-	type: channel.type,
-	availableTags:
-		channel.type === ChannelType.GuildForum
-			? {
-					_tag: "Replace",
-					items: channel.availableTags.map((tag) => ({
-						id: tag.id,
-						name: tag.name,
-						moderated: tag.moderated,
-						emojiId: tag.emoji?.id ?? null,
-						emojiName: tag.emoji?.name ?? null,
-					})),
-				}
-			: { _tag: "NotFetched" },
-	appliedTagIds: channel.isThread()
-		? { _tag: "Replace", items: channel.appliedTags }
-		: { _tag: "NotFetched" },
 });
 
 const sourcePolicyFacts = (
@@ -778,9 +842,9 @@ const convertMessage = (
 			count: reaction.count,
 		})),
 		components: message.components.map(
-			(component) =>
-				component.toJSON() as unknown as JsonValue as { type: number },
+			(component): APIMessageTopLevelComponent => component.toJSON(),
 		),
+		embeds: message.embeds.map((embed) => embed.toJSON()),
 	});
 };
 
@@ -801,7 +865,8 @@ const discordClassification = (
 	if (error instanceof DiscordHistoryPermissionError)
 		return "discord-permission";
 	if (error instanceof DiscordHistoryMissingError) return "missing-entity";
-	return "partial-fetch";
+	if (error instanceof DiscordHistoryUnknownError) return "discord-unknown";
+	return error satisfies never;
 };
 
 const repositoryFailure = (error: IndexingRepositoryError) =>
@@ -820,11 +885,12 @@ const installationFailure = (error: GuildInstallationRepositoryError) =>
 		cause: error,
 	});
 
+const sourcePolicyErrorSchema = Schema.Struct({
+	name: Schema.Literal("IndexingSourcePolicyError"),
+});
+
 const isSourcePolicyError = (cause: unknown): boolean =>
-	typeof cause === "object" &&
-	cause !== null &&
-	"name" in cause &&
-	cause.name === "IndexingSourcePolicyError";
+	Schema.is(sourcePolicyErrorSchema)(cause);
 
 const operationFailure = (
 	operation: IndexingOperationError["operation"],

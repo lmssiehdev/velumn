@@ -1,12 +1,28 @@
 import { renderToStaticMarkup } from "react-dom/server"
-import { ComponentType, StickerFormatType } from "discord-api-types/v10"
+import {
+  ComponentType,
+  EmbedType,
+  StickerFormatType,
+} from "discord-api-types/v10"
 import { describe, expect, it } from "vitest"
 
 import type { PublicThreadMessage } from "./contracts"
-import { DiscordMarkdown, DiscordMessageContent } from "./discord-markdown"
+import {
+  DiscordMarkdown,
+  DiscordMessageContent,
+  formatReactionCount,
+} from "./discord-markdown"
 import { PublicThreadView } from "./thread"
 
 describe("DiscordMarkdown", () => {
+  it("formats reaction counts without allowing invalid values", () => {
+    expect(formatReactionCount(0)).toBe("0")
+    expect(formatReactionCount(999)).toBe("999")
+    expect(formatReactionCount(1200)).toBe("1.2K")
+    expect(formatReactionCount(-4)).toBe("0")
+    expect(formatReactionCount(Number.NaN)).toBe("0")
+  })
+
   it("renders Discord formatting, emoji, and resolved mentions", () => {
     const html = renderToStaticMarkup(
       <DiscordMarkdown
@@ -118,9 +134,51 @@ describe("DiscordMarkdown", () => {
           accentColor: 0x7e22ce,
           components: [{ type: 99, unsupported: true }],
         },
-      ] as unknown as PublicThreadMessage["components"],
+      ],
       content: "See https://discord.com/channels/1/2/3",
-      embeds: [{ title: "Release notes", description: "Details" }],
+      embeds: [
+        {
+          type: EmbedType.Rich,
+          title: "Release notes",
+          description: "Details",
+          provider: { name: "Velumn" },
+          thumbnail: {
+            url: "https://cdn.example.com/thumb.png",
+            description: "Release thumbnail",
+          },
+          image: {
+            url: "https://cdn.example.com/release.png",
+            description: "Release diagram",
+            width: 640,
+            height: 360,
+          },
+          fields: [
+            { name: "Status", value: "Ready", inline: true },
+            { name: "Version", value: "1.0", inline: true },
+          ],
+          footer: { text: "Published" },
+          timestamp: "2026-08-10T12:00:00.000Z",
+          flags: 0,
+          components: [
+            {
+              type: ComponentType.Container,
+              components: [
+                { type: ComponentType.TextDisplay, content: "Embed component" },
+              ],
+            },
+          ],
+        },
+        {
+          type: EmbedType.Video,
+          title: "Demo video",
+          video: {
+            url: "https://cdn.example.com/demo.mp4",
+            description: "Product demo",
+            width: 1280,
+            height: 720,
+          },
+        },
+      ],
       metadata: {
         internalLinks: [
           {
@@ -178,10 +236,20 @@ describe("DiscordMarkdown", () => {
     expect(html).not.toContain("Events on this Server")
     expect(html.match(/<svg/g)).toHaveLength(3)
     expect(html).toContain("Release notes")
+    expect(html).toContain("Release diagram")
+    expect(html).toContain("discord-embed__thumbnail")
+    expect(html).toContain('class="discord-embed__field-row columns-2"')
+    expect(html).toContain("Published")
+    expect(html).toContain("Embed component")
+    expect(html).toContain("Product demo")
+    expect(html).toContain("<video")
     expect(html).toContain("guide.pdf")
     expect(html).toContain("Ship it?")
     expect(html).toContain("<meter")
     expect(html).toContain('aria-label="Reactions"')
+    expect(html).toContain("👍: 3 reactions")
+    expect(html).toContain('<span class="sr-only">👍: 3 reactions</span>')
+    expect(html).toContain("size-4")
     expect(html).toContain("Sticker: Wave")
     expect(html).toContain("Show animated sticker")
     expect(html).toContain("V2 text")
@@ -274,8 +342,10 @@ describe("DiscordMarkdown", () => {
     expect(html).toContain("Resolved")
     expect(html).toContain("Did this answer your question?")
     expect(html).toContain('aria-pressed="false"')
-    expect(html).toContain(">Yes</button>")
-    expect(html).toContain(">No</button>")
+    expect(html).toContain("<span>Yes</span>")
+    expect(html).toContain("<span>No</span>")
+    expect(html).not.toContain("assets/svg/1f44d.svg")
+    expect(html).not.toContain("assets/svg/1f44e.svg")
     expect(html).toContain("Loading feedback options.")
     expect(html).toContain(
       'src="https://cdn.discordapp.com/emojis/123.webp?size=32"'
@@ -307,7 +377,7 @@ describe("DiscordMarkdown", () => {
           },
         ],
         stickers: null,
-        embeds: [{ title: "Snapshot embed" }],
+        embeds: [{ type: EmbedType.Rich, title: "Snapshot embed" }],
         flags: 0,
         metadata: null,
         mentions: {
@@ -330,6 +400,19 @@ describe("DiscordMarkdown", () => {
     expect(html).toContain("Snapshot embed")
     expect(html).toContain("Snapshot action")
     expect(html).toContain('disabled=""')
+  })
+
+  it("ignores malformed embed timestamps", () => {
+    const html = renderToStaticMarkup(
+      <DiscordMessageContent
+        message={messageFixture({
+          embeds: [{ type: EmbedType.Rich, timestamp: "not-a-date" }],
+        })}
+      />
+    )
+
+    expect(html).not.toContain("not-a-date")
+    expect(html).not.toContain("<time")
   })
 })
 

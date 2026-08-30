@@ -1,5 +1,14 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Cause, Deferred, Effect, Exit, Fiber, Option, Scope } from "effect";
+import {
+	Cause,
+	Deferred,
+	Effect,
+	Exit,
+	Fiber,
+	Metric,
+	Option,
+	Scope,
+} from "effect";
 import { TestClock } from "effect/testing";
 import {
 	makeIndexingCoordinator,
@@ -47,7 +56,44 @@ const acceptedReceipt = <E>(result: IndexSubmissionResult<E>) => {
 	return result.receipt.await;
 };
 
+const indexingQueueDepth = Metric.snapshot.pipe(
+	Effect.map((snapshots) => {
+		const snapshot = snapshots.find(
+			(metric) =>
+				metric.id === "velumn_bot_queue_depth" &&
+				metric.attributes?.queue === "indexing_outstanding",
+		);
+		assert.equal(snapshot?.type, "Gauge");
+		return snapshot?.type === "Gauge" ? snapshot.state.value : undefined;
+	}),
+);
+
 describe("indexing coordinator", () => {
+	it.effect("publishes authoritative outstanding queue depth", () =>
+		Effect.scoped(
+			Effect.gen(function* () {
+				const started = yield* Deferred.make<void>();
+				const release = yield* Deferred.make<void>();
+				const coordinator = yield* makeIndexingCoordinator(options, () =>
+					Deferred.succeed(started, undefined).pipe(
+						Effect.andThen(Deferred.await(release)),
+					),
+				);
+
+				assert.equal(yield* indexingQueueDepth, 0);
+				const first = yield* coordinator.submit(submission("depth-1"));
+				yield* Deferred.await(started);
+				assert.equal(yield* indexingQueueDepth, 1);
+				const second = yield* coordinator.submit(submission("depth-2"));
+				assert.equal(yield* indexingQueueDepth, 2);
+
+				yield* Deferred.succeed(release, undefined);
+				yield* Effect.all([acceptedReceipt(first), acceptedReceipt(second)]);
+				assert.equal(yield* indexingQueueDepth, 0);
+			}),
+		),
+	);
+
 	it.effect("processes concurrent submissions for one key in exact order", () =>
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -158,7 +204,6 @@ describe("indexing coordinator", () => {
 				assert.deepEqual(yield* coordinator.submit(submission("4")), {
 					_tag: "Closing",
 				});
-
 				yield* Deferred.succeed(release, undefined);
 				yield* acceptedReceipt(first);
 				if (second._tag === "Accepted") yield* second.receipt.await;

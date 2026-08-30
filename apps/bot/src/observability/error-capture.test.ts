@@ -6,11 +6,13 @@ import {
 	Exit,
 	Fiber,
 	Layer,
+	Option,
+	Schema,
 	Scope,
 	Tracer,
 } from "effect";
 import { TestClock } from "effect/testing";
-import { PostHog } from "posthog-node";
+import { type EventMessage, PostHog } from "posthog-node";
 import { SearchIndexError } from "../adapters/search";
 import {
 	ErrorCapture,
@@ -29,7 +31,7 @@ import {
 interface CapturedEvent {
 	readonly error: Error;
 	readonly distinctId: string;
-	readonly properties: Record<string, unknown>;
+	readonly properties: NonNullable<EventMessage["properties"]>;
 	readonly eventUUID: string;
 }
 
@@ -37,12 +39,14 @@ interface TestClient {
 	readonly captureException: (
 		error: Error,
 		distinctId: string,
-		properties: Record<string, unknown>,
+		properties: NonNullable<EventMessage["properties"]>,
 		eventUUID: string,
 	) => void;
 	readonly shutdown: (timeoutMs: number) => Promise<void>;
 	readonly abort?: () => void;
 }
+
+const decodeRequestBody = Schema.decodeUnknownOption(Schema.String);
 
 const config = (env: Record<string, string>) =>
 	ConfigProvider.layer(ConfigProvider.fromEnv({ env }));
@@ -398,7 +402,8 @@ describe("PostHog error capture", () => {
 					flushAt: 20,
 					before_send: redactPostHogEvent,
 					fetch: async (_url, options) => {
-						if (typeof options.body === "string") payloads.push(options.body);
+						const body = Option.getOrUndefined(decodeRequestBody(options.body));
+						if (body !== undefined) payloads.push(body);
 						return {
 							status: 200,
 							text: async () => "{}",
@@ -474,7 +479,7 @@ describe("PostHog error capture", () => {
 					batch: Array<{
 						event: string;
 						uuid: string;
-						properties: Record<string, unknown>;
+						properties: NonNullable<EventMessage["properties"]>;
 					}>;
 				};
 				assert.equal(payload.batch[0]?.event, "$exception");

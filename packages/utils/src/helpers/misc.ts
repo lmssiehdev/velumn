@@ -20,15 +20,17 @@ export const codeExtensions = [
 
 export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
+export interface EmbedFileInfo {
+	isEmbeddable: boolean;
+	isUploadable: boolean;
+	type: "image" | "code" | "other";
+}
+
 export const getEmbedFileInfo = (a: {
 	contentType: string | null;
 	proxyURL: string;
 	size: number | null;
-}): {
-	isEmbeddable: boolean;
-	isUploadable: boolean;
-	type: "image" | "code" | "other";
-} => {
+}): EmbedFileInfo => {
 	const url = a.proxyURL.toLowerCase();
 
 	const pathname = url.split("?")[0];

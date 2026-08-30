@@ -6,7 +6,7 @@ Captured: 2026-08-09
 
 Upstream workspace: `../AnswerOverflow`
 
-Related pinned source: [`discord-api-spec-source.md`](./discord-api-spec-source.md) records the exact external Discord HTTP API preview used for reference without vendoring its JSON.
+Related pinned source: [`discord-api-spec-source.md`](./discord-api-spec-source.md) records the exact vendored Discord HTTP API preview used for reference.
 
 ## Purpose
 
@@ -38,37 +38,37 @@ The bot suite currently contains 115 tests: 16 Bun unit tests and 99 Effect/Vite
 
 ## Accepted Velumn Adaptations
 
-| Requested capability | AO behavior | Velumn adaptation |
-| --- | --- | --- |
-| Channel position | Stores Discord channel position | Persist and use for stable dashboard/public ordering |
-| Categories | Stores category entities and relationships | Persist categories and model inherited permission effects |
-| Missed guild-leave repair | Compares stored servers with the bot's guild cache at startup | Repair missed leaves at startup and periodically |
-| Announcement-channel metadata | Synchronizes announcement roots | Maintain through create/update/delete parity |
-| Root announcement messages | Indexes enabled root announcement content | Index only when that announcement channel is explicitly opted in |
-| Forum available tags | Stores forum tag definitions | Persist ID, name, moderation state, and emoji |
-| Applied thread tags | Synchronizes a thread's current tags | Replace the complete set and clean it on deletion |
-| Announcement threads | Treats them as eligible public thread content | Support under the same policy as public threads |
-| Thread archive state | Stores archive timestamp | Keep Velumn's `archived`, `archivedTimestamp`, and `locked` fields |
-| Effective bot permissions | Stores effective permission bitfield | Store diagnostics and still check current permissions before reads |
-| User profiles | Synchronizes broad Discord identity state | Process `UserUpdate` only for users already in Velumn's database |
-| Reverse backlinks | AO has no equivalent | Preserve Velumn's feature and make it transactionally correct |
-| Deleted-reference fallback | Renders unavailable original-message state | Fix Velumn's unreachable fallback and retain reply context |
-| Crosspost flags | Stores Discord message flags | Store flags and available source/reference identity in message metadata |
-| Attachment replacement | Reconciles attachment collections, with an empty-set bug | Implement complete replacement and stale-object cleanup |
-| Attachment removal to empty | AO accidentally preserves the final removed attachment | Distinguish unknown from fetched-empty and delete all current rows |
-| Components v1 selects | Converts selected menu types | Support a documented set and render everything stored |
-| Components v2 | Converts a broad subset | Adopt a tested subset with visible unknown fallback |
-| User/channel mentions | Primarily enriches stable IDs from its database at read time | Use PostgreSQL-first hybrid enrichment with bounded Discord fallback |
-| Internal Discord links | Uses narrow parsing and strong internal routing | Combine Velumn's broad parser with DB-first resolution and Velumn/Discord fallback routing |
-| Webhook display identity | Stores webhook author name/avatar metadata | Store in existing message metadata alongside `webhookId` |
-| Interaction ID | Stores on AO message records | Store in existing Velumn message metadata without a dedicated SQL column |
-| Search | Uses Convex-native search over authoritative records | Keep PostgreSQL authoritative and derive external Meili documents from committed state |
-| Root channel create | Synchronizes supported root/category creation | Add through the Effect-owned parity layer |
-| Root channel update/delete | Replaces metadata and removes channel records | Add full replacement plus explicit descendant/projection cleanup |
-| Thread create/update/delete | Synchronizes public and announcement threads | Add one shared eligibility and ordering policy, including moves/privacy transitions |
-| Bot role/permission updates | Resynchronizes affected channel permissions | Adopt and improve category inheritance and burst coalescing |
-| Scheduled reconciliation | Runs periodic historical repair | Run through Velumn's scoped coordinator and common mutation path |
-| Durable search recovery | Not needed for AO's native Convex search | Add a PostgreSQL-backed Meili projection ledger/outbox |
+| Requested capability          | AO behavior                                                   | Velumn adaptation                                                                          |
+| ----------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Channel position              | Stores Discord channel position                               | Persist and use for stable dashboard/public ordering                                       |
+| Categories                    | Stores category entities and relationships                    | Persist categories and model inherited permission effects                                  |
+| Missed guild-leave repair     | Compares stored servers with the bot's guild cache at startup | Repair missed leaves at startup and periodically                                           |
+| Announcement-channel metadata | Synchronizes announcement roots                               | Maintain through create/update/delete parity                                               |
+| Root announcement messages    | Indexes enabled root announcement content                     | Index only when that announcement channel is explicitly opted in                           |
+| Forum available tags          | Stores forum tag definitions                                  | Persist ID, name, moderation state, and emoji                                              |
+| Applied thread tags           | Synchronizes a thread's current tags                          | Replace the complete set and clean it on deletion                                          |
+| Announcement threads          | Treats them as eligible public thread content                 | Support under the same policy as public threads                                            |
+| Thread archive state          | Stores archive timestamp                                      | Keep Velumn's `archived`, `archivedTimestamp`, and `locked` fields                         |
+| Effective bot permissions     | Stores effective permission bitfield                          | Store diagnostics and still check current permissions before reads                         |
+| User profiles                 | Synchronizes broad Discord identity state                     | Process `UserUpdate` only for users already in Velumn's database                           |
+| Reverse backlinks             | AO has no equivalent                                          | Preserve Velumn's feature and make it transactionally correct                              |
+| Deleted-reference fallback    | Renders unavailable original-message state                    | Fix Velumn's unreachable fallback and retain reply context                                 |
+| Crosspost flags               | Stores Discord message flags                                  | Store flags and available source/reference identity in message metadata                    |
+| Attachment replacement        | Reconciles attachment collections, with an empty-set bug      | Implement complete replacement and stale-object cleanup                                    |
+| Attachment removal to empty   | AO accidentally preserves the final removed attachment        | Distinguish unknown from fetched-empty and delete all current rows                         |
+| Components v1 selects         | Converts selected menu types                                  | Support a documented set and render everything stored                                      |
+| Components v2                 | Converts a broad subset                                       | Adopt a tested subset with visible unknown fallback                                        |
+| User/channel mentions         | Primarily enriches stable IDs from its database at read time  | Use PostgreSQL-first hybrid enrichment with bounded Discord fallback                       |
+| Internal Discord links        | Uses narrow parsing and strong internal routing               | Combine Velumn's broad parser with DB-first resolution and Velumn/Discord fallback routing |
+| Webhook display identity      | Stores webhook author name/avatar metadata                    | Store in existing message metadata alongside `webhookId`                                   |
+| Interaction ID                | Stores on AO message records                                  | Store in existing Velumn message metadata without a dedicated SQL column                   |
+| Search                        | Uses Convex-native search over authoritative records          | Keep PostgreSQL authoritative and derive external Meili documents from committed state     |
+| Root channel create           | Synchronizes supported root/category creation                 | Add through the Effect-owned parity layer                                                  |
+| Root channel update/delete    | Replaces metadata and removes channel records                 | Add full replacement plus explicit descendant/projection cleanup                           |
+| Thread create/update/delete   | Synchronizes public and announcement threads                  | Add one shared eligibility and ordering policy, including moves/privacy transitions        |
+| Bot role/permission updates   | Resynchronizes affected channel permissions                   | Adopt and improve category inheritance and burst coalescing                                |
+| Scheduled reconciliation      | Runs periodic historical repair                               | Run through Velumn's scoped coordinator and common mutation path                           |
+| Durable search recovery       | Not needed for AO's native Convex search                      | Add a PostgreSQL-backed Meili projection ledger/outbox                                     |
 
 Root text-channel messages remain excluded. Private threads, DMs, voice messages, and media-channel content remain excluded unless Velumn separately designs their publication and access policy.
 
@@ -80,9 +80,9 @@ Velumn therefore keeps:
 
 ```ts
 {
-  archived: boolean;
-  archivedTimestamp: number | null;
-  locked: boolean;
+	archived: boolean;
+	archivedTimestamp: number | null;
+	locked: boolean;
 }
 ```
 
@@ -144,9 +144,9 @@ Backlinks are derived authoritative relations:
 Collection semantics must distinguish:
 
 ```ts
-attachments: undefined // unknown or not fetched
-attachments: []        // fetched and confirmed empty
-attachments: [item]    // complete replacement set
+attachments: undefined; // unknown or not fetched
+attachments: []; // fetched and confirmed empty
+attachments: [item]; // complete replacement set
 ```
 
 Message versioning must prevent an older upload completion from patching a newer edit. Object deletion and orphan recovery are separate durable projection work.

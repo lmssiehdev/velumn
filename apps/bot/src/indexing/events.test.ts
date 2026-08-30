@@ -17,6 +17,10 @@ import {
 import { Cause, Effect, Exit, Fiber, Logger, Scope } from "effect";
 import { TestClock } from "effect/testing";
 import { type DiscordEvents, makeDiscordEvents } from "../discord/events";
+import {
+	ErrorCapture,
+	type ErrorCaptureContext,
+} from "../observability/error-capture";
 import type { IndexingCoordinatorService } from "./coordinator";
 import {
 	channelOrderingKey,
@@ -105,6 +109,7 @@ const readyClient = (...guilds: Guild[]) =>
 
 const failedOutcome = (
 	submissionId: string,
+	classification: IndexingOperationError["classification"] = "database",
 ): IndexTerminalOutcome<IndexingOperationError> => ({
 	_tag: "Failed",
 	submissionId,
@@ -112,7 +117,7 @@ const failedOutcome = (
 	cause: Cause.fail(
 		new IndexingOperationError({
 			operation: "commit-mutation",
-			classification: "database",
+			classification,
 			cause: new Error("transient failure"),
 		}),
 	),
@@ -491,13 +496,21 @@ describe("indexing gateway events", () => {
 						...["UpsertChannel", "UpsertChannel", "DeleteChannel"].map(
 							(_tag) => ({
 								orderingKey: channelOrderingKey("channel-1"),
-								mutation: {
-									_tag,
-									channelId: "channel-1",
-									guildId: "guild-1",
-									...(_tag === "DeleteChannel" ? { scope: "tree" } : {}),
-									observedAt: 9,
-								},
+								mutation:
+									_tag === "DeleteChannel"
+										? {
+												_tag,
+												channelId: "channel-1",
+												guildId: "guild-1",
+												scope: "tree",
+												observedAt: 9,
+											}
+										: {
+												_tag,
+												channelId: "channel-1",
+												guildId: "guild-1",
+												observedAt: 9,
+											},
 							}),
 						),
 						...["InstallGuild", "UpsertGuild", "DeleteGuild"].map((_tag) => ({
@@ -681,6 +694,115 @@ describe("indexing gateway events", () => {
 					);
 				}),
 			),
+	);
+
+	it.effect("does not retry a terminal GuildCreate failure", () =>
+		Effect.scoped(
+			Effect.gen(function* () {
+				const harness = makeEventHarness();
+				let attempts = 0;
+				yield* makeIndexingEvents(harness.events, {
+					...makeCoordinator([]),
+					submit: (submission) =>
+						Effect.sync(() => {
+							attempts += 1;
+							return {
+								_tag: "Accepted",
+								receipt: {
+									await: Effect.succeed(
+										failedOutcome(submission.id, "discord-permission"),
+									),
+								},
+							} as const;
+						}),
+				});
+
+				yield* harness.emit(Events.GuildCreate, { id: "guild-1" } as Guild);
+				yield* TestClock.adjust("1 minute");
+				assert.equal(attempts, 1);
+			}),
+		),
+	);
+
+	it.effect(
+		"captures a defective GuildCreate receipt once without retrying",
+		() =>
+			Effect.scoped(
+				Effect.gen(function* () {
+					const harness = makeEventHarness();
+					const captures: ErrorCaptureContext[] = [];
+					let attempts = 0;
+					yield* makeIndexingEvents(harness.events, {
+						...makeCoordinator([]),
+						submit: (submission) =>
+							Effect.sync(() => {
+								attempts += 1;
+								return {
+									_tag: "Accepted",
+									receipt: {
+										await: Effect.succeed({
+											_tag: "Failed",
+											submissionId: submission.id,
+											failedAt: 0,
+											cause: Cause.die(new Error("unexpected defect")),
+										}),
+									},
+								} as const;
+							}),
+					}).pipe(
+						Effect.provideService(ErrorCapture, {
+							captureCause: (_cause, context) =>
+								Effect.sync(() => {
+									captures.push(context);
+									return undefined;
+								}),
+						}),
+					);
+
+					yield* harness.emit(Events.GuildCreate, { id: "guild-1" } as Guild);
+					yield* TestClock.adjust("1 minute");
+					assert.equal(attempts, 1);
+					assert.equal(captures.length, 1);
+					assert.equal(captures[0]?.boundary, "discord_event_handler");
+					assert.equal(
+						captures[0]?.operation,
+						"indexing.guild_installation_receipt",
+					);
+					assert.equal(captures[0]?.guildId, "guild-1");
+					assert.isString(captures[0]?.submissionId);
+				}),
+			),
+	);
+
+	it.effect("stops cleanly for an interrupted GuildCreate receipt", () =>
+		Effect.scoped(
+			Effect.gen(function* () {
+				const harness = makeEventHarness();
+				let attempts = 0;
+				yield* makeIndexingEvents(harness.events, {
+					...makeCoordinator([]),
+					submit: (submission) =>
+						Effect.sync(() => {
+							attempts += 1;
+							return {
+								_tag: "Accepted",
+								receipt: {
+									await: Effect.succeed({
+										_tag: "Failed",
+										submissionId: submission.id,
+										failedAt: 0,
+										cause: Cause.interrupt(1),
+									}),
+								},
+							} as const;
+						}),
+				});
+
+				yield* harness.emit(Events.GuildCreate, { id: "guild-1" } as Guild);
+				yield* TestClock.adjust("1 minute");
+				assert.equal(attempts, 1);
+			}),
+		),
 	);
 
 	it.effect(

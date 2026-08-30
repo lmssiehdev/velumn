@@ -5,6 +5,7 @@ import {
 	Effect,
 	Exit,
 	Fiber,
+	Metric,
 	Option,
 	Redacted,
 	Ref,
@@ -65,10 +66,76 @@ describe("Discord lifecycle", () => {
 			assert.equal(roots.length, 2);
 			assert.notEqual(roots[0]?.traceId, roots[1]?.traceId);
 			assert.isTrue(roots.every((span) => Option.isNone(span.parent)));
+			assert.isTrue(
+				roots.every(
+					(span) => span.attributes.get("discord.event.category") === "other",
+				),
+			);
 
 			yield* Scope.close(scope, Exit.void);
 			yield* Effect.promise(() => client.destroy());
 		}),
+	);
+
+	it.effect(
+		"records Discord handler category, outcome, and duration once",
+		() =>
+			Effect.gen(function* () {
+				const client = makeTestClient();
+				const scope = yield* Scope.make();
+				const started = yield* Deferred.make<void>();
+				const release = yield* Deferred.make<void>();
+				const events = yield* makeDiscordEvents(client).pipe(
+					Scope.provide(scope),
+				);
+				const before = yield* Metric.snapshot;
+				const previous = before.find(
+					(metric) =>
+						metric.id === "velumn_bot_discord_events_total" &&
+						metric.attributes?.category === "message" &&
+						metric.attributes.outcome === "succeeded",
+				);
+				const previousCount =
+					previous?.type === "Counter" ? Number(previous.state.count) : 0;
+
+				yield* events
+					.forkOn(Events.MessageCreate, () =>
+						Deferred.succeed(started, undefined).pipe(
+							Effect.andThen(Deferred.await(release)),
+						),
+					)
+					.pipe(Scope.provide(scope));
+				client.emit(Events.MessageCreate, {} as never);
+				yield* Deferred.await(started);
+				yield* TestClock.adjust("25 millis");
+				yield* Deferred.succeed(release, undefined);
+				yield* Scope.close(scope, Exit.void);
+
+				const after = yield* Metric.snapshot;
+				const counter = after.find(
+					(metric) =>
+						metric.id === "velumn_bot_discord_events_total" &&
+						metric.attributes?.category === "message" &&
+						metric.attributes.outcome === "succeeded",
+				);
+				const histogram = after.find(
+					(metric) =>
+						metric.id === "velumn_bot_discord_event_duration_ms" &&
+						metric.attributes?.category === "message" &&
+						metric.attributes.outcome === "succeeded",
+				);
+				assert.equal(counter?.type, "Counter");
+				assert.equal(
+					counter?.type === "Counter" ? Number(counter.state.count) : 0,
+					previousCount + 1,
+				);
+				assert.equal(histogram?.type, "Histogram");
+				assert.isAtLeast(
+					histogram?.type === "Histogram" ? histogram.state.sum : 0,
+					25,
+				);
+				yield* Effect.promise(() => client.destroy());
+			}),
 	);
 
 	it.effect("removes plain listeners when their scope closes", () =>
