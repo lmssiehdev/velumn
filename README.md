@@ -25,4 +25,4 @@ Stack: Bun, Effect v4, MCP over Streamable HTTP.
 
 ## License
 
-[GPL-3.0-only](LICENSE)
+[AGPL-3.0-only](LICENSE)
