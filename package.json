@@ -1,6 +1,7 @@
 {
   "name": "velumn",
   "private": true,
+  "type": "module",
   "license": "AGPL-3.0-only",
   "packageManager": "bun@1.4.4",
   "workspaces": [
@@ -9,18 +10,18 @@
   "scripts": {
     "dev": "bun run --filter @velumn/server dev",
     "fmt": "bun fmt",
-    "fmt:check": "bun fmt --check",
-    "lint": "effect-tsgo oxlint .",
-    "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun test",
-    "check": "bun run fmt:check && bun run lint && bun run typecheck && bun run test",
-    "prepare": "effect-tsgo patch --no-typescript --oxlint"
+    "lint": "effect-tsgo oxlint --type-aware --deny-warnings",
+    "typecheck": "effect-tsgo tsc -p apps/server/tsconfig.json",
+    "test": "bun --bun vitest run --pool=threads",
+    "check": "bun fmt --check && bun run lint && bun run typecheck && bun run test"
   },
   "devDependencies": {
     "@effect/tsgo": "0.73.2",
+    "@effect/vitest": "4.1.5",
     "@types/bun": "1.4.5",
     "oxlint": "1.94.0",
     "oxlint-tsgolint": "7.0.2007",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "5.1.1"
   }
 }

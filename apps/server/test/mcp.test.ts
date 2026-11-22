@@ -1,118 +1,43 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
+/** MCP tools, exercised through Effect's in-memory MCP client on every served revision. */
+import { assert, describe, it } from "@effect/vitest";
+import { Effect } from "effect";
+import { McpProtocol, McpTest } from "effect/ai";
+import { TestClock } from "effect/testing";
+import { registrations } from "../src/mcp/server.ts";
 
-const port = 39000 + Math.floor(Math.random() * 500);
-const base = `http://127.0.0.1:${port}`;
-const headers = {
-  "content-type": "application/json",
-  accept: "application/json, text/event-stream",
-};
-let server: ReturnType<typeof Bun.spawn>;
+const revisions = [
+  McpProtocol.v2026_07_28,
+  McpProtocol.v2025_11_25,
+  McpProtocol.v2025_06_18,
+] as const;
 
-const rpc = async (body: unknown, extra: Record<string, string> = {}) => {
-  const res = await fetch(`${base}/mcp`, {
-    method: "POST",
-    headers: { ...headers, ...extra },
-    body: JSON.stringify(body),
-  });
-  return res;
-};
-
-beforeAll(async () => {
-  server = Bun.spawn(["bun", "src/main.ts"], {
-    cwd: `${import.meta.dir}/..`,
-    env: { ...process.env, PORT: String(port), HOST: "127.0.0.1" },
-    stdout: "ignore",
-    stderr: "ignore",
-  });
-  for (let i = 0; i < 50; i++) {
-    const up = await fetch(`${base}/health`).then(
-      (r) => r.ok,
-      () => false,
-    );
-    if (up) return;
-    await Bun.sleep(100);
-  }
-  throw new Error("server did not start");
-});
-
-afterAll(() => server.kill());
-
-test("GET /health reports ok", async () => {
-  const body = (await (await fetch(`${base}/health`)).json()) as {
-    ok: boolean;
-  };
-  expect(body.ok).toBe(true);
-});
-
-test("MCP 2026-07-28 (stateless): call health without a session", async () => {
-  const version = "2026-07-28";
-  const res = await rpc(
-    {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: {
-        name: "health",
-        arguments: {},
-        _meta: {
-          "io.modelcontextprotocol/protocolVersion": version,
-          "io.modelcontextprotocol/clientCapabilities": {},
-        },
-      },
-    },
-    {
-      "mcp-protocol-version": version,
-      "mcp-method": "tools/call",
-      "mcp-name": "health",
-    },
+describe.each(revisions)("MCP $protocolVersion", (protocol) => {
+  it.effect("lists the status tool as read-only", () =>
+    Effect.gen(function* () {
+      const client = yield* McpTest.makeClient(registrations, {
+        protocols: [protocol],
+      });
+      const { tools } = yield* client.listTools({});
+      assert.deepStrictEqual(
+        tools.map((tool) => tool.name),
+        ["status"],
+      );
+      assert.strictEqual(tools[0]?.annotations?.readOnlyHint, true);
+    }),
   );
-  expect(res.status).toBe(200);
-  const call = (await res.json()) as {
-    result: { structuredContent: { ok: boolean }; isError: boolean };
-  };
-  expect(call.result.isError).toBe(false);
-  expect(call.result.structuredContent.ok).toBe(true);
-});
 
-test("MCP 2025-11-25 (stateful): initialize, list tools, call health", async () => {
-  const init = await rpc({
-    jsonrpc: "2.0",
-    id: 1,
-    method: "initialize",
-    params: {
-      protocolVersion: "2025-11-25",
-      capabilities: {},
-      clientInfo: { name: "test", version: "0" },
-    },
-  });
-  expect(init.status).toBe(200);
-  expect(init.headers.get("mcp-session-id")).toBeTruthy();
-  const session = {
-    "mcp-session-id": init.headers.get("mcp-session-id") ?? "",
-    "mcp-protocol-version": "2025-11-25",
-  };
-  await rpc({ jsonrpc: "2.0", method: "notifications/initialized" }, session);
-
-  const list = (await (
-    await rpc({ jsonrpc: "2.0", id: 2, method: "tools/list" }, session)
-  ).json()) as {
-    result: { tools: { name: string }[] };
-  };
-  expect(list.result.tools.map((t) => t.name)).toEqual(["health"]);
-
-  const call = (await (
-    await rpc(
-      {
-        jsonrpc: "2.0",
-        id: 3,
-        method: "tools/call",
-        params: { name: "health", arguments: {} },
-      },
-      session,
-    )
-  ).json()) as {
-    result: { structuredContent: { ok: boolean }; isError: boolean };
-  };
-  expect(call.result.isError).toBe(false);
-  expect(call.result.structuredContent.ok).toBe(true);
+  it.effect("status reports version and uptime", () =>
+    Effect.gen(function* () {
+      const client = yield* McpTest.makeClient(registrations, {
+        protocols: [protocol],
+      });
+      yield* TestClock.adjust("90 seconds");
+      const result = yield* client.callTool({ name: "status", arguments: {} });
+      assert.isFalse(result.isError ?? false);
+      assert.deepStrictEqual(result.structuredContent, {
+        version: "0.0.0",
+        uptimeSeconds: 90,
+      });
+    }),
+  );
 });

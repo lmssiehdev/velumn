@@ -1,12 +1,8 @@
 node_modules
 dist
 coverage
+data
 .env
 .env.*
 !.env.example
 .DS_Store
-*.pem
-
-# Local
-/resources
-/inspiration

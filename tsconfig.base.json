@@ -1,17 +1,35 @@
 {
   "compilerOptions": {
     "target": "ES2024",
+    "lib": ["ES2024"],
     "module": "Preserve",
     "moduleResolution": "bundler",
-    "lib": ["ES2024"],
     "types": ["bun"],
     "strict": true,
-    "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          "floatingEffect": "error",
+          "missingEffectContext": "error",
+          "missingEffectError": "error",
+          "missingLayerContext": "error",
+          "leakingRequirements": "error",
+          "missingReturnYieldStar": "error",
+          "globalFetchInEffect": "error",
+          "globalConsoleInEffect": "error",
+          "globalDateInEffect": "warning",
+          "unstableApiUsage": "off"
+        }
+      }
+    ]
   }
 }

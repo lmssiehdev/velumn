@@ -1,8 +1,13 @@
 services:
   velumn:
     build: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # Bound to localhost. Put a TLS reverse proxy in front before exposing it.
     ports:
-      - "3000:3000"
-    env_file:
-      - path: .env
-        required: false
+      - "127.0.0.1:3000:3000"
+    environment:
+      # Required. Clients send it as `Authorization: Bearer <token>`.
+      # Generate one with: openssl rand -hex 32
+      VELUMN_TOKEN: ${VELUMN_TOKEN:?set VELUMN_TOKEN in .env}

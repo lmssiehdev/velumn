@@ -1,2 +1,4 @@
 [install]
-linker = "hoisted"
+exact = true
+# Skip versions published in the last 24 hours (supply-chain safety).
+minimumReleaseAge = 86400
