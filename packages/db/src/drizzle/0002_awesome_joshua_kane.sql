@@ -1,1 +1,0 @@
-ALTER TABLE "db_message" ADD COLUMN "stickers" json DEFAULT 'null'::json;

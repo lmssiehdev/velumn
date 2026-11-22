@@ -1,4 +1,0 @@
-strict-peer-dependencies=false
-auto-install-peers=true
-public-hoist-pattern[]=*import-in-the-middle*
-public-hoist-pattern[]=*require-in-the-middle*

@@ -1,1 +1,0 @@
-ALTER TABLE "attachments" ADD CONSTRAINT "attachments_message_id_db_message_id_fk" FOREIGN KEY ("message_id") REFERENCES "public"."db_message"("id") ON DELETE cascade ON UPDATE no action;

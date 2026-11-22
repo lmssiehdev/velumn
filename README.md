@@ -1,36 +1,28 @@
-<h1 align="center">
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M169.57,72.59A80,80,0,0,0,16,104v64a16,16,0,0,0,16,16H86.67A80.15,80.15,0,0,0,160,232h64a16,16,0,0,0,16-16V152A80,80,0,0,0,169.57,72.59ZM32,104a64,64,0,1,1,64,64H32ZM224,216H160a64.14,64.14,0,0,1-55.68-32.43A79.93,79.93,0,0,0,174.7,89.71,64,64,0,0,1,224,152Z"></path></svg>
-Velumn</h1>
+# Velumn
 
-<p align="center">
-    <strong>The community platform built for Discord.</strong>
-    <br />
-    <br />
-    <a href="https://velumn.com"><strong>Learn more »</strong></a>
-    ·
-    <a href="https://velumn.com/thread/1436230598959300718/a_demo_thread"><strong>View Demo »</strong></a>
-    <br />
-</p>
+Open-source, self-hosted search over your Discord server, exposed to AI agents over MCP.
 
-## About
+> Status: foundation only. The server runs and exposes one `health` tool. Discord ingest and search come next.
 
-Velumn turns your Discord server into an SEO-optimized forum. Take advantage of Discord to grow your community without any of the downsides.
+## Run
 
-## Built With
+```sh
+bun install
+bun run dev        # http://localhost:3000  (MCP at /mcp, health at /health)
+```
 
-- **[Next.js](https://nextjs.org)** - React framework
-- **[Tailwind CSS](https://tailwindcss.com)** - Styling
-- **[Drizzle](https://orm.drizzle.team)** - TypeScript ORM
-- **[Better Auth](https://www.better-auth.com)** - Authentication
-- **[Sapphire](https://www.sapphirejs.dev)** - Discord bot framework
-- **[Bun](https://bun.sh)** 💜
+## Develop
 
-## Contributing
+| Command             | What it does                                       |
+| ------------------- | -------------------------------------------------- |
+| `bun run fmt`       | Format with Bun                                    |
+| `bun run lint`      | Oxlint with the Effect rules (`@effect/tsgo`)      |
+| `bun run typecheck` | Type check with `effect-tsgo tsc`                  |
+| `bun run test`      | Bun tests (starts the server and speaks MCP to it) |
+| `bun run check`     | All of the above, as CI runs it                    |
 
-Please see our [contributing guide](CONTRIBUTING.md) for details.
+Stack: Bun, Effect v4, MCP over Streamable HTTP.
 
-## Links
+## License
 
-- [Website](https://velumn.com)
-- [Documentation](https://docs.velumn.com)
-- [Discord Community](https://velumn.com/discord)
+[GPL-3.0-only](LICENSE)

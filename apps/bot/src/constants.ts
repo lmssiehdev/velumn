@@ -1,9 +1,0 @@
-export const TEST_GUILDS = {
-	N: "1228579842212106302",
-	T: "1385955477912948806",
-	EMPTY_TEST_SERVER: "1418801587048157216",
-};
-
-export const EVERY_DAY_AT_MIDNIGHT = "0 0 * * *";
-
-export const MESSAGES_INDEX_NAME = "discord-messages";

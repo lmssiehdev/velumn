@@ -1,0 +1,14 @@
+{
+  "name": "@velumn/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "typecheck": "effect-tsgo tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "4.1.5",
+    "effect": "4.1.5"
+  }
+}
