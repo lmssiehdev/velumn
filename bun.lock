@@ -6,7 +6,7 @@
       "name": "velumn",
       "devDependencies": {
         "@effect/tsgo": "0.73.2",
-        "@types/bun": "latest",
+        "@types/bun": "1.4.5",
         "oxlint": "1.94.0",
         "oxlint-tsgolint": "7.0.2007",
         "typescript": "7.0.2",

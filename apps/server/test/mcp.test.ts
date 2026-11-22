@@ -44,7 +44,37 @@ test("GET /health reports ok", async () => {
   expect(body.ok).toBe(true);
 });
 
-test("MCP: initialize, list tools, call health", async () => {
+test("MCP 2026-07-28 (stateless): call health without a session", async () => {
+  const version = "2026-07-28";
+  const res = await rpc(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: "health",
+        arguments: {},
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": version,
+          "io.modelcontextprotocol/clientCapabilities": {},
+        },
+      },
+    },
+    {
+      "mcp-protocol-version": version,
+      "mcp-method": "tools/call",
+      "mcp-name": "health",
+    },
+  );
+  expect(res.status).toBe(200);
+  const call = (await res.json()) as {
+    result: { structuredContent: { ok: boolean }; isError: boolean };
+  };
+  expect(call.result.isError).toBe(false);
+  expect(call.result.structuredContent.ok).toBe(true);
+});
+
+test("MCP 2025-11-25 (stateful): initialize, list tools, call health", async () => {
   const init = await rpc({
     jsonrpc: "2.0",
     id: 1,
@@ -55,6 +85,8 @@ test("MCP: initialize, list tools, call health", async () => {
       clientInfo: { name: "test", version: "0" },
     },
   });
+  expect(init.status).toBe(200);
+  expect(init.headers.get("mcp-session-id")).toBeTruthy();
   const session = {
     "mcp-session-id": init.headers.get("mcp-session-id") ?? "",
     "mcp-protocol-version": "2025-11-25",
